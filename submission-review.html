@@ -1,0 +1,348 @@
+<!-- Submission Review (Judge View) -->
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>OPE 제출물 심사 - 블라인드 심사 모드</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#00897B", // OPE Teal
+                        "primary-hover": "#00695C",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#102220",
+                        "surface": "#FFFFFF",
+                        "text-main": "#0F172A",
+                        "text-muted": "#64748B",
+                        "border": "#E2E8F0",
+                        "success": "#10B981",
+                        "error": "#EF4444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.375rem", // 6px
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                font-family: 'Inter', 'Pretendard', sans-serif;
+                -webkit-font-smoothing: antialiased;
+            }
+        }
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            border: 2px solid #00897B;
+            cursor: pointer;
+            margin-top: -8px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #E2E8F0;
+            border-radius: 2px;
+        }
+        input[type=range]:focus::-webkit-slider-runnable-track {
+            background: #CBD5E1;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #CBD5E1;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark h-screen flex flex-col text-text-main overflow-hidden">
+    <header class="h-16 flex-none bg-surface border-b border-border px-6 flex items-center justify-between z-20">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2 text-primary">
+                <span class="material-symbols-outlined text-[28px]">token</span>
+                <span class="font-bold text-lg tracking-tight text-text-main">OPE 플랫폼</span>
+            </div>
+            <div class="h-6 w-px bg-border mx-2"></div>
+            <nav class="flex items-center gap-2 text-sm text-text-muted">
+                <a class="hover:text-primary transition-colors" href="#">대시보드</a>
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                <a class="hover:text-primary transition-colors" href="#">Q3 효율성 챌린지</a>
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                <span class="text-text-main font-medium">제출물 #42</span>
+            </nav>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-background-light border border-border">
+                <div class="bg-primary/10 rounded-full p-1">
+                    <span class="material-symbols-outlined text-primary text-sm">schedule</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase tracking-wide text-text-muted font-bold">남은 검토 시간</span>
+                    <span class="text-xs font-mono font-medium text-text-main">2일 14시간 32분</span>
+                </div>
+            </div>
+            <button
+                class="flex items-center justify-center gap-2 h-9 px-4 rounded border border-border bg-white text-text-main text-sm font-medium hover:bg-gray-50 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+                <span>검토 종료</span>
+            </button>
+            <div class="size-8 rounded-full bg-slate-200 border border-slate-300 overflow-hidden relative">
+                <img alt="사용자 아바타" class="w-full h-full object-cover"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8Fkj-TQYeB2OEcHtY5-vZFCDkcHG9lvLX6fWeoz_2pSvjiqSFCZvSKEOyDhFHvxGxE1yN5QHlVI0D5KgJWNdIumwjdbmQNIZQkHhNsSM8YtY6bGZfB_jEV49fQNe5wUieeJ4iX6eMoqHDCHHDy6e5JqOSuTlXM6BQW6VfAIs_iu38wBdIsI-4D0SyU_pSmq5E5mvrz9JasWI2mnWFVsCcUpd37qeVJGIt2ArTzUIwE-32Zarcc7jFT6ukGig4Q8F7-oX39MKupXE" />
+            </div>
+        </div>
+    </header>
+    <main class="flex-1 flex overflow-hidden">
+        <section
+            class="w-[60%] h-full overflow-y-auto custom-scrollbar bg-background-light border-r border-border p-8 pb-24">
+            <div
+                class="max-w-3xl mx-auto bg-surface border border-border rounded-lg shadow-sm p-10 min-h-full relative">
+                <div class="absolute top-6 right-6">
+                    <div
+                        class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-full border border-slate-200 shadow-sm">
+                        <span class="material-symbols-outlined text-[16px] text-slate-500">visibility_off</span>
+                        <span class="text-[11px] font-bold tracking-tight">이벤트는 블라인드 심사로 진행됩니다.</span>
+                    </div>
+                </div>
+                <div class="border-b border-border pb-6 mb-8">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span
+                            class="px-2.5 py-1 rounded bg-blue-50 text-blue-700 text-xs font-semibold tracking-wide border border-blue-100 uppercase">공정
+                            최적화</span>
+                        <span
+                            class="px-2.5 py-1 rounded bg-slate-100 text-slate-600 text-xs font-mono border border-slate-200">제출
+                            ID: SUB-2024-042</span>
+                    </div>
+                    <h1 class="text-3xl font-bold text-text-main tracking-tight leading-tight mb-4">조립 B 라인 유압 최적화 방안
+                    </h1>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="size-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 border border-slate-300">
+                                <span class="material-symbols-outlined text-[24px]">account_circle</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-text-main">익명 제안자 (ID: P-9842)</p>
+                                <p class="text-xs text-text-muted">블라인드 처리된 소속 정보</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-text-muted uppercase tracking-wide mb-1">제출 일시</p>
+                            <p class="text-sm font-mono text-text-main">2023년 10월 14일 • 오전 09:42</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="prose prose-slate max-w-none text-text-main">
+                    <h3 class="text-lg font-semibold text-text-main mb-3 mt-8">요약 (Executive Summary)</h3>
+                    <p class="text-sm leading-7 text-slate-600 mb-6">
+                        현재 조립 B 라인의 유압 조절 시스템은 고정 간격 피드백 루프로 작동하여, 높은 처리량이 요구되는 기간 동안 클램핑력에 14%의 편차가 발생합니다. 본 제안서는 기존
+                        IoT 센서를 활용하여 실시간으로 압력을 조절하는 동적 PID 제어 구현을 제안합니다. 초기 시뮬레이션 결과 편차를 2% 미만으로 줄이고 에너지 소비를 8% 절감할 수 있는
+                        것으로 나타났습니다.
+                    </p>
+                    <h3 class="text-lg font-semibold text-text-main mb-3 mt-8">문제 정의</h3>
+                    <p class="text-sm leading-7 text-slate-600 mb-4">
+                        조립 B 라인은 압력 강하로 인해 발생하는 "안전 잠금(Safety Lockout)" 오류로 인해 주기적인 미세 정지가 발생하고 있습니다. 이러한 강하는 대형 프레스
+                        스테이션 #4 및 #5의 동시 작동과 직접적인 상관관계가 있습니다. 현재 중앙 집중식 펌프는 400ms의 지연 후 보상 작용을 하며, 이는 신규 EV 배터리 모듈 조립의
+                        사이클 타임 요구 사항을 충족하기에 부족합니다.
+                    </p>
+                    <div class="bg-slate-50 border border-slate-200 rounded p-4 my-6 flex gap-4 items-start">
+                        <div class="mt-1 text-amber-500">
+                            <span class="material-symbols-outlined">warning</span>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-800">운영 리스크</h4>
+                            <p class="text-xs text-slate-500 mt-1">현재의 편차 수준에서 운영을 지속할 경우, 연간 부품 피로 고장 위험이 23% 증가합니다.
+                            </p>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-text-main mb-3 mt-8">제안 솔루션</h3>
+                    <p class="text-sm leading-7 text-slate-600 mb-4">
+                        스테이션 #4 및 #5의 PLC에 로봇 팔의 g-code 실행 스택을 기반으로 압력 수요를 예측하는 맞춤형 제어 블록을 추가할 것을 제안합니다. 이
+                        "예측(Look-ahead)" 버퍼를 통해 수요 급증이 발생하기 150ms 전에 중앙 펌프가 어큐뮬레이터를 미리 충전할 수 있습니다.
+                    </p>
+                    <div class="my-8 w-full h-64 bg-slate-100 rounded border border-slate-200 flex items-center justify-center relative overflow-hidden"
+                        data-alt="새로운 센서 배치가 강조된 유압 흐름도를 보여주는 기술 다이어그램">
+                        <span class="text-slate-400 text-sm font-mono flex items-col gap-2 items-center">
+                            <span class="material-symbols-outlined">image</span>
+                            다이어그램: 유압 로직 플로우 V2.0
+                        </span>
+                        <div
+                            class="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-400 via-slate-100 to-transparent">
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-text-main mb-3 mt-8">예상 ROI 및 기대 효과</h3>
+                    <ul class="list-disc pl-5 space-y-2 text-sm text-slate-600 mb-6">
+                        <li><strong>다운타임 감소:</strong> 교대 근무당 약 15회의 미세 정지 제거 (주당 약 45분 절감).</li>
+                        <li><strong>품질 보증:</strong> 일관된 클램핑력으로 재작업률 0.5% 감소.</li>
+                        <li><strong>비용:</strong> 신규 하드웨어 추가 없이 PLC 재프로그래밍을 위한 40 엔지니어링 시간만 소요.</li>
+                    </ul>
+                </div>
+                <div class="border-t border-border pt-6 mt-8">
+                    <h3 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-4">참조 및 증빙 서류</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div
+                            class="flex items-center gap-3 p-3 rounded border border-border bg-slate-50 hover:bg-white hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer group">
+                            <div
+                                class="size-10 flex items-center justify-center bg-white border border-border rounded text-red-500 group-hover:text-red-600">
+                                <span class="material-symbols-outlined">picture_as_pdf</span>
+                            </div>
+                            <div class="flex flex-col overflow-hidden">
+                                <span class="text-sm font-medium text-text-main truncate">시뮬레이션_결과_v3.pdf</span>
+                                <span class="text-xs text-text-muted">2.4 MB</span>
+                            </div>
+                        </div>
+                        <div
+                            class="flex items-center gap-3 p-3 rounded border border-border bg-slate-50 hover:bg-white hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer group">
+                            <div
+                                class="size-10 flex items-center justify-center bg-white border border-border rounded text-blue-500 group-hover:text-blue-600">
+                                <span class="material-symbols-outlined">table_chart</span>
+                            </div>
+                            <div class="flex flex-col overflow-hidden">
+                                <span class="text-sm font-medium text-text-main truncate">비용_대비_편익_분석.xlsx</span>
+                                <span class="text-xs text-text-muted">856 KB</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <aside class="w-[40%] h-full bg-surface border-l border-border flex flex-col shadow-xl z-10">
+            <div class="px-6 py-5 border-b border-border bg-surface">
+                <h2 class="text-lg font-bold text-text-main flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">rate_review</span>
+                    심사 평가표
+                </h2>
+                <p class="text-sm text-text-muted mt-1">챌린지 평가 기준에 따라 본 제출물을 심사해 주세요.</p>
+            </div>
+            <div class="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+                <div class="space-y-3">
+                    <div class="flex justify-between items-end">
+                        <label class="text-sm font-semibold text-text-main">혁신성 및 창의성</label>
+                        <span class="text-2xl font-bold text-primary font-mono">8<span
+                                class="text-sm text-text-muted font-normal">/10</span></span>
+                    </div>
+                    <p class="text-xs text-text-muted">제안된 솔루션이 새로운 접근 방식을 제공하거나 기존 방식 대비 유의미한 개선을 포함합니까?</p>
+                    <div class="relative pt-1">
+                        <input
+                            class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            max="10" min="1" type="range" value="8" />
+                        <div class="flex justify-between text-[10px] text-text-muted font-mono mt-1 px-1">
+                            <span>매우 낮음</span>
+                            <span>보통</span>
+                            <span>매우 높음</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-end">
+                        <label class="text-sm font-semibold text-text-main">기술적 실현 가능성</label>
+                        <span class="text-2xl font-bold text-primary font-mono">9<span
+                                class="text-sm text-text-muted font-normal">/10</span></span>
+                    </div>
+                    <p class="text-xs text-text-muted">제안된 솔루션이 현재의 기술적 제약 조건 내에서 현실적으로 구현 가능합니까?</p>
+                    <div class="relative pt-1">
+                        <input
+                            class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            max="10" min="1" type="range" value="9" />
+                        <div class="flex justify-between text-[10px] text-text-muted font-mono mt-1 px-1">
+                            <span>매우 낮음</span>
+                            <span>보통</span>
+                            <span>매우 높음</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-end">
+                        <label class="text-sm font-semibold text-text-main">비즈니스 임팩트</label>
+                        <span class="text-2xl font-bold text-primary font-mono">7<span
+                                class="text-sm text-text-muted font-normal">/10</span></span>
+                    </div>
+                    <p class="text-xs text-text-muted">조직에 대한 예상 ROI 및 장기적인 운영 이익은 어느 정도입니까?</p>
+                    <div class="relative pt-1">
+                        <input
+                            class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            max="10" min="1" type="range" value="7" />
+                        <div class="flex justify-between text-[10px] text-text-muted font-mono mt-1 px-1">
+                            <span>매우 낮음</span>
+                            <span>보통</span>
+                            <span>매우 높음</span>
+                        </div>
+                    </div>
+                </div>
+                <hr class="border-border" />
+                <div class="flex items-center justify-between bg-slate-50 p-4 rounded-lg border border-border">
+                    <span class="text-sm font-semibold text-text-muted uppercase tracking-wide">종합 점수</span>
+                    <div class="text-right">
+                        <span class="text-4xl font-bold text-text-main font-mono tracking-tight">24<span
+                                class="text-lg text-text-muted font-normal">/30</span></span>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-text-main flex justify-between">
+                        심사평 (비공개)
+                        <span class="text-xs font-normal text-text-muted italic">관리자 및 본인에게만 공개됩니다</span>
+                    </label>
+                    <textarea
+                        class="w-full h-32 p-3 text-sm text-text-main bg-white border border-border rounded focus:ring-1 focus:ring-primary focus:border-primary resize-none"
+                        placeholder="점수 산정 근거, 우려 사항 또는 상세 피드백을 입력하세요..."></textarea>
+                </div>
+            </div>
+            <div class="p-6 border-t border-border bg-surface flex flex-col gap-3">
+                <div class="flex gap-3">
+                    <button
+                        class="flex-1 py-2.5 px-4 border border-error/30 text-error hover:bg-error/5 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">thumb_down</span>
+                        반려
+                    </button>
+                    <button
+                        class="flex-1 py-2.5 px-4 border border-primary text-primary hover:bg-primary/5 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">thumb_up</span>
+                        승인
+                    </button>
+                </div>
+                <button
+                    class="w-full py-3 px-4 bg-primary hover:bg-primary-hover text-white rounded font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                    심사 완료 및 제출
+                </button>
+            </div>
+        </aside>
+    </main>
+
+</body>
+
+</html>

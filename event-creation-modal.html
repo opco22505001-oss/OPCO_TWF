@@ -1,0 +1,212 @@
+<!-- Event Creation Modal -->
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>이벤트 생성 모달 - OPE 플랫폼</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ecd6",
+                        "primary-hover": "#0ddbc7",
+                        "primary-text": "#102220",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#102220",
+                        "surface-light": "#ffffff",
+                        "border-light": "#e2e8f0",
+                        "text-main": "#0f172a",
+                        "text-muted": "#64748b",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: { "DEFAULT": "0.375rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                    boxShadow: {
+                        "modal": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark font-display text-text-main h-screen w-full overflow-hidden flex items-center justify-center relative">
+    <div aria-hidden="true" class="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
+        <div
+            class="h-16 border-b border-border-light bg-surface-light flex items-center px-8 justify-between opacity-40 filter blur-[2px]">
+            <div class="flex items-center gap-4">
+                <div class="w-8 h-8 rounded bg-primary/20"></div>
+                <div class="h-4 w-32 bg-gray-200 rounded"></div>
+            </div>
+            <div class="flex gap-4">
+                <div class="h-8 w-8 rounded-full bg-gray-200"></div>
+            </div>
+        </div>
+        <div class="p-8 grid grid-cols-3 gap-6 opacity-40 filter blur-[2px]">
+            <div class="h-64 rounded-xl border border-border-light bg-white p-6 flex flex-col gap-4">
+                <div class="h-6 w-1/2 bg-gray-100 rounded"></div>
+                <div class="h-4 w-full bg-gray-100 rounded"></div>
+            </div>
+            <div class="h-64 rounded-xl border border-border-light bg-white p-6 flex flex-col gap-4">
+                <div class="h-6 w-1/2 bg-gray-100 rounded"></div>
+                <div class="h-4 w-full bg-gray-100 rounded"></div>
+            </div>
+            <div class="h-64 rounded-xl border border-border-light bg-white p-6 flex flex-col gap-4">
+                <div class="h-6 w-1/2 bg-gray-100 rounded"></div>
+                <div class="h-4 w-full bg-gray-100 rounded"></div>
+            </div>
+        </div>
+        <div class="absolute inset-0 bg-background-dark/20 backdrop-blur-sm z-10"></div>
+    </div>
+    <div
+        class="relative z-20 w-full max-w-[640px] bg-surface-light rounded-xl shadow-modal border border-border-light flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between px-8 py-6 border-b border-border-light bg-white rounded-t-xl">
+            <div>
+                <h2 class="text-xl font-semibold tracking-tight text-text-main">새 이벤트 생성</h2>
+                <p class="text-sm text-text-muted mt-1">챌린지 설정 및 제약 조건을 구성합니다.</p>
+            </div>
+            <button class="text-text-muted hover:text-text-main transition-colors p-2 rounded hover:bg-gray-100">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+        <div class="px-8 py-4 bg-background-light border-b border-border-light flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div
+                    class="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-text text-xs font-bold font-mono">
+                    1</div>
+                <span class="text-sm font-medium text-text-main">기본 정보</span>
+            </div>
+            <div class="h-[1px] w-12 bg-gray-300"></div>
+            <div class="flex items-center gap-2 opacity-50">
+                <div
+                    class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-400 text-gray-500 text-xs font-bold font-mono">
+                    2</div>
+                <span class="text-sm font-medium text-text-muted">일정 설정</span>
+            </div>
+            <div class="h-[1px] w-12 bg-gray-300"></div>
+            <div class="flex items-center gap-2 opacity-50">
+                <div
+                    class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-400 text-gray-500 text-xs font-bold font-mono">
+                    3</div>
+                <span class="text-sm font-medium text-text-muted">가이드라인</span>
+            </div>
+        </div>
+        <div class="p-8 overflow-y-auto custom-scrollbar flex flex-col gap-6">
+            <div class="flex flex-col gap-2">
+                <label class="text-sm font-medium text-text-main" for="event-title">이벤트 제목</label>
+                <input
+                    class="w-full rounded border-border-light bg-white px-4 py-2.5 text-text-main placeholder:text-text-muted/60 focus:border-primary focus:ring-1 focus:ring-primary transition-all font-display shadow-sm"
+                    id="event-title" placeholder="예: Q3 공정 효율 개선 챌린지" type="text" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label class="text-sm font-medium text-text-main" for="event-desc">상세 설명 및 목표</label>
+                <textarea
+                    class="w-full rounded border-border-light bg-white px-4 py-3 text-text-main placeholder:text-text-muted/60 focus:border-primary focus:ring-1 focus:ring-primary transition-all font-display shadow-sm resize-none"
+                    id="event-desc" placeholder="이 이벤트의 목적과 목표를 간략하게 기술하세요..." rows="4"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                    <label class="text-sm font-medium text-text-main">시작일</label>
+                    <div class="relative">
+                        <input
+                            class="w-full rounded border-border-light bg-white pl-10 pr-4 py-2.5 text-text-main font-mono text-sm focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer hover:bg-gray-50 transition-all shadow-sm"
+                            readonly="" type="text" value="2023-10-24" />
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-2.5 text-text-muted text-[18px]">calendar_today</span>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-sm font-medium text-text-main">종료일</label>
+                    <div class="relative">
+                        <input
+                            class="w-full rounded border-border-light bg-white pl-10 pr-4 py-2.5 text-text-main font-mono text-sm focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer hover:bg-gray-50 transition-all shadow-sm"
+                            readonly="" type="text" value="2023-11-15" />
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-2.5 text-text-muted text-[18px]">event</span>
+                    </div>
+                </div>
+            </div>
+            <hr class="border-border-light my-1" />
+            <div
+                class="flex items-center justify-between p-4 rounded-lg border border-border-light bg-background-light/50">
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm font-medium text-text-main">파일 업로드 허용</span>
+                    <span class="text-xs text-text-muted">참가자가 PDF, PNG, CAD 파일 등을 첨부할 수 있습니다.</span>
+                </div>
+                <button aria-checked="true"
+                    class="group relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-primary transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    role="switch" type="button">
+                    <span class="sr-only">설정 사용</span>
+                    <span aria-hidden="true"
+                        class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                </button>
+            </div>
+            <div
+                class="flex items-center justify-between p-4 rounded-lg border border-border-light bg-background-light/50">
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm font-medium text-text-main">블라인드 심사</span>
+                    <span class="text-xs text-text-muted">심사 위원에게 제안자의 익명성을 보장합니다.</span>
+                </div>
+                <button aria-checked="false"
+                    class="group relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    role="switch" type="button">
+                    <span class="sr-only">설정 사용</span>
+                    <span aria-hidden="true"
+                        class="pointer-events-none inline-block h-5 w-5 translate-x-0 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                </button>
+            </div>
+        </div>
+        <div
+            class="flex items-center justify-between px-8 py-5 border-t border-border-light bg-gray-50/50 rounded-b-xl">
+            <button class="text-sm font-medium text-text-muted hover:text-text-main px-4 py-2 transition-colors">
+                취소
+            </button>
+            <div class="flex gap-3">
+                <button
+                    class="px-5 py-2.5 rounded text-sm font-medium text-text-main border border-border-light bg-white hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm">
+                    초안 저장
+                </button>
+                <button
+                    class="px-5 py-2.5 rounded text-sm font-bold text-primary-text bg-primary hover:bg-primary-hover shadow-sm transition-all flex items-center gap-2">
+                    <span>일정 설정으로 계속</span>
+                    <span class="material-symbols-outlined text-[16px] font-bold">arrow_forward</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
