@@ -35,8 +35,19 @@ serve(async (req) => {
         const user = MOCK_DB_USERS[empno];
 
         // 검증 1: 사번 존재 및 이름 일치 여부
-        if (!user || user.empnm !== empnm) {
-            return new Response(JSON.stringify({ error: '사번 또는 이름이 일치하지 않습니다.' }), {
+        console.log(`[Login Attempt] Received: ${empno} / ${empnm}, Looking for: ${user ? user.empnm : 'User Not Found'}`);
+
+        if (!user) {
+            console.error(`[Login Failed] User not found for empno: ${empno}`);
+            return new Response(JSON.stringify({ error: '사번이 존재하지 않습니다.' }), {
+                status: 401,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        if (user.empnm !== empnm) {
+            console.error(`[Login Failed] Name mismatch. Expected: ${user.empnm}, Got: ${empnm}`);
+            return new Response(JSON.stringify({ error: '이름이 일치하지 않습니다.' }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
