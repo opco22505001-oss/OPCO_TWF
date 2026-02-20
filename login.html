@@ -202,8 +202,8 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
 
         let supabaseClient;
-        // CDN 로드 시 window.supabase.createClient 형태로 존재할 수 있음
-        const _createClient = (window.supabase && window.supabase.createClient) || (typeof createClient !== 'undefined' ? createClient : undefined);
+        // CDN 로드 시 'supabase' 전역 객체가 생성되고, 그 안에 createClient가 존재함
+        const _createClient = (typeof supabase !== 'undefined' && supabase.createClient) || (window.supabase && window.supabase.createClient);
 
         if (_createClient) {
             supabaseClient = _createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
