@@ -159,6 +159,23 @@
                         로그인
                     </button>
                 </form>
+
+                <!-- 테스트용 단축 로그인 (개발/테스트 목적) -->
+                <div class="mt-10 pt-8 border-t border-dashed border-border-light dark:border-border-dark">
+                    <p class="text-xs text-text-muted dark:text-gray-500 mb-4 text-center font-medium">테스트용 퀵 로그인</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="quickLogin('08106002', '곽연섭')"
+                            class="flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold text-text-main dark:text-white bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-lg transition-all border border-border-light dark:border-border-dark">
+                            <span class="material-symbols-outlined text-[16px]">person</span>
+                            일반 사용자
+                        </button>
+                        <button type="button" onclick="quickLogin('ADMIN', '관리자', 'OPCO_TWF_ADMIN_2024!')"
+                            class="flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold text-text-main dark:text-white bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-lg transition-all border border-border-light dark:border-border-dark">
+                            <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+                            관리자
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -268,6 +285,27 @@
                 button.textContent = originalText;
                 button.disabled = false;
             }
+        };
+
+        // 테스트용 자동 로그인 함수
+        window.quickLogin = async function (id, name, code) {
+            document.getElementById('loginId').value = id;
+            document.getElementById('secondInput').value = name;
+
+            if (code) {
+                document.getElementById('role-admin').checked = true;
+                toggleLoginFields();
+                document.getElementById('admin_code').value = code;
+            } else {
+                document.getElementById('role-employee').checked = true;
+                toggleLoginFields();
+            }
+
+            // 약간의 지연 후 로그인 시도 (UI 반영 확인을 위해)
+            setTimeout(() => {
+                const form = document.getElementById('login-form');
+                form.dispatchEvent(new Event('submit', { cancelable: true }));
+            }, 100);
         };
 
         function toggleLoginFields() {
