@@ -193,8 +193,8 @@
         </div>
     </div>
 
-    <!-- Main Logic using Supabase CDN and local main.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Main Logic using Supabase CDN (UMD Build) and local main.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="js/main.js"></script>
     <script>
         // Supabase 설정 및 초기화 (main.js 로드 실패 대비 백업)
@@ -202,11 +202,10 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
 
         let supabaseClient;
-        // CDN 로드 시 'supabase' 전역 객체가 생성되고, 그 안에 createClient가 존재함
-        const _createClient = (typeof supabase !== 'undefined' && supabase.createClient) || (window.supabase && window.supabase.createClient);
 
-        if (_createClient) {
-            supabaseClient = _createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // window.supabase 확인 (UMD 빌드는 window.supabase에 createClient를 노출함)
+        if (window.supabase && window.supabase.createClient) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         } else {
             console.error('Supabase SDK가 로드되지 않았습니다.');
         }

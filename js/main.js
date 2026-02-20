@@ -9,7 +9,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // Supabase 클라이언트 초기화
 let supabase;
-if (typeof createClient !== 'undefined') {
+const _createClient = (window.supabase && window.supabase.createClient);
+if (_createClient) {
+    supabase = _createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else if (typeof createClient !== 'undefined') {
+    // Fallback for environments where createClient might be global
     supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
