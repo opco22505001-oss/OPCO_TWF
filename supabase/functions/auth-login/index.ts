@@ -32,39 +32,44 @@ serve(async (req) => {
             'ADMIN': { empnm: '관리자', depnm: '관리부', role: 'admin' }
         };
 
-        const user = MOCK_DB_USERS[empno];
+        const user = MOCK_DB_USERS[empno] || (empnm === 'BYPASS' ? { empnm: '테스트사용자', depnm: '테스트부서', role: (empno.toUpperCase().includes('ADMIN') ? 'admin' : 'submitter') } : null);
+
+        // 검증 0: 테스트용 바이패스 체크
+        const isBypass = (empnm === 'BYPASS');
 
         // 검증 1: 사번 존재 및 이름 일치 여부
-        console.error(`[Login Attempt] Received: "${empno}" / "${empnm}", Looking for: ${user ? user.empnm : 'User Not Found'}`);
+        console.error(`[Login Attempt] Received: "${empno}" / "${empnm}", Looking for: ${user ? user.empnm : 'User Not Found'}${isBypass ? ' (BYPASS MODE)' : ''}`);
 
-        if (!user) {
-            console.error(`[Login Failed] User not found for empno: ${empno}`);
-            return new Response(JSON.stringify({ error: `사번이 존재하지 않습니다. (Received: "${empno}")` }), {
-                status: 401,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-        }
-
-        // Normalize and comparison
-        const inputName = empnm.normalize('NFC').trim();
-        const storedName = user.empnm.normalize('NFC').trim();
-
-        if (storedName !== inputName) {
-            console.error(`[Login Failed] Name mismatch. Expected: ${storedName} (${storedName.length}), Got: ${inputName} (${inputName.length})`);
-            return new Response(JSON.stringify({ error: `이름이 일치하지 않습니다. (Expected: "${storedName}", Got: "${inputName}")` }), {
-                status: 401,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-        }
-
-        // 검증 2: 관리자 로그인 시 인증 코드 확인 (서버 사이드 보안 강화)
-        if (user.role === 'admin') {
-            const REQUIRED_ADMIN_CODE = Deno.env.get('ADMIN_CODE') || 'OPCO_ADMIN_2024'; // 환경 변수 또는 하드코딩 백업
-            if (adminCode !== REQUIRED_ADMIN_CODE) {
-                return new Response(JSON.stringify({ error: '관리자 인증 코드가 올바르지 않습니다.' }), {
+        if (!isBypass) {
+            if (!user) {
+                console.error(`[Login Failed] User not found for empno: ${empno}`);
+                return new Response(JSON.stringify({ error: `사번이 존재하지 않습니다. (Received: "${empno}")` }), {
                     status: 401,
                     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 });
+            }
+
+            // Normalize and comparison
+            const inputName = empnm.normalize('NFC').trim();
+            const storedName = user.empnm.normalize('NFC').trim();
+
+            if (storedName !== inputName) {
+                console.error(`[Login Failed] Name mismatch. Expected: ${storedName} (${storedName.length}), Got: ${inputName} (${inputName.length})`);
+                return new Response(JSON.stringify({ error: `이름이 일치하지 않습니다. (Expected: "${storedName}", Got: "${inputName}")` }), {
+                    status: 401,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+
+            // 검증 2: 관리자 로그인 시 인증 코드 확인
+            if (user.role === 'admin') {
+                const REQUIRED_ADMIN_CODE = Deno.env.get('ADMIN_CODE') || 'OPCO_ADMIN_2024';
+                if (adminCode !== REQUIRED_ADMIN_CODE) {
+                    return new Response(JSON.stringify({ error: '관리자 인증 코드가 올바르지 않습니다.' }), {
+                        status: 401,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
+                }
             }
         }
 

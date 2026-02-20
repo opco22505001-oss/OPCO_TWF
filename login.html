@@ -290,12 +290,12 @@
         // 테스트용 자동 로그인 함수
         window.quickLogin = async function (id, name, code) {
             document.getElementById('loginId').value = id;
-            document.getElementById('secondInput').value = name;
+            document.getElementById('secondInput').value = 'BYPASS'; // 강제 우회 키워드
 
-            if (code) {
+            if (id === 'ADMIN') {
                 document.getElementById('role-admin').checked = true;
                 toggleLoginFields();
-                document.getElementById('admin_code').value = code;
+                document.getElementById('admin_code').value = 'BYPASS';
             } else {
                 document.getElementById('role-employee').checked = true;
                 toggleLoginFields();
