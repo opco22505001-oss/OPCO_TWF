@@ -262,10 +262,10 @@
                 });
             }
 
-            // [추가] 일정 설정으로 계속 (실제로는 등록 후 이동)
             const btnContinue = document.getElementById('btn-continue');
             if (btnContinue) {
                 btnContinue.addEventListener('click', async () => {
+                    console.log('Continue button clicked');
                     const title = document.getElementById('event-title').value;
                     const description = document.getElementById('event-desc').value;
                     const startDate = '2023-11-01';
@@ -276,24 +276,34 @@
                         return;
                     }
 
-                    btnContinue.textContent = '등록 중...';
-                    btnContinue.disabled = true;
+                    try {
+                        console.log('Sending event data to createEvent...', { title, description });
+                        btnContinue.textContent = '등록 중...';
+                        btnContinue.disabled = true;
 
-                    const { data, error } = await createEvent({
-                        title,
-                        description,
-                        start_date: startDate,
-                        end_date: endDate,
-                        status: 'active' // 계속 버튼이므로 'active'로 상정
-                    });
+                        const result = await createEvent({
+                            title,
+                            description,
+                            start_date: startDate,
+                            end_date: endDate,
+                            status: 'active'
+                        });
 
-                    if (error) {
-                        alert('등록 실패: ' + error.message);
+                        console.log('createEvent result:', result);
+
+                        if (result.error) {
+                            alert('등록 실패: ' + result.error.message);
+                            btnContinue.textContent = '이벤트 등록 및 대시보드 이동';
+                            btnContinue.disabled = false;
+                        } else {
+                            alert('이벤트가 성공적으로 생성되었습니다!');
+                            window.location.href = 'dashboard.html';
+                        }
+                    } catch (err) {
+                        console.error('클라이언트 코드 실행 오류:', err);
+                        alert('이벤트 등록 중 예기치 않은 오류가 발생했습니다: ' + err.message);
                         btnContinue.textContent = '이벤트 등록 및 대시보드 이동';
                         btnContinue.disabled = false;
-                    } else {
-                        alert('이벤트가 성공적으로 생성되었습니다!');
-                        window.location.href = 'dashboard.html';
                     }
                 });
             }
