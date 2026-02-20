@@ -235,10 +235,26 @@
                     }
                 });
 
-                if (error) throw error;
-                if (data.error) throw new Error(data.error);
+                if (error) {
+                    // Supabase FunctionsHttpError 처리
+                    // error.context에 서버 응답 본문이 담겨있을 수 있음
+                    let errorMessage = error.message;
+                    if (error.context && error.context.json) {
+                        try {
+                            const errorBody = await error.context.json();
+                            if (errorBody.error) errorMessage = errorBody.error;
+                        } catch (e) {
+                            // JSON 파싱 실패 시 기본 메시지 유지
+                        }
+                    }
+                    throw new Error(errorMessage);
+                }
 
-                if (data.session) {
+                if (data && data.error) {
+                    throw new Error(data.error);
+                }
+
+                if (data && data.session) {
                     const { error: setSessionError } = await supabaseClient.auth.setSession(data.session);
                     if (setSessionError) throw setSessionError;
                 }
