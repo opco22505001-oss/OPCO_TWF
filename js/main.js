@@ -44,6 +44,7 @@ async function fetchEvents(statusFilter = 'all') {
 
     if (error) {
         console.error('이벤트 목록 조회 오류:', error);
+        alert('이벤트 목록 조회 실패: ' + error.message);
         return [];
     }
     return data;
@@ -104,6 +105,7 @@ async function createEvent(eventData) {
 
     if (error) {
         console.error('이벤트 생성 오류:', error);
+        alert('이벤트 생성 실패: ' + error.message);
         return { error };
     }
     return { data };
