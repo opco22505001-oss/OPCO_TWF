@@ -176,6 +176,15 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- 완전 우회 (로컬 테스트전 전용) -->
+                <div class="mt-4">
+                    <button type="button" onclick="enterAsGuest()"
+                        class="w-full flex justify-center py-2.5 px-4 border border-primary text-primary hover:bg-primary/10 rounded-lg text-xs font-semibold transition-all">
+                        게스트 모드로 접속 (로그인 서버 건너뛰기)
+                    </button>
+                    <p class="text-[10px] text-text-muted mt-2 text-center">* 서버 연결 없이 UI 및 레이아웃을 확인하기 위한 용도입니다.</p>
+                </div>
             </div>
         </div>
 
@@ -306,6 +315,22 @@
                 const form = document.getElementById('login-form');
                 form.dispatchEvent(new Event('submit', { cancelable: true }));
             }, 100);
+        };
+
+        // 완전 우회 (로컬 세션 주입)
+        window.enterAsGuest = function () {
+            const guestUser = {
+                id: '00000000-0000-0000-0000-000000000000',
+                email: 'guest@opco.internal',
+                user_metadata: {
+                    empno: 'GUEST',
+                    name: '게스트사용자',
+                    department: '테스트부서',
+                    role: 'admin' // 테스트를 위해 관리자 권한 부여
+                }
+            };
+            localStorage.setItem('MOCK_USER', JSON.stringify(guestUser));
+            window.location.href = 'dashboard.html';
         };
 
         function toggleLoginFields() {

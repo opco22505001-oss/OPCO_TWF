@@ -180,6 +180,21 @@ window.navigateToEvent = (eventId) => {
  * 알림 기능 관련 로직
  */
 document.addEventListener('DOMContentLoaded', async () => {
+    // Guest Mode (테스트용 우회)
+    const mockUserStr = localStorage.getItem('MOCK_USER');
+    if (mockUserStr) {
+        const mockUser = JSON.parse(mockUserStr);
+        console.warn('⚠️ GUEST MODE ACTIVE:', mockUser);
+
+        // Supabase Auth Mocking
+        supabase.auth.getSession = async () => ({ data: { session: { user: mockUser } }, error: null });
+        supabase.auth.getUser = async () => ({ data: { user: mockUser }, error: null });
+
+        // 알림 초기화 (ID가 있으므로 가능)
+        initNotifications(mockUser.id);
+        return;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
