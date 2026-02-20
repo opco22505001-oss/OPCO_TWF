@@ -202,8 +202,11 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
 
         let supabaseClient;
-        if (typeof createClient !== 'undefined') {
-            supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // CDN 로드 시 window.supabase.createClient 형태로 존재할 수 있음
+        const _createClient = (window.supabase && window.supabase.createClient) || (typeof createClient !== 'undefined' ? createClient : undefined);
+
+        if (_createClient) {
+            supabaseClient = _createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         } else {
             console.error('Supabase SDK가 로드되지 않았습니다.');
         }
@@ -215,8 +218,9 @@
 
             if (!client) {
                 // Supabase SDK 자체가 없는 경우 마지막 시도
-                if (typeof createClient !== 'undefined') {
-                    const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                const _createClientRetry = (window.supabase && window.supabase.createClient) || (typeof createClient !== 'undefined' ? createClient : undefined);
+                if (_createClientRetry) {
+                    const tempClient = _createClientRetry(SUPABASE_URL, SUPABASE_ANON_KEY);
                     if (tempClient) return performLogin(tempClient, empno, empnm, adminCode);
                 }
                 return { error: 'Supabase 클라이언트 초기화 실패 (네트워크 상태를 확인해주세요)' };
@@ -226,6 +230,12 @@
 
         async function performLogin(client, empno, empnm, adminCode) {
             try {
+                // client.functions가 존재하는지 확인
+                if (!client.functions) {
+                    console.error('Supabase Client에 functions 모듈이 없습니다.', client);
+                    return { error: 'Supabase Functions 모듈 초기화 실패' };
+                }
+
                 const { data, error } = await client.functions.invoke('auth-login', {
                     body: { empno, empnm, adminCode }
                 });
@@ -250,7 +260,8 @@
 
             const roleEmployee = document.getElementById('role-employee').checked;
             const loginId = document.getElementById('loginId').value;
-            const secondInput = document.getElementById('secondInput').value; // 이름(사원) 또는 PW(관리자)
+            const secondInput = document.getElementById('secondInput').value; // 이름
+            const adminCode = document.getElementById('admin_code').value; // 관리자 인증 코드
 
             const button = event.target.querySelector('button');
             const originalText = button.textContent;
@@ -259,23 +270,11 @@
 
             let result;
 
-            if (roleEmployee) {
-                // 임직원 로그인
-                if (typeof signInWithEmployeeId !== 'function') {
-                    result = await localSignInWithEmployeeId(loginId, secondInput);
-                } else {
-                    result = await signInWithEmployeeId(loginId, secondInput);
-                }
+            // 임직원, 관리자 모두 통합된 로직 사용 (사번 + 이름 + [관리자코드])
+            if (typeof signInWithEmployeeId !== 'function') {
+                result = await localSignInWithEmployeeId(loginId, secondInput, roleEmployee ? undefined : adminCode);
             } else {
-                // 관리자 로그인
-                const adminCode = document.getElementById('admin_code').value;
-
-                // 관리자 인증 코드를 서버로 전송하여 검증 (클라이언트 검증 제거)
-                if (typeof signInWithEmployeeId !== 'function') {
-                    result = await localSignInWithEmployeeId('ADMIN', '관리자', adminCode);
-                } else {
-                    result = await signInWithEmployeeId('ADMIN', '관리자', adminCode);
-                }
+                result = await signInWithEmployeeId(loginId, secondInput, roleEmployee ? undefined : adminCode);
             }
 
             if (result.error) {
@@ -294,20 +293,17 @@
             const secondInput = document.getElementById('secondInput');
             const adminField = document.getElementById('admin-field');
 
-            if (isEmployee) {
-                // 임직원 모드
-                labelLoginId.textContent = '사번 (예: 08204001)';
-                labelSecondInput.textContent = '이름 (예: 홍길동)';
-                secondInput.type = 'text';
+            // 공통 설정: 사번, 이름
+            labelLoginId.textContent = '사번 (예: 08204001)';
+            labelSecondInput.textContent = '이름 (예: 홍길동)';
+            secondInput.type = 'text';
 
+            if (isEmployee) {
+                // 임직원 모드: 관리자 코드 숨김
                 adminField.classList.remove('visible-field');
                 adminField.classList.add('hidden-field');
             } else {
-                // 관리자 모드
-                labelLoginId.textContent = '관리자 ID';
-                labelSecondInput.textContent = '비밀번호';
-                secondInput.type = 'password';
-
+                // 관리자 모드: 관리자 코드 표시
                 adminField.classList.remove('hidden-field');
                 adminField.classList.add('visible-field');
             }
