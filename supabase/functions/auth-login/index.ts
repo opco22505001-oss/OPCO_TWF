@@ -35,19 +35,23 @@ serve(async (req) => {
         const user = MOCK_DB_USERS[empno];
 
         // 검증 1: 사번 존재 및 이름 일치 여부
-        console.log(`[Login Attempt] Received: ${empno} / ${empnm}, Looking for: ${user ? user.empnm : 'User Not Found'}`);
+        console.error(`[Login Attempt] Received: "${empno}" / "${empnm}", Looking for: ${user ? user.empnm : 'User Not Found'}`);
 
         if (!user) {
             console.error(`[Login Failed] User not found for empno: ${empno}`);
-            return new Response(JSON.stringify({ error: '사번이 존재하지 않습니다.' }), {
+            return new Response(JSON.stringify({ error: `사번이 존재하지 않습니다. (Received: "${empno}")` }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
         }
 
-        if (user.empnm !== empnm) {
-            console.error(`[Login Failed] Name mismatch. Expected: ${user.empnm}, Got: ${empnm}`);
-            return new Response(JSON.stringify({ error: '이름이 일치하지 않습니다.' }), {
+        // Normalize and comparison
+        const inputName = empnm.normalize('NFC').trim();
+        const storedName = user.empnm.normalize('NFC').trim();
+
+        if (storedName !== inputName) {
+            console.error(`[Login Failed] Name mismatch. Expected: ${storedName} (${storedName.length}), Got: ${inputName} (${inputName.length})`);
+            return new Response(JSON.stringify({ error: `이름이 일치하지 않습니다. (Expected: "${storedName}", Got: "${inputName}")` }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });

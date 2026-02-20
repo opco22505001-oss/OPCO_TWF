@@ -84,10 +84,19 @@
                     </a>
                 </div>
                 <div class="flex items-center gap-4">
-                    <button class="text-sm font-medium text-text-muted hover:text-text-main">이벤트 목록</button>
-                    <button class="text-sm font-medium text-text-muted hover:text-text-main">나의 제안</button>
+                    <button class="text-sm font-medium text-text-muted hover:text-text-main"
+                        onclick="window.location.href='dashboard.html'">이벤트 목록</button>
+                    <button class="text-sm font-medium text-text-muted hover:text-text-main"
+                        onclick="window.location.href='mypage.html'">나의 제안</button>
                     <div class="h-6 w-px bg-border"></div>
-                    <div class="flex items-center gap-2">
+                    <button
+                        class="p-2 rounded-full text-text-muted hover:bg-background-light dark:hover:bg-gray-800 transition-colors relative">
+                        <span class="material-symbols-outlined text-[20px]">notifications</span>
+                        <span
+                            class="absolute top-2 right-2 hidden h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                    </button>
+                    <div class="h-6 w-px bg-border"></div>
+                    <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.href='mypage.html'">
                         <div class="h-8 w-8 rounded-full bg-slate-200 bg-cover bg-center"
                             style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDzOoiX2DxUxriGu6VyN5pwZ_zRFhwBi_HYhA3i9oK2qOdGE8gKVMOTLYqZYrCDqEVtcsL4mU5BAnbpSk9ybGwLQC2cTe0bl2OfrFNh_T7eHtSco7eAC9GyED7ghtQs_kJ1nSpI2WlM3fUbFAu2nlJH0tgdGQPNfwHVwTpiH8jPtPn3DTHVblBNc9s-nhvuQdODPjQd8y6TrftmfkGxqj6lX0lvoH6IOb1easDSrQkpNwY07g8czWwW-UYSJ43rLhXmNyyVfxy_7Xo");'>
                         </div>
@@ -120,119 +129,163 @@
                     <h1 class="text-3xl font-bold text-white shadow-sm" id="event-title">3분기 효율성 향상 챌린지</h1>
                 </div>
             </div>
-            <div class="grid grid-cols-1 lg:grid-cols-3">
-                <div class="lg:col-span-2 p-8 border-r border-border dark:border-gray-700">
-                    <div class="prose max-w-none text-text-main dark:text-gray-300">
-                        <h3>이벤트 개요</h3>
-                        <p id="event-desc">
-                            2023년 3분기 전사적 목표인 생산 효율성 15% 증대를 달성하기 위해, 각 부서의 현장 경험을 바탕으로 한 창의적이고 실질적인 개선 아이디어를 모집합니다. 특히
-                            반복적인 공정에서의 시간 단축, 불필요한 자재 낭비 절감, 그리고 설비 가동률 향상 방안에 중점을 둡니다.
-                        </p>
-                        <h3>참가 주제 (예시)</h3>
-                        <ul>
-                            <li>조립 라인 병목 현상 해소 방안</li>
-                            <li>자재 이동 동선 최적화</li>
-                            <li>설비 예방 정비 프로세스 개선</li>
-                            <li>에너지 소비 절감 아이디어</li>
-                        </ul>
-                        <h3>심사 기준</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 not-prose my-6">
-                            <div
-                                class="bg-slate-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-gray-700">
-                                <div class="text-primary font-bold mb-1">혁신성 (40%)</div>
-                                <p class="text-xs text-text-muted leading-relaxed">기존 방식과 차별화된 새로운 접근 방식인가?</p>
-                            </div>
-                            <div
-                                class="bg-slate-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-gray-700">
-                                <div class="text-primary font-bold mb-1">실현 가능성 (30%)</div>
-                                <p class="text-xs text-text-muted leading-relaxed">현실적으로 즉시 적용 가능한가?</p>
-                            </div>
-                            <div
-                                class="bg-slate-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-gray-700">
-                                <div class="text-primary font-bold mb-1">효과성 (30%)</div>
-                                <p class="text-xs text-text-muted leading-relaxed">예상되는 정량적 효과(비용/시간)가 명확한가?</p>
-                            </div>
+            <!-- Like Button -->
+            <div class="absolute bottom-8 right-8">
+                <button id="like-btn"
+                    class="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full hover:bg-white/20 transition-all text-white border border-white/20 group">
+                    <span class="material-symbols-outlined group-hover:scale-110 transition-transform"
+                        id="like-icon">favorite_border</span>
+                    <span class="font-medium" id="like-count">0</span>
+                </button>
+            </div>
+        </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3">
+            <div class="lg:col-span-2 p-8 border-r border-border dark:border-gray-700">
+                <div class="prose max-w-none text-text-main dark:text-gray-300">
+                    <h3>이벤트 개요</h3>
+                    <p id="event-desc">
+                        2023년 3분기 전사적 목표인 생산 효율성 15% 증대를 달성하기 위해, 각 부서의 현장 경험을 바탕으로 한 창의적이고 실질적인 개선 아이디어를 모집합니다. 특히
+                        반복적인 공정에서의 시간 단축, 불필요한 자재 낭비 절감, 그리고 설비 가동률 향상 방안에 중점을 둡니다.
+                    </p>
+                    <h3>참가 주제 (예시)</h3>
+                    <ul>
+                        <li>조립 라인 병목 현상 해소 방안</li>
+                        <li>자재 이동 동선 최적화</li>
+                        <li>설비 예방 정비 프로세스 개선</li>
+                        <li>에너지 소비 절감 아이디어</li>
+                    </ul>
+                    <h3>심사 기준</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 not-prose my-6">
+                        <div
+                            class="bg-slate-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-gray-700">
+                            <div class="text-primary font-bold mb-1">혁신성 (40%)</div>
+                            <p class="text-xs text-text-muted leading-relaxed">기존 방식과 차별화된 새로운 접근 방식인가?</p>
                         </div>
-                        <h3>유의 사항</h3>
-                        <p>
-                            모든 제안서는 제공된 양식을 준수해야 하며, 데이터에 기반한 근거 자료(로그, 사진 등)를 첨부할 것을 권장합니다. 블라인드 심사로 진행되므로, 파일 내에 개인
-                            정보를 포함하지 않도록 주의해 주십시오.
-                        </p>
+                        <div
+                            class="bg-slate-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-gray-700">
+                            <div class="text-primary font-bold mb-1">실현 가능성 (30%)</div>
+                            <p class="text-xs text-text-muted leading-relaxed">현실적으로 즉시 적용 가능한가?</p>
+                        </div>
+                        <div
+                            class="bg-slate-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-gray-700">
+                            <div class="text-primary font-bold mb-1">효과성 (30%)</div>
+                            <p class="text-xs text-text-muted leading-relaxed">예상되는 정량적 효과(비용/시간)가 명확한가?</p>
+                        </div>
                     </div>
+                    <h3>유의 사항</h3>
+                    <p>
+                        모든 제안서는 제공된 양식을 준수해야 하며, 데이터에 기반한 근거 자료(로그, 사진 등)를 첨부할 것을 권장합니다. 블라인드 심사로 진행되므로, 파일 내에 개인
+                        정보를 포함하지 않도록 주의해 주십시오.
+                    </p>
                 </div>
-                <div class="p-8 bg-slate-50 dark:bg-gray-800/50">
-                    <div class="sticky top-24">
-                        <h3 class="text-lg font-bold text-text-main dark:text-white mb-4">참가 정보</h3>
-                        <div class="space-y-4 mb-6">
-                            <div class="flex items-start gap-3">
-                                <div
-                                    class="p-2 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 text-primary">
-                                    <span class="material-symbols-outlined">schedule</span>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-text-main dark:text-white">접수 마감</p>
-                                    <p class="text-sm text-text-muted">2023년 10월 31일 18:00</p>
-                                    <p class="text-xs text-red-500 font-medium mt-0.5">D-2일 남음</p>
-                                </div>
-                            </div>
-                            <div class="flex items-start gap-3">
-                                <div
-                                    class="p-2 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 text-text-muted">
-                                    <span class="material-symbols-outlined">group</span>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-text-main dark:text-white">참가 대상</p>
-                                    <p class="text-sm text-text-muted">전 임직원 (개인 또는 3인 이하 팀)</p>
-                                </div>
-                            </div>
-                            <div class="flex items-start gap-3">
-                                <div
-                                    class="p-2 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 text-text-muted">
-                                    <span class="material-symbols-outlined">trophy</span>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-text-main dark:text-white">시상 혜택</p>
-                                    <p class="text-sm text-text-muted">최우수상: 200만원 + CEO 표창</p>
-                                </div>
+
+                <!-- Comments Section -->
+                <div class="mt-12 border-t border-border dark:border-gray-700 pt-8 not-prose">
+                    <h3 class="text-lg font-bold text-text-main dark:text-white mb-6 flex items-center gap-2">
+                        댓글 <span class="text-primary" id="comment-count">0</span>
+                    </h3>
+
+                    <!-- Comment List -->
+                    <div id="comment-list" class="space-y-6 mb-8">
+                        <!-- Loading state -->
+                        <div class="animate-pulse flex gap-4">
+                            <div class="rounded-full bg-slate-200 h-10 w-10"></div>
+                            <div class="flex-1 space-y-2 py-1">
+                                <div class="h-2 bg-slate-200 rounded w-1/4"></div>
+                                <div class="h-2 bg-slate-200 rounded w-full"></div>
                             </div>
                         </div>
-                        <hr class="border-border dark:border-gray-600 mb-6" />
-                        <div class="mb-6">
-                            <h4 class="text-sm font-semibold text-text-main dark:text-white mb-2">관련 자료</h4>
-                            <a class="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 hover:border-primary/50 transition-colors group mb-2"
-                                href="#">
-                                <span class="material-symbols-outlined text-red-500">picture_as_pdf</span>
-                                <div class="flex-1 overflow-hidden">
-                                    <p
-                                        class="text-sm font-medium text-text-main dark:text-white truncate group-hover:text-primary">
-                                        제출_가이드라인_v1.0.pdf</p>
-                                    <p class="text-xs text-text-muted">1.2 MB</p>
-                                </div>
-                                <span class="material-symbols-outlined text-text-muted text-[18px]">download</span>
-                            </a>
-                            <a class="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 hover:border-primary/50 transition-colors group"
-                                href="#">
-                                <span class="material-symbols-outlined text-green-500">description</span>
-                                <div class="flex-1 overflow-hidden">
-                                    <p
-                                        class="text-sm font-medium text-text-main dark:text-white truncate group-hover:text-primary">
-                                        제안서_표준_양식.docx</p>
-                                    <p class="text-xs text-text-muted">540 KB</p>
-                                </div>
-                                <span class="material-symbols-outlined text-text-muted text-[18px]">download</span>
-                            </a>
-                        </div>
-                        <button
-                            class="w-full py-3.5 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined">edit_document</span>
-                            제안서 작성하기
-                        </button>
-                        <p class="text-xs text-center text-text-muted mt-3">
-                            작성 중인 제안서는 자동 저장됩니다.
-                        </p>
                     </div>
+
+                    <!-- Comment Form -->
+                    <form id="comment-form" class="relative group">
+                        <textarea id="comment-input"
+                            class="w-full bg-slate-50 dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-4 text-text-main dark:text-white focus:ring-2 focus:ring-primary focus:border-primary placeholder-text-muted resize-none text-sm transition-all"
+                            rows="3" placeholder="이벤트에 대한 의견을 남겨주세요..." required></textarea>
+                        <div
+                            class="absolute bottom-3 right-3 opacity-0 group-focus-within:opacity-100 transition-opacity">
+                            <button type="submit"
+                                class="bg-primary hover:bg-primary-hover text-white px-4 py-1.5 rounded text-sm font-medium transition-colors shadow-sm">
+                                등록
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
+            <div class="p-8 bg-slate-50 dark:bg-gray-800/50">
+                <div class="sticky top-24">
+                    <h3 class="text-lg font-bold text-text-main dark:text-white mb-4">참가 정보</h3>
+                    <div class="space-y-4 mb-6">
+                        <div class="flex items-start gap-3">
+                            <div
+                                class="p-2 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 text-primary">
+                                <span class="material-symbols-outlined">schedule</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-text-main dark:text-white">접수 마감</p>
+                                <p class="text-sm text-text-muted">2023년 10월 31일 18:00</p>
+                                <p class="text-xs text-red-500 font-medium mt-0.5">D-2일 남음</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div
+                                class="p-2 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 text-text-muted">
+                                <span class="material-symbols-outlined">group</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-text-main dark:text-white">참가 대상</p>
+                                <p class="text-sm text-text-muted">전 임직원 (개인 또는 3인 이하 팀)</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div
+                                class="p-2 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 text-text-muted">
+                                <span class="material-symbols-outlined">trophy</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-text-main dark:text-white">시상 혜택</p>
+                                <p class="text-sm text-text-muted">최우수상: 200만원 + CEO 표창</p>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="border-border dark:border-gray-600 mb-6" />
+                    <div class="mb-6">
+                        <h4 class="text-sm font-semibold text-text-main dark:text-white mb-2">관련 자료</h4>
+                        <a class="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 hover:border-primary/50 transition-colors group mb-2"
+                            href="#">
+                            <span class="material-symbols-outlined text-red-500">picture_as_pdf</span>
+                            <div class="flex-1 overflow-hidden">
+                                <p
+                                    class="text-sm font-medium text-text-main dark:text-white truncate group-hover:text-primary">
+                                    제출_가이드라인_v1.0.pdf</p>
+                                <p class="text-xs text-text-muted">1.2 MB</p>
+                            </div>
+                            <span class="material-symbols-outlined text-text-muted text-[18px]">download</span>
+                        </a>
+                        <a class="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 hover:border-primary/50 transition-colors group"
+                            href="#">
+                            <span class="material-symbols-outlined text-green-500">description</span>
+                            <div class="flex-1 overflow-hidden">
+                                <p
+                                    class="text-sm font-medium text-text-main dark:text-white truncate group-hover:text-primary">
+                                    제안서_표준_양식.docx</p>
+                                <p class="text-xs text-text-muted">540 KB</p>
+                            </div>
+                            <span class="material-symbols-outlined text-text-muted text-[18px]">download</span>
+                        </a>
+                    </div>
+                    <button
+                        class="w-full py-3.5 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined">edit_document</span>
+                        제안서 작성하기
+                    </button>
+                    <p class="text-xs text-center text-text-muted mt-3">
+                        작성 중인 제안서는 자동 저장됩니다.
+                    </p>
+                </div>
+            </div>
+        </div>
         </div>
     </main>
     <footer class="border-t border-border dark:border-gray-700 bg-white dark:bg-surface-dark mt-12 py-8">
@@ -242,6 +295,7 @@
     </footer>
 
     <script src="js/main.js"></script>
+    <script src="js/event-interactions.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const eventId = getQueryParam('id');

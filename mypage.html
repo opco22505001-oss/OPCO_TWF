@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>마이 페이지 - OPCO : TWF</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#00897B",
+                        "primary-hover": "#00695C",
+                        "primary-light": "#E0F2F1",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#0F172A",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1E293B",
+                        "text-main": "#0F172A",
+                        "text-muted": "#64748B",
+                        "border-light": "#E2E8F0",
+                    },
+                    fontFamily: {
+                        "sans": ["Noto Sans KR", "Inter", "sans-serif"],
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen flex flex-col">
+    <!-- Header (Shared) -->
+    <header
+        class="bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-gray-700 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-4">
+                    <a href="dashboard.html" class="flex-shrink-0 flex items-center gap-2">
+                        <div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
+                            <span class="material-symbols-outlined text-xl">precision_manufacturing</span>
+                        </div>
+                        <span class="font-bold text-lg tracking-tight text-text-main dark:text-white">OPCO : TWF</span>
+                    </a>
+                    <div class="hidden md:flex h-6 w-px bg-border-light mx-2"></div>
+                    <nav class="hidden md:flex space-x-4">
+                        <a class="text-text-muted hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                            href="dashboard.html">이벤트 목록</a>
+                        <a class="text-text-main dark:text-white bg-background-light dark:bg-gray-800 px-3 py-2 rounded-md text-sm font-medium"
+                            href="mypage.html">마이 페이지</a>
+                    </nav>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button
+                        class="p-2 rounded-full text-text-muted hover:bg-background-light dark:hover:bg-gray-800 transition-colors relative">
+                        <span class="material-symbols-outlined text-[20px]">notifications</span>
+                        <span
+                            class="absolute top-2 right-2 hidden h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                    </button>
+                    <div class="h-6 w-px bg-border-light"></div>
+                    <button id="logout-btn"
+                        class="text-sm font-medium text-text-muted hover:text-red-500 transition-colors">로그아웃</button>
+                    <div class="h-6 w-px bg-border-light"></div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm font-medium text-text-main dark:text-white leading-none"
+                                id="header-user-name">-</p>
+                            <p class="text-xs text-text-muted mt-1" id="header-user-role">-</p>
+                        </div>
+                        <div class="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center text-text-muted font-bold"
+                            id="header-avatar">
+                            -
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Profile Section -->
+        <div
+            class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-gray-700 shadow-sm p-6 mb-8 flex flex-col md:flex-row items-center md:items-start gap-6">
+            <div class="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center text-4xl font-bold text-text-muted"
+                id="profile-avatar">
+                -
+            </div>
+            <div class="flex-1 text-center md:text-left">
+                <div class="flex items-center justify-center md:justify-start gap-3 mb-2">
+                    <h1 class="text-2xl font-bold text-text-main dark:text-white" id="profile-name">사용자</h1>
+                    <span
+                        class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-light text-primary border border-primary/20"
+                        id="profile-role">Submitter</span>
+                </div>
+                <p class="text-text-muted mb-4" id="profile-dept">-</p>
+                <div class="flex items-center justify-center md:justify-start gap-6 text-sm">
+                    <div class="text-center md:text-left">
+                        <p class="text-text-muted mb-0.5">제출한 제안</p>
+                        <p class="text-lg font-bold text-text-main dark:text-white" id="stat-submissions">0</p>
+                    </div>
+                    <div class="w-px h-8 bg-border-light"></div>
+                    <div class="text-center md:text-left">
+                        <p class="text-text-muted mb-0.5">배정된 심사</p>
+                        <p class="text-lg font-bold text-text-main dark:text-white" id="stat-judgments">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- content tab -->
+        <div class="mb-6 border-b border-border-light dark:border-gray-700">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button id="tab-submissions"
+                    class="border-primary text-primary whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium"
+                    aria-current="page">
+                    내 제안 목록
+                </button>
+                <button id="tab-judgments"
+                    class="border-transparent text-text-muted hover:border-gray-300 hover:text-text-main whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
+                    심사 배정 목록
+                </button>
+            </nav>
+        </div>
+
+        <!-- List Section -->
+        <div id="content-area" class="space-y-4">
+            <!-- Loading -->
+            <div class="animate-pulse space-y-4">
+                <div class="h-24 bg-slate-100 rounded-lg"></div>
+                <div class="h-24 bg-slate-100 rounded-lg"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+    <script src="js/mypage.js"></script>
+</body>
+
+</html>

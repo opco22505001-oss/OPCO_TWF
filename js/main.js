@@ -176,3 +176,152 @@ window.navigateToEvent = (eventId) => {
     window.location.href = `event-detail.html?id=${eventId}`;
 };
 
+/**
+ * 알림 기능 관련 로직
+ */
+document.addEventListener('DOMContentLoaded', async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    initNotifications(session.user.id);
+});
+
+async function initNotifications(userId) {
+    // 알림 벨 버튼 및 배지 요소 (모든 페이지 공통 구조 가정)
+    const notiBtn = document.querySelector('button .material-symbols-outlined[text*="notifications"]')?.parentElement ||
+        document.querySelector('button:has(.material-symbols-outlined:contains("notifications"))');
+
+    // 좀 더 확실한 선택자 (id가 없으므로 텍스트로 찾음)
+    const allBtns = document.querySelectorAll('button');
+    let notificationButton = null;
+    allBtns.forEach(btn => {
+        if (btn.innerText.includes('notifications')) {
+            notificationButton = btn;
+        }
+    });
+
+    if (!notificationButton) return;
+
+    // 배지 요소 만들기 또는 찾기
+    let badge = notificationButton.querySelector('.bg-red-500');
+    if (!badge && !notificationButton.querySelector('span:not(.material-symbols-outlined)')) {
+        // 배지가 없으면 생성 로직 (이미 h-2 w-2 등으로 있는 경우가 많음)
+    }
+
+    // 초기 알림 개수 로드
+    updateUnreadCount(userId, notificationButton);
+
+    // 실시간 구독
+    supabase
+        .channel('public:notifications')
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`
+        }, payload => {
+            console.log('New notification:', payload.new);
+            updateUnreadCount(userId, notificationButton);
+            showToast(payload.new.message);
+        })
+        .subscribe();
+
+    // 알림 클릭 시 드롭다운 처리
+    notificationButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleNotificationDropdown(userId, notificationButton);
+    });
+}
+
+async function updateUnreadCount(userId, btn) {
+    const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+
+    const badge = btn.querySelector('.bg-red-500');
+    if (badge) {
+        if (count > 0) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+}
+
+async function toggleNotificationDropdown(userId, btn) {
+    let dropdown = document.getElementById('notification-dropdown');
+
+    if (dropdown) {
+        dropdown.remove();
+        return;
+    }
+
+    // 드롭다운 생성
+    dropdown = document.createElement('div');
+    dropdown.id = 'notification-dropdown';
+    dropdown.className = 'absolute right-0 mt-2 w-80 bg-white dark:bg-surface-dark border border-border-light dark:border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden';
+    dropdown.style.top = '100%';
+
+    const { data: notifications, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+    let contentHtml = '<div class="px-4 py-2 border-b border-border-light dark:border-gray-700 font-bold text-sm">알림</div>';
+
+    if (!notifications || notifications.length === 0) {
+        contentHtml += '<div class="p-4 text-center text-sm text-text-muted">새로운 알림이 없습니다.</div>';
+    } else {
+        contentHtml += '<div class="max-h-64 overflow-y-auto">';
+        contentHtml += notifications.map(n => `
+            <div class="p-3 border-b border-border-light dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors ${n.is_read ? 'opacity-60' : ''}" 
+                 onclick="handleNotificationClick('${n.id}', '${n.link}')">
+                <p class="text-sm text-text-main dark:text-gray-200">${n.message}</p>
+                <p class="text-xs text-text-muted mt-1">${new Date(n.created_at).toLocaleString()}</p>
+            </div>
+        `).join('');
+        contentHtml += '</div>';
+    }
+
+    contentHtml += '<div class="p-2 text-center border-t border-border-light dark:border-gray-700"><button class="text-xs text-primary hover:underline" onclick="markAllAsRead(\'' + userId + '\')">모두 읽음 처리</button></div>';
+
+    dropdown.innerHTML = contentHtml;
+    btn.parentElement.classList.add('relative');
+    btn.parentElement.appendChild(dropdown);
+
+    // 외부 클릭 시 닫기
+    const closeDropdown = (e) => {
+        if (!dropdown.contains(e.target) && e.target !== btn) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', closeDropdown), 10);
+}
+
+window.handleNotificationClick = async (id, link) => {
+    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (link && link !== 'null') {
+        window.location.href = link;
+    } else {
+        location.reload();
+    }
+};
+
+window.markAllAsRead = async (userId) => {
+    await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
+    location.reload();
+};
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 bg-primary text-white px-6 py-3 rounded-lg shadow-2xl z-[100] animate-bounce';
+    toast.textContent = `🔔 ${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+}
+
