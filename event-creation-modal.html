@@ -198,9 +198,9 @@
                     class="px-5 py-2.5 rounded text-sm font-medium text-text-main border border-border-light bg-white hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm">
                     초안 저장
                 </button>
-                <button
+                <button id="btn-continue"
                     class="px-5 py-2.5 rounded text-sm font-bold text-primary-text bg-primary hover:bg-primary-hover shadow-sm transition-all flex items-center gap-2">
-                    <span>일정 설정으로 계속</span>
+                    <span>이벤트 등록 및 대시보드 이동</span>
                     <span class="material-symbols-outlined text-[16px] font-bold">arrow_forward</span>
                 </button>
             </div>
@@ -259,6 +259,42 @@
             if (btnClose) {
                 btnClose.addEventListener('click', () => {
                     window.location.href = 'dashboard.html';
+                });
+            }
+
+            // [추가] 일정 설정으로 계속 (실제로는 등록 후 이동)
+            const btnContinue = document.getElementById('btn-continue');
+            if (btnContinue) {
+                btnContinue.addEventListener('click', async () => {
+                    const title = document.getElementById('event-title').value;
+                    const description = document.getElementById('event-desc').value;
+                    const startDate = '2023-11-01';
+                    const endDate = '2023-11-30';
+
+                    if (!title) {
+                        alert('이벤트 제목을 입력해주세요.');
+                        return;
+                    }
+
+                    btnContinue.textContent = '등록 중...';
+                    btnContinue.disabled = true;
+
+                    const { data, error } = await createEvent({
+                        title,
+                        description,
+                        start_date: startDate,
+                        end_date: endDate,
+                        status: 'active' // 계속 버튼이므로 'active'로 상정
+                    });
+
+                    if (error) {
+                        alert('등록 실패: ' + error.message);
+                        btnContinue.textContent = '이벤트 등록 및 대시보드 이동';
+                        btnContinue.disabled = false;
+                    } else {
+                        alert('이벤트가 성공적으로 생성되었습니다!');
+                        window.location.href = 'dashboard.html';
+                    }
                 });
             }
         });
