@@ -190,6 +190,15 @@
             const events = await fetchEvents();
             console.log('Fetched events:', events);
 
+            const newEventCardHtml = `
+                <article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light dark:border-gray-600 shadow-sm hover:border-primary hover:bg-primary-light/10 transition-all duration-200 group flex flex-col h-full items-center justify-center p-6 min-h-[250px] cursor-pointer" onclick="window.location.href='event-creation-modal.html'">
+                    <div class="w-12 h-12 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center mb-4 group-hover:bg-white group-hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-2xl">add</span>
+                    </div>
+                    <h3 class="text-base font-medium text-text-main dark:text-white">새 이벤트 생성</h3>
+                    <p class="text-xs text-text-muted mt-2 text-center">조직을 위한 새로운 TWF 혁신 챌린지를 시작하세요.</p>
+                </article>`;
+
             if (!events || events.length === 0) {
                 console.warn('No events found or returned.');
                 eventList.innerHTML = `<div class="col-span-full p-10 text-center text-text-muted bg-white rounded-lg border border-dashed border-border-light">등록된 이벤트가 없습니다.</div>` + newEventCardHtml;
