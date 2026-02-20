@@ -1,4 +1,4 @@
-<!-- Event Detail (Submitter View) -->
+<!-- 이벤트 상세 (제출자 화면) -->
 <!DOCTYPE html>
 <html lang="ko">
 
@@ -7,6 +7,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>3분기 효율성 향상 챌린지 - OPCO : TWF</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap"
         rel="stylesheet" />
@@ -19,7 +20,7 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#3B82F6", // Blue for Submitter View
+                        "primary": "#3B82F6", // 제출자 화면용 파란색
                         "primary-hover": "#2563EB",
                         "primary-light": "#EFF6FF",
                         "background-light": "#F8FAFC",
@@ -111,19 +112,19 @@
                     <div class="flex items-center gap-3 text-white/90 text-sm font-medium mb-2">
                         <span
                             class="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded border border-white/30">기술연구소</span>
-                        <span class="flex items-center gap-1">
+                        <span class="flex items-center gap-1" id="event-period">
                             <span class="material-symbols-outlined text-[16px]">calendar_today</span>
                             2023-10-01 ~ 2023-10-31
                         </span>
                     </div>
-                    <h1 class="text-3xl font-bold text-white shadow-sm">3분기 효율성 향상 챌린지</h1>
+                    <h1 class="text-3xl font-bold text-white shadow-sm" id="event-title">3분기 효율성 향상 챌린지</h1>
                 </div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-3">
                 <div class="lg:col-span-2 p-8 border-r border-border dark:border-gray-700">
                     <div class="prose max-w-none text-text-main dark:text-gray-300">
                         <h3>이벤트 개요</h3>
-                        <p>
+                        <p id="event-desc">
                             2023년 3분기 전사적 목표인 생산 효율성 15% 증대를 달성하기 위해, 각 부서의 현장 경험을 바탕으로 한 창의적이고 실질적인 개선 아이디어를 모집합니다. 특히
                             반복적인 공정에서의 시간 단축, 불필요한 자재 낭비 절감, 그리고 설비 가동률 향상 방안에 중점을 둡니다.
                         </p>
@@ -240,6 +241,33 @@
         </div>
     </footer>
 
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const eventId = getQueryParam('id');
+            if (!eventId) {
+                alert('잘못된 접근입니다. 이벤트 목록으로 이동합니다.');
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            const data = await fetchEventDetails(eventId);
+
+            if (data) {
+                document.getElementById('event-title').textContent = data.title;
+                // Format dates
+                const start = formatDate(data.start_date);
+                const end = formatDate(data.end_date);
+                document.getElementById('event-period').innerHTML = `<span class="material-symbols-outlined text-[16px]">calendar_today</span> ${start} ~ ${end}`;
+
+                document.getElementById('event-desc').textContent = data.description || '상세 설명이 없습니다.';
+                document.title = `${data.title} - OPCO : TWF`;
+            } else {
+                alert('이벤트 정보를 불러올 수 없습니다.');
+                window.location.href = 'dashboard.html';
+            }
+        });
+    </script>
 </body>
 
 </html>

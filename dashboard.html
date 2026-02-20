@@ -1,13 +1,20 @@
-<!-- Dashboard (Event List) -->
+<!-- 대시보드 (이벤트 목록) -->
 <!DOCTYPE html>
-<html lang="ko"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>오리엔탈정공 | OPCO : TWF 이벤트 심사 시스템</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>오리엔탈정공 | OPCO : TWF 이벤트 심사 시스템</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -39,7 +46,7 @@
             },
         }
     </script>
-<style type="text/tailwindcss">
+    <style type="text/tailwindcss">
         body {
             font-family: 'Noto Sans KR', 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
@@ -52,294 +59,191 @@
         }
     </style>
 </head>
+
 <body class="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen flex flex-col">
-<header class="bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-gray-700 sticky top-0 z-30">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-<div class="flex justify-between h-16">
-<div class="flex items-center gap-4">
-<div class="flex-shrink-0 flex items-center gap-2">
-<div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
-<span class="material-symbols-outlined text-xl">precision_manufacturing</span>
-</div>
-<span class="font-bold text-lg tracking-tight text-text-main dark:text-white">OPCO : TWF 이벤트 심사 시스템</span>
-</div>
-<div class="hidden md:flex h-6 w-px bg-border-light mx-2"></div>
-<nav class="hidden md:flex space-x-4">
-<a class="text-text-main dark:text-white px-3 py-2 rounded-md text-sm font-medium bg-background-light dark:bg-gray-800" href="#">이벤트 관리</a>
-<a class="text-text-muted hover:text-primary dark:hover:text-primary-light px-3 py-2 rounded-md text-sm font-medium transition-colors" href="#">심사 통계</a>
-<a class="text-text-muted hover:text-primary dark:hover:text-primary-light px-3 py-2 rounded-md text-sm font-medium transition-colors" href="#">제안 현황</a>
-</nav>
-</div>
-<div class="flex items-center gap-4">
-<button class="p-2 rounded-full text-text-muted hover:bg-background-light dark:hover:bg-gray-800 transition-colors relative">
-<span class="material-symbols-outlined text-[20px]">notifications</span>
-<span class="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-</button>
-<div class="h-6 w-px bg-border-light"></div>
-<div class="flex items-center gap-3 cursor-pointer group">
-<div class="text-right hidden sm:block">
-<p class="text-sm font-medium text-text-main dark:text-white leading-none">김진우</p>
-<p class="text-xs text-text-muted mt-1">심사위원장</p>
-</div>
-<img alt="사용자 아바타" class="h-9 w-9 rounded-full bg-gray-300 object-cover border border-border-light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBU98lsOAFjR3ikMOevMbPsWpJVTddXR0br56UbBuGq8NWh639y0Pd6CJoMqjdeZJ-41CFx4IxnoC8TfxqceDoD6l2WAfS9FiqIfUtJ1ax7oX8NUWFqdDHUmOlUIM0tWxCIqAXZib9SOFYmZdLksDNSmcHI1nLxRAV-NmjhF00floC23VfY2BoLgsnwrFbdSMOl1ji3lQ0M_6PaRtXQngVtnmiLDTcLPJFAUTUEkKJwE9S5sr-lwghi2Klaon4UTuAQPrjNtf4X1WI"/>
-</div>
-</div>
-</div>
-</div>
-</header>
-<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-<nav aria-label="Breadcrumb" class="flex mb-6">
-<ol class="flex items-center space-x-2">
-<li>
-<a class="text-text-muted hover:text-text-main" href="#">
-<span class="material-symbols-outlined text-sm">home</span>
-</a>
-</li>
-<li><span class="text-text-muted text-sm">/</span></li>
-<li><span class="text-sm font-medium text-primary">심사 대시보드</span></li>
-</ol>
-</nav>
-<div class="md:flex md:items-center md:justify-between mb-8">
-<div class="min-w-0 flex-1">
-<h1 class="text-2xl font-bold leading-7 text-text-main dark:text-white sm:truncate sm:text-3xl sm:tracking-tight">TWF 이벤트 대시보드</h1>
-<p class="mt-2 text-sm text-text-muted">현재 진행 중인 챌린지 및 등록된 기술 제안서의 심사 현황을 관리합니다.</p>
-</div>
-<div class="mt-4 flex md:ml-4 md:mt-0">
-<button class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors" type="button">
-<span class="material-symbols-outlined text-sm">add</span>
+    <header
+        class="bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-gray-700 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-4">
+                    <div class="flex-shrink-0 flex items-center gap-2">
+                        <div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
+                            <span class="material-symbols-outlined text-xl">precision_manufacturing</span>
+                        </div>
+                        <span class="font-bold text-lg tracking-tight text-text-main dark:text-white">OPCO : TWF 이벤트 심사
+                            시스템</span>
+                    </div>
+                    <div class="hidden md:flex h-6 w-px bg-border-light mx-2"></div>
+                    <nav class="hidden md:flex space-x-4">
+                        <a class="text-text-main dark:text-white px-3 py-2 rounded-md text-sm font-medium bg-background-light dark:bg-gray-800"
+                            href="#">이벤트 관리</a>
+                        <a class="text-text-muted hover:text-primary dark:hover:text-primary-light px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                            href="#">심사 통계</a>
+                        <a class="text-text-muted hover:text-primary dark:hover:text-primary-light px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                            href="#">제안 현황</a>
+                    </nav>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button
+                        class="p-2 rounded-full text-text-muted hover:bg-background-light dark:hover:bg-gray-800 transition-colors relative">
+                        <span class="material-symbols-outlined text-[20px]">notifications</span>
+                        <span
+                            class="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                    </button>
+                    <div class="h-6 w-px bg-border-light"></div>
+                    <div class="flex items-center gap-3 cursor-pointer group">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm font-medium text-text-main dark:text-white leading-none">김진우</p>
+                            <p class="text-xs text-text-muted mt-1">심사위원장</p>
+                        </div>
+                        <img alt="사용자 아바타"
+                            class="h-9 w-9 rounded-full bg-gray-300 object-cover border border-border-light"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBU98lsOAFjR3ikMOevMbPsWpJVTddXR0br56UbBuGq8NWh639y0Pd6CJoMqjdeZJ-41CFx4IxnoC8TfxqceDoD6l2WAfS9FiqIfUtJ1ax7oX8NUWFqdDHUmOlUIM0tWxCIqAXZib9SOFYmZdLksDNSmcHI1nLxRAV-NmjhF00floC23VfY2BoLgsnwrFbdSMOl1ji3lQ0M_6PaRtXQngVtnmiLDTcLPJFAUTUEkKJwE9S5sr-lwghi2Klaon4UTuAQPrjNtf4X1WI" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <nav aria-label="Breadcrumb" class="flex mb-6">
+            <ol class="flex items-center space-x-2">
+                <li>
+                    <a class="text-text-muted hover:text-text-main" href="#">
+                        <span class="material-symbols-outlined text-sm">home</span>
+                    </a>
+                </li>
+                <li><span class="text-text-muted text-sm">/</span></li>
+                <li><span class="text-sm font-medium text-primary">심사 대시보드</span></li>
+            </ol>
+        </nav>
+        <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="min-w-0 flex-1">
+                <h1
+                    class="text-2xl font-bold leading-7 text-text-main dark:text-white sm:truncate sm:text-3xl sm:tracking-tight">
+                    TWF 이벤트 대시보드</h1>
+                <p class="mt-2 text-sm text-text-muted">현재 진행 중인 챌린지 및 등록된 기술 제안서의 심사 현황을 관리합니다.</p>
+            </div>
+            <div class="mt-4 flex md:ml-4 md:mt-0">
+                <button
+                    class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors"
+                    type="button" onclick="window.location.href='event-creation-modal.html'">
+                    <span class="material-symbols-outlined text-sm">add</span>
                     신규 이벤트 등록
                 </button>
-</div>
-</div>
-<div class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 p-1 mb-8 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-<div class="flex w-full md:w-auto p-1 bg-background-light dark:bg-gray-800 rounded-md">
-<button class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-main bg-white dark:bg-gray-700 shadow-sm transition-all">
+            </div>
+        </div>
+        <div
+            class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 p-1 mb-8 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex w-full md:w-auto p-1 bg-background-light dark:bg-gray-800 rounded-md">
+                <button
+                    class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-main bg-white dark:bg-gray-700 shadow-sm transition-all">
                     진행 중
                 </button>
-<button class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all">
+                <button
+                    class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all">
                     예정됨
                 </button>
-<button class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all">
+                <button
+                    class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all">
                     종료됨
                 </button>
-</div>
-<div class="flex w-full md:w-auto gap-3 px-2 pb-2 md:pb-0">
-<div class="relative flex-grow md:flex-grow-0 md:w-64">
-<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-<span class="material-symbols-outlined text-text-muted text-[18px]">search</span>
-</div>
-<input class="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-text-main shadow-sm ring-1 ring-inset ring-border-light placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 dark:bg-gray-800 dark:ring-gray-700 dark:text-white" placeholder="이벤트명 또는 키워드 검색..." type="text"/>
-</div>
-<button class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-text-main shadow-sm ring-1 ring-inset ring-border-light hover:bg-background-light dark:hover:bg-gray-700">
-<span class="material-symbols-outlined text-[18px]">filter_list</span>
+            </div>
+            <div class="flex w-full md:w-auto gap-3 px-2 pb-2 md:pb-0">
+                <div class="relative flex-grow md:flex-grow-0 md:w-64">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <span class="material-symbols-outlined text-text-muted text-[18px]">search</span>
+                    </div>
+                    <input
+                        class="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-text-main shadow-sm ring-1 ring-inset ring-border-light placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 dark:bg-gray-800 dark:ring-gray-700 dark:text-white"
+                        placeholder="이벤트명 또는 키워드 검색..." type="text" />
+                </div>
+                <button
+                    class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-text-main shadow-sm ring-1 ring-inset ring-border-light hover:bg-background-light dark:hover:bg-gray-700">
+                    <span class="material-symbols-outlined text-[18px]">filter_list</span>
                     상세 필터
                 </button>
-</div>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-<article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full">
-<div class="p-6 flex-1">
-<div class="flex justify-between items-start mb-4">
-<span class="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
-<span class="h-1.5 w-1.5 rounded-full bg-yellow-600"></span>
-                            심사 진행 중
-                        </span>
-<div class="p-1 rounded text-text-muted group-hover:text-primary transition-colors">
-<span class="material-symbols-outlined text-[20px]">more_horiz</span>
-</div>
-</div>
-<h3 class="text-lg font-semibold text-text-main dark:text-white mb-2 leading-tight">3분기 효율성 향상 챌린지</h3>
-<p class="text-sm text-text-muted mb-4 line-clamp-2">조립 라인 프로토콜 B-14 최적화를 통한 다운타임 15% 감축 방안 심사.</p>
-<div class="flex items-center gap-2 text-xs text-text-muted font-mono-data bg-background-light dark:bg-gray-800 px-3 py-2 rounded border border-border-light dark:border-gray-700 mb-4">
-<span class="material-symbols-outlined text-[14px]">calendar_today</span>
-<span>2023-10-01</span>
-<span class="text-gray-300">|</span>
-<span>2023-10-31</span>
-</div>
-</div>
-<div class="border-t border-border-light dark:border-gray-700 px-6 py-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-lg">
-<div class="flex justify-between items-center">
-<div class="flex gap-4 text-xs font-medium text-text-muted">
-<div class="flex items-center gap-1" title="제안 수">
-<span class="material-symbols-outlined text-[16px]">description</span>
-                                12건 등록
-                            </div>
-<div class="flex items-center gap-1 text-yellow-600 dark:text-yellow-500" title="남은 기간">
-<span class="material-symbols-outlined text-[16px]">schedule</span>
-                                2일 남음
-                            </div>
-</div>
-<a class="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition-colors" href="#">
-                            상세 심사
-                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-</a>
-</div>
-</div>
-</article>
-<article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full">
-<div class="p-6 flex-1">
-<div class="flex justify-between items-start mb-4">
-<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-<span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
-                            제안 접수 중
-                        </span>
-<div class="p-1 rounded text-text-muted group-hover:text-primary transition-colors">
-<span class="material-symbols-outlined text-[20px]">more_horiz</span>
-</div>
-</div>
-<h3 class="text-lg font-semibold text-text-main dark:text-white mb-2 leading-tight">2024 안전 혁신 대상</h3>
-<p class="text-sm text-text-muted mb-4 line-clamp-2">화학 물질 취급 부문 자동 안전 점검 시스템 도입에 관한 혁신 제안 모집.</p>
-<div class="flex items-center gap-2 text-xs text-text-muted font-mono-data bg-background-light dark:bg-gray-800 px-3 py-2 rounded border border-border-light dark:border-gray-700 mb-4">
-<span class="material-symbols-outlined text-[14px]">calendar_today</span>
-<span>2024-01-15</span>
-<span class="text-gray-300">|</span>
-<span>2024-02-28</span>
-</div>
-</div>
-<div class="border-t border-border-light dark:border-gray-700 px-6 py-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-lg">
-<div class="flex justify-between items-center">
-<div class="flex gap-4 text-xs font-medium text-text-muted">
-<div class="flex items-center gap-1" title="제안 수">
-<span class="material-symbols-outlined text-[16px]">description</span>
-                                8건 접수
-                            </div>
-<div class="flex items-center gap-1 text-text-muted" title="남은 기간">
-<span class="material-symbols-outlined text-[16px]">schedule</span>
-                                14일 남음
-                            </div>
-</div>
-<a class="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition-colors" href="#">
-                            현황 보기
-                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-</a>
-</div>
-</div>
-</article>
-<article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full">
-<div class="p-6 flex-1">
-<div class="flex justify-between items-start mb-4">
-<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-<span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
-                            제안 접수 중
-                        </span>
-<div class="p-1 rounded text-text-muted group-hover:text-primary transition-colors">
-<span class="material-symbols-outlined text-[20px]">more_horiz</span>
-</div>
-</div>
-<h3 class="text-lg font-semibold text-text-main dark:text-white mb-2 leading-tight">물류 비용 절감 캠페인</h3>
-<p class="text-sm text-text-muted mb-4 line-clamp-2">부산 사업장 공급망 내 낭비 요소 식별 및 물류 프로세스 개선안 공모.</p>
-<div class="flex items-center gap-2 text-xs text-text-muted font-mono-data bg-background-light dark:bg-gray-800 px-3 py-2 rounded border border-border-light dark:border-gray-700 mb-4">
-<span class="material-symbols-outlined text-[14px]">calendar_today</span>
-<span>2024-02-01</span>
-<span class="text-gray-300">|</span>
-<span>2024-03-15</span>
-</div>
-</div>
-<div class="border-t border-border-light dark:border-gray-700 px-6 py-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-lg">
-<div class="flex justify-between items-center">
-<div class="flex gap-4 text-xs font-medium text-text-muted">
-<div class="flex items-center gap-1" title="제안 수">
-<span class="material-symbols-outlined text-[16px]">description</span>
-                                24건 접수
-                            </div>
-<div class="flex items-center gap-1 text-text-muted" title="남은 기간">
-<span class="material-symbols-outlined text-[16px]">schedule</span>
-                                32일 남음
-                            </div>
-</div>
-<a class="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition-colors" href="#">
-                            현황 보기
-                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-</a>
-</div>
-</div>
-</article>
-<article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full opacity-90">
-<div class="p-6 flex-1">
-<div class="flex justify-between items-start mb-4">
-<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
-<span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span>
-                            시작 예정
-                        </span>
-<div class="p-1 rounded text-text-muted group-hover:text-primary transition-colors">
-<span class="material-symbols-outlined text-[20px]">more_horiz</span>
-</div>
-</div>
-<h3 class="text-lg font-semibold text-text-main dark:text-white mb-2 leading-tight">4분기 연례 기술 리뷰</h3>
-<p class="text-sm text-text-muted mb-4 line-clamp-2">엔지니어링 팀이 제안한 기술 특허 및 신기술 혁신 사례에 대한 연례 종합 리뷰.</p>
-<div class="flex items-center gap-2 text-xs text-text-muted font-mono-data bg-background-light dark:bg-gray-800 px-3 py-2 rounded border border-border-light dark:border-gray-700 mb-4">
-<span class="material-symbols-outlined text-[14px]">calendar_today</span>
-<span>2024-04-01</span>
-<span class="text-gray-300">|</span>
-<span>2024-04-30</span>
-</div>
-</div>
-<div class="border-t border-border-light dark:border-gray-700 px-6 py-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-lg">
-<div class="flex justify-between items-center">
-<div class="flex gap-4 text-xs font-medium text-text-muted">
-<div class="flex items-center gap-1" title="제안 수">
-<span class="material-symbols-outlined text-[16px]">description</span>
-                                -
-                            </div>
-<div class="flex items-center gap-1 text-blue-600" title="시작까지 남은 기간">
-<span class="material-symbols-outlined text-[16px]">schedule</span>
-                                45일 후 시작
-                            </div>
-</div>
-<a class="text-sm font-semibold text-text-muted hover:text-primary flex items-center gap-1 transition-colors" href="#">
-                            세부 계획
-                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-</a>
-</div>
-</div>
-</article>
-<article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full opacity-75 hover:opacity-100">
-<div class="p-6 flex-1">
-<div class="flex justify-between items-start mb-4">
-<span class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-<span class="h-1.5 w-1.5 rounded-full bg-gray-500"></span>
-                            심사 완료
-                        </span>
-<div class="p-1 rounded text-text-muted group-hover:text-primary transition-colors">
-<span class="material-symbols-outlined text-[20px]">more_horiz</span>
-</div>
-</div>
-<h3 class="text-lg font-semibold text-text-main dark:text-white mb-2 leading-tight">2분기 지속가능성 스프린트</h3>
-<p class="text-sm text-text-muted mb-4 line-clamp-2">제조 공정 전반의 탄소 배출 저감을 위한 혁신적인 솔루션 공모 결과.</p>
-<div class="flex items-center gap-2 text-xs text-text-muted font-mono-data bg-background-light dark:bg-gray-800 px-3 py-2 rounded border border-border-light dark:border-gray-700 mb-4">
-<span class="material-symbols-outlined text-[14px]">calendar_today</span>
-<span>2023-06-01</span>
-<span class="text-gray-300">|</span>
-<span>2023-06-30</span>
-</div>
-</div>
-<div class="border-t border-border-light dark:border-gray-700 px-6 py-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-lg">
-<div class="flex justify-between items-center">
-<div class="flex gap-4 text-xs font-medium text-text-muted">
-<div class="flex items-center gap-1" title="제안 수">
-<span class="material-symbols-outlined text-[16px]">description</span>
-                                45건 완료
-                            </div>
-<div class="flex items-center gap-1 text-text-muted" title="상태">
-<span class="material-symbols-outlined text-[16px]">check_circle</span>
-                                심사 종료
-                            </div>
-</div>
-<a class="text-sm font-semibold text-text-muted hover:text-primary flex items-center gap-1 transition-colors" href="#">
-                            결과 리포트
-                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-</a>
-</div>
-</div>
-</article>
-<article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light dark:border-gray-600 shadow-sm hover:border-primary hover:bg-primary-light/10 transition-all duration-200 group flex flex-col h-full items-center justify-center p-6 min-h-[250px] cursor-pointer">
-<div class="w-12 h-12 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center mb-4 group-hover:bg-white group-hover:text-primary transition-colors">
-<span class="material-symbols-outlined text-text-muted group-hover:text-primary text-2xl">add</span>
-</div>
-<h3 class="text-base font-medium text-text-main dark:text-white">새 이벤트 생성</h3>
-<p class="text-xs text-text-muted mt-2 text-center">조직을 위한 새로운 TWF 혁신 챌린지를 시작하세요.</p>
-</article>
-</div>
-</main>
+            </div>
+        </div>
+        <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 이벤트 목록이 여기에 로드됩니다 -->
+            <article
+                class="bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light dark:border-gray-600 shadow-sm hover:border-primary hover:bg-primary-light/10 transition-all duration-200 group flex flex-col h-full items-center justify-center p-6 min-h-[250px] cursor-pointer"
+                onclick="window.location.href='event-creation-modal.html'">
+                <div
+                    class="w-12 h-12 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center mb-4 group-hover:bg-white group-hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-2xl">add</span>
+                </div>
+                <h3 class="text-base font-medium text-text-main dark:text-white">새 이벤트 생성</h3>
+                <p class="text-xs text-text-muted mt-2 text-center">조직을 위한 새로운 TWF 혁신 챌린지를 시작하세요.</p>
+            </article>
+        </div>
+    </main>
 
-</body></html>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const eventList = document.getElementById('event-list');
+            if (!eventList) return;
+
+            const events = await fetchEvents();
+            // '새 이벤트 생성' 카드를 유지합니다
+            const newEventCardHtml = `
+        <article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light dark:border-gray-600 shadow-sm hover:border-primary hover:bg-primary-light/10 transition-all duration-200 group flex flex-col h-full items-center justify-center p-6 min-h-[250px] cursor-pointer" onclick="window.location.href='event-creation-modal.html'">
+            <div class="w-12 h-12 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center mb-4 group-hover:bg-white group-hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-2xl">add</span>
+            </div>
+            <h3 class="text-base font-medium text-text-main dark:text-white">새 이벤트 생성</h3>
+            <p class="text-xs text-text-muted mt-2 text-center">조직을 위한 새로운 TWF 혁신 챌린지를 시작하세요.</p>
+        </article>`;
+
+            const eventCards = events.map(event => {
+                let statusBadge = '';
+                if (event.status === 'active') {
+                    statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"><span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>진행 중</span>`;
+                } else if (event.status === 'draft') {
+                    statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20"><span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span>작성 중</span>`;
+                } else {
+                    statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"><span class="h-1.5 w-1.5 rounded-full bg-gray-500"></span>종료됨</span>`;
+                }
+
+                return `
+            <article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full" onclick="navigateToEvent('${event.id}')">
+                <div class="p-6 flex-1">
+                    <div class="flex justify-between items-start mb-4">
+                        ${statusBadge}
+                        <div class="p-1 rounded text-text-muted group-hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-[20px]">more_horiz</span>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-text-main dark:text-white mb-2 leading-tight">${event.title}</h3>
+                    <p class="text-sm text-text-muted mb-4 line-clamp-2">${event.description || ''}</p>
+                    <div class="flex items-center gap-2 text-xs text-text-muted font-mono-data bg-background-light dark:bg-gray-800 px-3 py-2 rounded border border-border-light dark:border-gray-700 mb-4">
+                        <span class="material-symbols-outlined text-[14px]">calendar_today</span>
+                        <span>${formatDate(event.start_date)}</span>
+                        <span class="text-gray-300">|</span>
+                        <span>${formatDate(event.end_date)}</span>
+                    </div>
+                </div>
+                <div class="border-t border-border-light dark:border-gray-700 px-6 py-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-lg">
+                    <div class="flex justify-between items-center">
+                         <div class="flex gap-4 text-xs font-medium text-text-muted">
+                            <div class="flex items-center gap-1" title="제안 수">
+                                <span class="material-symbols-outlined text-[16px]">description</span>
+                                - 건
+                            </div>
+                         </div>
+                        <a class="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition-colors" href="javascript:void(0)">
+                            상세 보기
+                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                        </a>
+                    </div>
+                </div>
+            </article>`;
+            }).join('');
+
+            eventList.innerHTML = eventCards + newEventCardHtml;
+        });
+    </script>
+</body>
+
+</html>

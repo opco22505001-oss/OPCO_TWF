@@ -1,4 +1,4 @@
-<!-- Event Creation Modal -->
+<!-- 이벤트 생성 모달 -->
 <!DOCTYPE html>
 <html lang="ko">
 
@@ -12,6 +12,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap"
         rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script id="tailwind-config">
         tailwind.config = {
@@ -194,7 +195,7 @@
                 취소
             </button>
             <div class="flex gap-3">
-                <button
+                <button id="btn-save-draft"
                     class="px-5 py-2.5 rounded text-sm font-medium text-text-main border border-border-light bg-white hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm">
                     초안 저장
                 </button>
@@ -207,6 +208,62 @@
         </div>
     </div>
 
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnSaveDraft = document.getElementById('btn-save-draft');
+            const btnCancel = document.querySelector('button.text-text-muted.hover\\:text-text-main.px-4'); // 하단 취소 버튼
+
+            if (btnSaveDraft) {
+                btnSaveDraft.addEventListener('click', async () => {
+                    const title = document.getElementById('event-title').value;
+                    const description = document.getElementById('event-desc').value;
+                    // 초안을 위한 임시 하드코딩된 날짜/상태
+                    const startDate = '2023-11-01';
+                    const endDate = '2023-11-15';
+
+                    if (!title) {
+                        alert('이벤트 제목을 입력해주세요.');
+                        return;
+                    }
+
+                    btnSaveDraft.textContent = '저장 중...';
+                    btnSaveDraft.disabled = true;
+
+                    const { data, error } = await createEvent({
+                        title,
+                        description,
+                        start_date: startDate,
+                        end_date: endDate,
+                        status: 'draft'
+                    });
+
+                    if (error) {
+                        alert('저장 실패: ' + error.message);
+                        btnSaveDraft.textContent = '초안 저장';
+                        btnSaveDraft.disabled = false;
+                    } else {
+                        alert('초안이 저장되었습니다.');
+                        window.location.href = 'dashboard.html';
+                    }
+                });
+            }
+
+            if (btnCancel) {
+                btnCancel.addEventListener('click', () => {
+                    window.location.href = 'dashboard.html';
+                });
+            }
+
+            // Top close button
+            const btnClose = document.querySelector('button span.material-symbols-outlined.text-\\[20px\\]').parentElement;
+            if (btnClose) {
+                btnClose.addEventListener('click', () => {
+                    window.location.href = 'dashboard.html';
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

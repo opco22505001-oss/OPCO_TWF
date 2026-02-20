@@ -1,4 +1,4 @@
-<!-- Judge Assignment (Admin) -->
+<!-- 심사위원 배정 (관리자용) -->
 <!DOCTYPE html>
 <html lang="ko">
 
@@ -149,101 +149,30 @@
                                 placeholder="이벤트 검색..." type="text" />
                         </div>
                     </div>
-                    <div class="flex flex-col p-2 gap-1">
-                        <div class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted">진행 중인 이벤트
-                        </div>
-                        <button
-                            class="group relative flex flex-col gap-1 rounded-md bg-primary/5 p-3 text-left transition-all hover:bg-primary/10 border-l-4 border-primary">
-                            <div class="flex items-center justify-between">
-                                <span class="font-semibold text-sm text-teal-900">3분기 효율 개선 챌린지</span>
-                                <span
-                                    class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">진행중</span>
-                            </div>
-                            <div class="flex items-center justify-between text-xs text-text-muted">
-                                <span>기술연구소</span>
-                                <span class="font-mono">마감: 10월 15일</span>
-                            </div>
-                        </button>
-                        <button
-                            class="group relative flex flex-col gap-1 rounded-md bg-transparent p-3 text-left transition-all hover:bg-background-light border-l-4 border-transparent">
-                            <div class="flex items-center justify-between">
-                                <span class="font-medium text-sm text-text-main">2024 안전 혁신 대상</span>
-                                <span
-                                    class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">진행중</span>
-                            </div>
-                            <div class="flex items-center justify-between text-xs text-text-muted">
-                                <span>운영본부</span>
-                                <span class="font-mono">마감: 11월 01일</span>
-                            </div>
-                        </button>
-                        <button
-                            class="group relative flex flex-col gap-1 rounded-md bg-transparent p-3 text-left transition-all hover:bg-background-light border-l-4 border-transparent">
-                            <div class="flex items-center justify-between">
-                                <span class="font-medium text-sm text-text-main">연간 원가 절감 공모</span>
-                                <span
-                                    class="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">임시저장</span>
-                            </div>
-                            <div class="flex items-center justify-between text-xs text-text-muted">
-                                <span>재경팀</span>
-                                <span class="font-mono">시작: 12월 01일</span>
-                            </div>
-                        </button>
+                    <div id="event-list" class="flex flex-col p-2 gap-1">
+                        <!-- 이벤트 목록이 여기에 로드됩니다 -->
+                        <div class="px-4 py-8 text-center text-sm text-text-muted">이벤트 로딩 중...</div>
                     </div>
                 </aside>
                 <main class="flex flex-1 flex-col overflow-hidden bg-background-light relative">
                     <div class="flex flex-col gap-3 border-b border-border bg-white px-6 py-4 shadow-sm z-10">
                         <div class="flex items-center justify-between">
                             <h2 class="text-sm font-semibold text-text-main uppercase tracking-wide">배정된 심사위원단 <span
-                                    class="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-xs text-teal-800">3명
+                                    id="assigned-count"
+                                    class="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-xs text-teal-800">0명
                                     선택됨</span></h2>
                             <button class="text-xs text-primary hover:text-teal-700 font-medium hover:underline">모두
                                 삭제</button>
                         </div>
-                        <div class="flex flex-wrap gap-2">
-                            <div
-                                class="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 pl-1 pr-3 py-1 transition-colors hover:bg-primary/10">
-                                <div class="h-6 w-6 rounded-full bg-cover bg-center"
-                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDKqgCYE68ZZkJiklp9_SZdQ7nvA0zGQ8ufl0DqrodYhjQfs2HVjYVY8vlT_5x2OYiuuT6zaXZPQHorW__yzeZ82vLfYpW_qWLTxVDLOQdf9JZeMrfFBEQw-orGvaipwedP7C1tInxKbUkQlc2bFzWKUzRCdIDB-8vEwyo5UainOq_T_byzOppLUWsIVR8GbCxy1m91Pz7nR3hsmyG59NxPDVxvir639tNYlZpcpljjk4Co35wahUxat24DuNGmvatIpRwCc0y011Y");'>
-                                </div>
-                                <span class="text-xs font-medium text-text-main">사라 첸</span>
-                                <button
-                                    class="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-text-muted hover:bg-red-100 hover:text-red-500">
-                                    <span class="material-symbols-outlined text-[14px]">close</span>
-                                </button>
-                            </div>
-                            <div
-                                class="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 pl-1 pr-3 py-1 transition-colors hover:bg-primary/10">
-                                <div class="h-6 w-6 rounded-full bg-cover bg-center"
-                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBgDI590cPCXwf3-4VLzo9IrwDPD0k0cnnbO9Ya3ehAls9hpstLLAcwYxhDgpJS__L00k5eQpl0QttZpx3g-p9JkniIb0tcWJRuOVtyJBUqHmPoqw4SLecQvZYHE8Rn94waWHCm1N6KkijJriVPc5XBlp2WYSALqPoFvNXcCJxO-uBN2h5aewxRzJmbSpYalaNT2JvxTm98Es5O-x5hT2mbw7BqSM6JuFmPHW23mjbSW2r2uXggvOtHh4wMQe1jQoBMHt2dRKwF-zw");'>
-                                </div>
-                                <span class="text-xs font-medium text-text-main">마이클 로스</span>
-                                <button
-                                    class="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-text-muted hover:bg-red-100 hover:text-red-500">
-                                    <span class="material-symbols-outlined text-[14px]">close</span>
-                                </button>
-                            </div>
-                            <div
-                                class="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 pl-1 pr-3 py-1 transition-colors hover:bg-primary/10">
-                                <div class="h-6 w-6 rounded-full bg-cover bg-center"
-                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC95YlwbxICWnn5I0W16awAHVvKBjbO2m3-2S0RX97xa8a4RBwiUSGNeZZ2-BpNpcxqOEUsBx5-ZshHQoOta1EIpT0afDPqUqjLqPA7W45a8S26mp3Jza2rAm4WE9H23dds_dROIDqZ7nyA4suy48-73IN0_N2yieVXD-Ma4o-1-LiO99lg7hIMn_Uz0m_51C_uEr6GSyRALxsh57bWPurhZyIza0-jVJXKXBcGTugbnmltL3CYuHoxU7bTLoWuvMnZc21BgF9lk0k");'>
-                                </div>
-                                <span class="text-xs font-medium text-text-main">에밀리 데이비스</span>
-                                <button
-                                    class="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-text-muted hover:bg-red-100 hover:text-red-500">
-                                    <span class="material-symbols-outlined text-[14px]">close</span>
-                                </button>
-                            </div>
-                            <div
-                                class="flex items-center justify-center rounded-full border border-dashed border-border bg-transparent px-3 py-1 text-xs text-text-muted">
-                                아래 목록에서 선택하세요...
-                            </div>
+                        <div id="assigned-judges-list" class="flex flex-wrap gap-2">
+                            <!-- 심사위원 목록이 여기에 로드됩니다 -->
                         </div>
                     </div>
                     <div class="flex items-center justify-between px-6 py-4">
                         <div class="relative w-full max-w-md">
                             <span
                                 class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[20px] text-text-muted">search</span>
-                            <input
+                            <input id="input-user-search"
                                 class="w-full rounded-md border border-border bg-white py-2 pl-10 pr-4 text-sm shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
                                 placeholder="성명, 사번 또는 직무 검색..." type="text" />
                         </div>
@@ -281,185 +210,8 @@
                                         <th class="px-4 py-3 tracking-wide text-right">심사 이력</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-border">
-                                    <tr class="bg-primary/5 group hover:bg-primary/10 transition-colors">
-                                        <td class="px-4 py-3 text-center">
-                                            <input checked=""
-                                                class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary checkbox-primary"
-                                                type="checkbox" />
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center gap-3">
-                                                <div class="h-9 w-9 rounded-full bg-cover bg-center border border-border"
-                                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAuwEawzWT6vePoukM9gWUFHFpM6Id2os2C66zEXVhyz7OAUWja3xakNO_gcPBt54kQ8nw6pfXWLwR_7G32lTGiu-UgyhIenzka5hGSJ8f8TqMH9n-K1EOJjmlLoh15mh1PieLIo0DCPVwT3SZo-9DyK1ttAjnPQTMiB7U_zMOuodukmLpytHnzG2vchvAa-Idxl6vxT3DeSwVPDd8PIjI79Lx3aXTZGYDmwfiW2Oy0mAsp9fwuZhWlmhSRvEeY4CcjCIpYQpeBhf8");'>
-                                                </div>
-                                                <div class="flex flex-col">
-                                                    <span class="font-medium text-text-main">사라 첸</span>
-                                                    <span class="text-xs text-text-muted font-mono">사번: #8921</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3 text-text-muted">기술연구소</td>
-                                        <td class="px-4 py-3">
-                                            <span
-                                                class="inline-flex rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">공정
-                                                최적화</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            <span
-                                                class="inline-flex items-center gap-1 rounded-full bg-white border border-border px-2 py-0.5 text-xs font-mono text-text-muted">
-                                                12건 심사
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr class="bg-primary/5 group hover:bg-primary/10 transition-colors">
-                                        <td class="px-4 py-3 text-center">
-                                            <input checked=""
-                                                class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary checkbox-primary"
-                                                type="checkbox" />
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center gap-3">
-                                                <div class="h-9 w-9 rounded-full bg-cover bg-center border border-border"
-                                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDllzZ_CkT0TpbHDj1w_ORJwRUDBhJhd3VDePyg-oeyawOkYVY7C779P6pkGkpWVZJCRy3iDC9dOqIQYlnCu8oBqfVc2wTUA1fFgl3OiZrOkEfE7s9tV_Bhoa_CS5SFa0L03krGPjvKtElrX1I5ZVNissM5UsvQO7v-eP5tTosP8CVrOMSM2_4jmIL3VQrTC5BlMOiWVmeeavVomdE1Alt3uD3jTrVh4EOOfgTPy4qw-8-rjXqDBNLPOJ8fArcHYM3i_c1ZmZFN39U");'>
-                                                </div>
-                                                <div class="flex flex-col">
-                                                    <span class="font-medium text-text-main">마이클 로스</span>
-                                                    <span class="text-xs text-text-muted font-mono">사번: #4402</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3 text-text-muted">운영본부</td>
-                                        <td class="px-4 py-3">
-                                            <span
-                                                class="inline-flex rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">물류/조달</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            <span
-                                                class="inline-flex items-center gap-1 rounded-full bg-white border border-border px-2 py-0.5 text-xs font-mono text-text-muted">
-                                                8건 심사
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr class="bg-primary/5 group hover:bg-primary/10 transition-colors">
-                                        <td class="px-4 py-3 text-center">
-                                            <input checked=""
-                                                class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary checkbox-primary"
-                                                type="checkbox" />
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center gap-3">
-                                                <div class="h-9 w-9 rounded-full bg-cover bg-center border border-border"
-                                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAbuMjaU77Nyn_Cf92zKlS7ohq32AxlEnl5dCdEjVEmqz0XTOGKyxvLwgDyuMhL_zpHgoVAnSUUOUW0b3YU6JPGHgp9DoIJI1GL_WuScks4o0s_5YfN-XhoEDJdsDilHrXtTzAymwoO0LiuZr-jLQfnNCmXR75UYiMuNoxeAY6XChUuIDpFVCr3lstMS93hcqwqn4piF3tfMRVQSHHlhlQVmdoMTzZ-07AmWpQNs3Mf4uCzc2fzA5UUBAzub2eapF8cWR7QS7HYY94");'>
-                                                </div>
-                                                <div class="flex flex-col">
-                                                    <span class="font-medium text-text-main">에밀리 데이비스</span>
-                                                    <span class="text-xs text-text-muted font-mono">사번: #1193</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3 text-text-muted">안전환경팀</td>
-                                        <td class="px-4 py-3">
-                                            <span
-                                                class="inline-flex rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">컴플라이언스</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            <span
-                                                class="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-xs font-mono text-emerald-700">
-                                                우수 심사위원
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr class="bg-white group hover:bg-background-light transition-colors">
-                                        <td class="px-4 py-3 text-center">
-                                            <input
-                                                class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary checkbox-primary"
-                                                type="checkbox" />
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center gap-3">
-                                                <div class="h-9 w-9 rounded-full bg-cover bg-center border border-border"
-                                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDzOoiX2DxUxriGu6VyN5pwZ_zRFhwBi_HYhA3i9oK2qOdGE8gKVMOTLYqZYrCDqEVtcsL4mU5BAnbpSk9ybGwLQC2cTe0bl2OfrFNh_T7eHtSco7eAC9GyED7ghtQs_kJ1nSpI2WlM3fUbFAu2nlJH0tgdGQPNfwHVwTpiH8jPtPn3DTHVblBNc9s-nhvuQdODPjQd8y6TrftmfkGxqj6lX0lvoH6IOb1easDSrQkpNwY07g8czWwW-UYSJ43rLhXmNyyVfxy_7Xo");'>
-                                                </div>
-                                                <div class="flex flex-col">
-                                                    <span class="font-medium text-text-main">김다윗</span>
-                                                    <span class="text-xs text-text-muted font-mono">사번: #7731</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3 text-text-muted">기술연구소</td>
-                                        <td class="px-4 py-3">
-                                            <span
-                                                class="inline-flex rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">자동화
-                                                제어</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            <span
-                                                class="inline-flex items-center gap-1 rounded-full bg-white border border-border px-2 py-0.5 text-xs font-mono text-text-muted">
-                                                3건 심사
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr class="bg-white group hover:bg-background-light transition-colors">
-                                        <td class="px-4 py-3 text-center">
-                                            <input
-                                                class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary checkbox-primary"
-                                                type="checkbox" />
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center gap-3">
-                                                <div
-                                                    class="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 border border-emerald-200 text-xs font-bold">
-                                                    AL</div>
-                                                <div class="flex flex-col">
-                                                    <span class="font-medium text-text-main">앨리스 리</span>
-                                                    <span class="text-xs text-text-muted font-mono">사번: #9920</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3 text-text-muted">재경팀</td>
-                                        <td class="px-4 py-3">
-                                            <span
-                                                class="inline-flex rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">원가
-                                                분석</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            <span
-                                                class="inline-flex items-center gap-1 rounded-full bg-white border border-border px-2 py-0.5 text-xs font-mono text-text-muted">
-                                                0건 심사
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr class="bg-white group hover:bg-background-light transition-colors">
-                                        <td class="px-4 py-3 text-center">
-                                            <input
-                                                class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary checkbox-primary"
-                                                type="checkbox" />
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center gap-3">
-                                                <div class="h-9 w-9 rounded-full bg-cover bg-center border border-border"
-                                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCACOwl6acsIXfsMWLKj3MoL_gtqw7pgL2OgnWXFBdRRPI119jNf5JNkxuznTjNrspQfU6HNftTE-bW0saMfiBZkk2aVy53wpmEtK4PDVt0iRFErVEL5q7D8D7RZ1Hhsql6Ky48VvupO9YdmjHk7zOfZTb1_AgRSG5YHiK9Uwwxlu7kYDS3nvsWTVzyd-VRRj6dTtA5mE41xOct36iMyrlCOzWociKVAfuTSW64PhH2oSQAyu3XMsZ47gKiCZSWbhC-ZtfVNCEwSE");'>
-                                                </div>
-                                                <div class="flex flex-col">
-                                                    <span class="font-medium text-text-main">로버트 존슨</span>
-                                                    <span class="text-xs text-text-muted font-mono">사번: #3312</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3 text-text-muted">운영본부</td>
-                                        <td class="px-4 py-3">
-                                            <span
-                                                class="inline-flex rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">공급망
-                                                관리</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            <span
-                                                class="inline-flex items-center gap-1 rounded-full bg-white border border-border px-2 py-0.5 text-xs font-mono text-text-muted">
-                                                5건 심사
-                                            </span>
-                                        </td>
-                                    </tr>
+                                <tbody id="user-table-body" class="divide-y divide-border">
+                                    <!-- 사용자 목록이 여기에 로드됩니다 -->
                                 </tbody>
                             </table>
                             <div class="p-4 border-t border-border flex justify-center">
@@ -480,7 +232,7 @@
                                     class="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-muted hover:bg-background-light hover:text-text-main transition-colors">
                                     취소
                                 </button>
-                                <button
+                                <button id="btn-save-assignment"
                                     class="rounded-md bg-primary hover:bg-primary-dark px-4 py-2 text-sm font-semibold text-black shadow-sm transition-colors flex items-center gap-2">
                                     <span class="material-symbols-outlined text-[18px]">check</span>
                                     배정 사항 저장
@@ -492,6 +244,244 @@
             </div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const eventListContainer = document.getElementById('event-list');
+            const assignedJudgesContainer = document.getElementById('assigned-judges-list');
+            const assignedCountSpan = document.getElementById('assigned-count');
+            const userTableBody = document.getElementById('user-table-body');
+            const btnSave = document.getElementById('btn-save-assignment');
+            const userSearchInput = document.getElementById('input-user-search');
+            let currentEventId = null;
+            let allUsers = [];
+            let currentAssignedJudges = new Set(); // Set of User IDs
+
+            // 1. Load Events
+            async function loadEvents() {
+                const events = await fetchEvents('active'); // Only active events? Or all? UI implementation plan says active.
+                eventListContainer.innerHTML = '';
+
+                if (events.length === 0) {
+                    eventListContainer.innerHTML = '<div class="p-4 text-sm text-text-muted">진행 중인 이벤트가 없습니다.</div>';
+                    return;
+                }
+
+                events.forEach(event => {
+                    const el = document.createElement('button');
+                    // Style logic: if selected, add border-primary etc. (will handle in render)
+                    el.className = `w-full group relative flex flex-col gap-1 rounded-md bg-transparent p-3 text-left transition-all hover:bg-background-light border-l-4 border-transparent event-item`;
+                    el.dataset.id = event.id;
+                    el.onclick = () => selectEvent(event.id);
+                    el.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium text-sm text-text-main">${event.title}</span>
+                            <span class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                                ${event.status === 'active' ? '진행중' : event.status}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-text-muted">
+                            <span>${event.created_at ? formatDate(event.created_at) : ''}</span>
+                            <span class="font-mono">마감: ${event.end_date ? formatDate(event.end_date) : '-'}</span>
+                        </div>
+                    `;
+                    eventListContainer.appendChild(el);
+                });
+
+                // Select first event by default if exists
+                if (events.length > 0) {
+                    selectEvent(events[0].id);
+                }
+            }
+
+            // 2. Load Users
+            async function loadUsers() {
+                allUsers = await fetchUsers();
+                renderUsers();
+            }
+
+            // 3. Select Event
+            async function selectEvent(eventId) {
+                currentEventId = eventId;
+
+                // Update UI styling
+                document.querySelectorAll('.event-item').forEach(el => {
+                    if (el.dataset.id === eventId) {
+                        el.classList.add('bg-primary/5', 'border-primary');
+                        el.classList.remove('bg-transparent', 'border-transparent');
+                    } else {
+                        el.classList.remove('bg-primary/5', 'border-primary');
+                        el.classList.add('bg-transparent', 'border-transparent');
+                    }
+                });
+
+                // Fetch assigned judges
+                const judges = await fetchEventJudges(eventId);
+                currentAssignedJudges = new Set(judges.map(j => j.judge_id));
+
+                renderAssignedJudgesArea();
+                renderUsers(); // Re-render table to update checkboxes
+            }
+
+            // 4. Render Users Table
+            function renderUsers() {
+                const searchTerm = userSearchInput ? userSearchInput.value.toLowerCase() : '';
+
+                // Filter users
+                const filtered = allUsers.filter(u =>
+                    (u.name && u.name.toLowerCase().includes(searchTerm)) ||
+                    (u.department && u.department.toLowerCase().includes(searchTerm)) ||
+                    (u.role && u.role.toLowerCase().includes(searchTerm))
+                );
+
+                userTableBody.innerHTML = '';
+                filtered.forEach(user => {
+                    const isAssigned = currentAssignedJudges.has(user.id);
+                    const tr = document.createElement('tr');
+                    tr.className = isAssigned ? "bg-primary/5 group hover:bg-primary/10 transition-colors" : "bg-white group hover:bg-background-light transition-colors";
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-center">
+                            <input 
+                                class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary checkbox-primary user-checkbox" 
+                                type="checkbox" 
+                                value="${user.id}"
+                                ${isAssigned ? 'checked' : ''}
+                            />
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-gray-600">
+                                    ${user.name ? user.name.substring(0, 2) : 'UK'}
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="font-medium text-text-main">${user.name || 'Unknown'}</span>
+                                    <span class="text-xs text-text-muted font-mono">${user.email || ''}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-text-muted">${user.department || '-'}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                                ${user.role}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                             <!-- 테스트용 이력 데이터 -->
+                        </td>
+                    `;
+                    userTableBody.appendChild(tr);
+                });
+
+                // Attach event listeners to checkboxes
+                document.querySelectorAll('.user-checkbox').forEach(cb => {
+                    cb.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            currentAssignedJudges.add(e.target.value);
+                        } else {
+                            currentAssignedJudges.delete(e.target.value);
+                        }
+                        renderAssignedJudgesArea();
+                        renderUsers(); // Re-render to update row styling
+                    });
+                });
+            }
+
+            // 5. Render Assigned Judges Chips & Count
+            function renderAssignedJudgesArea() {
+                assignedCountSpan.textContent = `${currentAssignedJudges.size}명 선택됨`;
+                assignedJudgesContainer.innerHTML = '';
+
+                if (currentAssignedJudges.size === 0) {
+                    assignedJudgesContainer.innerHTML = `
+                        <div class="flex items-center justify-center rounded-full border border-dashed border-border bg-transparent px-3 py-1 text-xs text-text-muted">
+                            아래 목록에서 선택하세요...
+                        </div>`;
+                    return;
+                }
+
+                currentAssignedJudges.forEach(userId => {
+                    const user = allUsers.find(u => u.id === userId);
+                    if (!user) return;
+
+                    const chip = document.createElement('div');
+                    chip.className = "flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 pl-1 pr-3 py-1 transition-colors hover:bg-primary/10";
+                    chip.innerHTML = `
+                        <div class="h-6 w-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">
+                            ${user.name ? user.name.substring(0, 1) : 'U'}
+                        </div>
+                        <span class="text-xs font-medium text-text-main">${user.name}</span>
+                        <button class="btn-remove-judge ml-1 flex h-4 w-4 items-center justify-center rounded-full text-text-muted hover:bg-red-100 hover:text-red-500" data-id="${user.id}">
+                            <span class="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                    `;
+                    assignedJudgesContainer.appendChild(chip);
+                });
+
+                // Attach listeners to X buttons
+                document.querySelectorAll('.btn-remove-judge').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const uid = e.currentTarget.dataset.id;
+                        currentAssignedJudges.delete(uid);
+                        renderAssignedJudgesArea();
+                        renderUsers();
+                    });
+                });
+            }
+
+            // 6. Save Logic
+            btnSave.addEventListener('click', async () => {
+                if (!currentEventId) return;
+
+                btnSave.textContent = '저장 중...';
+                btnSave.disabled = true;
+
+                // Sync: Simple approach - Get current DB state, diff, apply
+                // Fetch again to be safe
+                const currentDBJudges = await fetchEventJudges(currentEventId);
+                const currentDBIds = new Set(currentDBJudges.map(j => j.judge_id));
+
+                const toAdd = [...currentAssignedJudges].filter(id => !currentDBIds.has(id));
+                const toRemove = [...currentDBIds].filter(id => !currentAssignedJudges.has(id));
+
+                let errors = 0;
+
+                for (const uid of toAdd) {
+                    const { error } = await assignJudge(currentEventId, uid);
+                    if (error) errors++;
+                }
+
+                for (const uid of toRemove) {
+                    const { error } = await removeJudge(currentEventId, uid);
+                    if (error) errors++;
+                }
+
+                if (errors > 0) {
+                    alert(`일부 변경사항 저장 중 오류가 발생했습니다. (${errors}건)`);
+                } else {
+                    alert('배정 사항이 저장되었습니다.');
+                }
+                btnSave.textContent = '배정 사항 저장'; // Restore original text (removing icon for simplicity or fix HTML)
+                btnSave.innerHTML = `<span class="material-symbols-outlined text-[18px]">check</span> 배정 사항 저장`;
+                btnSave.disabled = false;
+
+                // Refresh to sync state
+                selectEvent(currentEventId);
+            });
+
+            // Search Input listener
+            if (userSearchInput) {
+                userSearchInput.addEventListener('input', () => {
+                    renderUsers();
+                });
+            }
+
+            // Initial Load
+            await loadEvents();
+            await loadUsers();
+        });
+    </script>
 </body>
 
 </html>

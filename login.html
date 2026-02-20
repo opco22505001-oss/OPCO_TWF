@@ -1,4 +1,4 @@
-<!-- Login / Authentication -->
+<!-- 로그인 / 인증 -->
 <!DOCTYPE html>
 <html lang="ko">
 
@@ -98,7 +98,7 @@
                         관리자
                     </label>
                 </div>
-                <form class="flex flex-col gap-5" id="login-form" onsubmit="event.preventDefault();">
+                <form class="flex flex-col gap-5" id="login-form" onsubmit="handleLogin(event)">
                     <div class="relative">
                         <input
                             class="floating-input block px-4 pb-2.5 pt-5 w-full text-sm text-text-main dark:text-white bg-transparent rounded-lg border border-border-light dark:border-border-dark appearance-none focus:outline-none focus:ring-0 focus:border-primary peer"
@@ -155,6 +155,7 @@
             </div>
             <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
             <div class="relative z-10 flex flex-col justify-end h-full p-20 text-white w-full">
+
                 <div class="max-w-xl">
                     <div class="mb-6 w-12 h-1 bg-primary rounded-full"></div>
                     <h2 class="text-4xl font-bold leading-tight tracking-tight mb-4">
@@ -178,6 +179,30 @@
         </div>
     </div>
 
+    <script src="js/main.js"></script>
+    <script>
+        async function handleLogin(event) {
+            event.preventDefault();
+            const empno = document.getElementById('loginId').value;
+            const empnm = document.getElementById('username').value;
+
+            const button = event.target.querySelector('button');
+            const originalText = button.textContent;
+            button.textContent = '로그인 중...';
+            button.disabled = true;
+
+            const { data, error } = await signInWithEmployeeId(empno, empnm);
+
+            if (error) {
+                alert('로그인 실패: ' + error);
+                button.textContent = originalText;
+                button.disabled = false;
+            } else {
+                // 성공 시 대시보드로 이동
+                window.location.href = 'dashboard.html';
+            }
+        }
+    </script>
 </body>
 
 </html>
