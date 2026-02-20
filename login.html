@@ -67,109 +67,134 @@
             pointer-events: auto;
         }
     </style>
-    <div
-        class="bg-gray-100 dark:bg-slate-800 p-1 rounded-lg flex mb-8 border border-border-light dark:border-border-dark relative">
-        <input checked="" class="role-radio hidden" id="role-employee" name="role" type="radio" value="employee"
-            onchange="toggleLoginFields()" />
-        <label
-            class="flex-1 text-center py-2.5 text-sm font-medium rounded cursor-pointer transition-all duration-200 text-text-muted hover:text-text-main dark:text-gray-400 dark:hover:text-white select-none relative z-10"
-            for="role-employee">
-            임직원
-        </label>
-        <input class="role-radio hidden" id="role-admin" name="role" type="radio" value="admin"
-            onchange="toggleLoginFields()" />
-        <label
-            class="flex-1 text-center py-2.5 text-sm font-medium rounded cursor-pointer transition-all duration-200 text-text-muted hover:text-text-main dark:text-gray-400 dark:hover:text-white select-none relative z-10"
-            for="role-admin">
-            관리자
-        </label>
-    </div>
-    <form class="flex flex-col gap-5" id="login-form" onsubmit="handleLogin(event)">
-        <!-- Employee / Admin ID Field -->
-        <div class="relative">
-            <input
-                class="floating-input block px-4 pb-2.5 pt-5 w-full text-sm text-text-main dark:text-white bg-transparent rounded-lg border border-border-light dark:border-border-dark appearance-none focus:outline-none focus:ring-0 focus:border-primary peer"
-                id="loginId" placeholder=" " type="text" required />
-            <label id="label-loginId"
-                class="absolute text-sm text-text-muted dark:text-gray-400 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] left-4 peer-focus:text-primary peer-focus:dark:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
-                for="loginId">
-                사번 (예: 08204001)
-            </label>
-        </div>
 
-        <!-- Name (for Employee) / Password (for Admin) Field -->
-        <div class="relative">
-            <input
-                class="floating-input block px-4 pb-2.5 pt-5 w-full text-sm text-text-main dark:text-white bg-transparent rounded-lg border border-border-light dark:border-border-dark appearance-none focus:outline-none focus:ring-0 focus:border-primary peer"
-                id="secondInput" placeholder=" " type="text" required />
-            <label id="label-secondInput"
-                class="absolute text-sm text-text-muted dark:text-gray-400 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] left-4 peer-focus:text-primary peer-focus:dark:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
-                for="secondInput">
-                이름 (예: 홍길동)
-            </label>
-        </div>
-
-        <!-- Admin Code Field (Only for Admin) -->
-        <div class="relative hidden-field" id="admin-field">
-            <input
-                class="floating-input block px-4 pb-2.5 pt-5 w-full text-sm text-text-main dark:text-white bg-transparent rounded-lg border border-border-light dark:border-border-dark appearance-none focus:outline-none focus:ring-0 focus:border-primary peer"
-                id="admin_code" placeholder=" " type="password" />
-            <label
-                class="absolute text-sm text-text-muted dark:text-gray-400 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] left-4 peer-focus:text-primary peer-focus:dark:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
-                for="admin_code">
-                관리자 인증 코드
-            </label>
-            <div class="absolute right-3 top-4 text-text-muted dark:text-gray-500">
-                <span class="material-symbols-outlined text-[20px]">verified_user</span>
-            </div>
-        </div>
-        <div class="flex items-center justify-between mt-2">
-            <div class="flex items-center">
-                <input
-                    class="h-4 w-4 rounded border-border-light text-primary focus:ring-primary bg-transparent cursor-pointer"
-                    id="remember-me" name="remember-me" type="checkbox" />
-                <label class="ml-2 block text-sm text-text-muted dark:text-gray-400 cursor-pointer"
-                    for="remember-me">아이디 기억하기</label>
-            </div>
-        </div>
-        <button
-            class="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 mt-4"
-            type="submit">
-            로그인
-        </button>
-    </form>
-    </div>
-    </div>
-    <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-slate-900">
-        <div class="absolute inset-0 bg-cover bg-center"
-            style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBm5lYPSRrQt5q0-lSiUl6tZQ5R2Um9NdsUPwtQEtA1voysoF0AtyHK80OhNCWpCvnPGkBHJgBrlUsaENX3hJTGHwiihnCi1hYpQ3loCZYHxaem3LFPypFhwep8AdxVOYtKP8kLgR6CIDCnIOxDjqlZJGwXjcZedBpiB7fpwyAeRtrC66s4n06awI7isonBncvR2y-FlB6BT7KyWYJ9ClLLW9NmWz80iYn7u35Lnd0aLymBV1SxyOjwbY7jljDU-FmiyutSjdD02Hw');">
-        </div>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
-        <div class="relative z-10 flex flex-col justify-end h-full p-20 text-white w-full">
-
-            <div class="max-w-xl">
-                <div class="mb-6 w-12 h-1 bg-primary rounded-full"></div>
-                <h2 class="text-4xl font-bold leading-tight tracking-tight mb-4">
-                    정밀한 기술과 혁신으로<br />글로벌 리더십을 실현합니다
-                </h2>
-                <p class="text-lg text-gray-200 font-light mb-8 max-w-md">
-                    오리엔탈정공은 최첨단 설비와 독보적인 기술력을 바탕으로 세계 최고의 조선해양 기자재 전문 기업으로 도약하고 있습니다.
-                </p>
-                <div class="flex items-center gap-4">
-                    <div
-                        class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                        <span class="material-symbols-outlined text-white">precision_manufacturing</span>
+<body
+    class="bg-background-light dark:bg-background-dark font-display antialiased text-text-main dark:text-gray-100 min-h-screen flex flex-col">
+    <div class="flex min-h-screen w-full">
+        <!-- Left Side: Login Form -->
+        <div
+            class="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 lg:p-16 bg-surface-light dark:bg-surface-dark relative">
+            <div class="w-full max-w-[420px] flex flex-col">
+                <div class="mb-10 text-center lg:text-left">
+                    <div class="flex items-center justify-center lg:justify-start gap-2 mb-8">
+                        <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
+                            <span class="material-symbols-outlined text-[24px]">engineering</span>
+                        </div>
+                        <span class="text-xl font-bold tracking-tight text-text-main dark:text-white uppercase">OPCO :
+                            TWF 이벤트 심사 시스템</span>
                     </div>
-                    <div class="flex flex-col">
-                        <span class="text-base font-semibold">Oriental Precision &amp; Engineering</span>
-                        <span class="text-xs text-gray-300 uppercase tracking-widest">이벤트 심사 관리 포털</span>
+                    <h1 class="text-3xl font-bold tracking-tight text-text-main dark:text-white mb-2">로그인</h1>
+                    <p class="text-text-muted dark:text-gray-400 text-sm">시스템 이용을 위해 계정 정보를 입력해주세요.</p>
+                </div>
+
+                <div
+                    class="bg-gray-100 dark:bg-slate-800 p-1 rounded-lg flex mb-8 border border-border-light dark:border-border-dark relative">
+                    <input checked="" class="role-radio hidden" id="role-employee" name="role" type="radio"
+                        value="employee" onchange="toggleLoginFields()" />
+                    <label
+                        class="flex-1 text-center py-2.5 text-sm font-medium rounded cursor-pointer transition-all duration-200 text-text-muted hover:text-text-main dark:text-gray-400 dark:hover:text-white select-none relative z-10"
+                        for="role-employee">
+                        임직원
+                    </label>
+                    <input class="role-radio hidden" id="role-admin" name="role" type="radio" value="admin"
+                        onchange="toggleLoginFields()" />
+                    <label
+                        class="flex-1 text-center py-2.5 text-sm font-medium rounded cursor-pointer transition-all duration-200 text-text-muted hover:text-text-main dark:text-gray-400 dark:hover:text-white select-none relative z-10"
+                        for="role-admin">
+                        관리자
+                    </label>
+                </div>
+                <form class="flex flex-col gap-5" id="login-form" onsubmit="handleLogin(event)">
+                    <!-- Employee / Admin ID Field -->
+                    <div class="relative">
+                        <input
+                            class="floating-input block px-4 pb-2.5 pt-5 w-full text-sm text-text-main dark:text-white bg-transparent rounded-lg border border-border-light dark:border-border-dark appearance-none focus:outline-none focus:ring-0 focus:border-primary peer"
+                            id="loginId" placeholder=" " type="text" required />
+                        <label id="label-loginId"
+                            class="absolute text-sm text-text-muted dark:text-gray-400 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] left-4 peer-focus:text-primary peer-focus:dark:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
+                            for="loginId">
+                            사번 (예: 08204001)
+                        </label>
+                    </div>
+
+                    <!-- Name (for Employee) / Password (for Admin) Field -->
+                    <div class="relative">
+                        <input
+                            class="floating-input block px-4 pb-2.5 pt-5 w-full text-sm text-text-main dark:text-white bg-transparent rounded-lg border border-border-light dark:border-border-dark appearance-none focus:outline-none focus:ring-0 focus:border-primary peer"
+                            id="secondInput" placeholder=" " type="text" required />
+                        <label id="label-secondInput"
+                            class="absolute text-sm text-text-muted dark:text-gray-400 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] left-4 peer-focus:text-primary peer-focus:dark:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
+                            for="secondInput">
+                            이름 (예: 홍길동)
+                        </label>
+                    </div>
+
+                    <!-- Admin Code Field (Only for Admin) -->
+                    <div class="relative hidden-field" id="admin-field">
+                        <input
+                            class="floating-input block px-4 pb-2.5 pt-5 w-full text-sm text-text-main dark:text-white bg-transparent rounded-lg border border-border-light dark:border-border-dark appearance-none focus:outline-none focus:ring-0 focus:border-primary peer"
+                            id="admin_code" placeholder=" " type="password" />
+                        <label
+                            class="absolute text-sm text-text-muted dark:text-gray-400 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] left-4 peer-focus:text-primary peer-focus:dark:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
+                            for="admin_code">
+                            관리자 인증 코드
+                        </label>
+                        <div class="absolute right-3 top-4 text-text-muted dark:text-gray-500">
+                            <span class="material-symbols-outlined text-[20px]">verified_user</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center">
+                            <input
+                                class="h-4 w-4 rounded border-border-light text-primary focus:ring-primary bg-transparent cursor-pointer"
+                                id="remember-me" name="remember-me" type="checkbox" />
+                            <label class="ml-2 block text-sm text-text-muted dark:text-gray-400 cursor-pointer"
+                                for="remember-me">아이디 기억하기</label>
+                        </div>
+                    </div>
+                    <button
+                        class="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 mt-4"
+                        type="submit">
+                        로그인
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Side: Image/Branding -->
+        <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-slate-900">
+            <div class="absolute inset-0 bg-cover bg-center"
+                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBm5lYPSRrQt5q0-lSiUl6tZQ5R2Um9NdsUPwtQEtA1voysoF0AtyHK80OhNCWpCvnPGkBHJgBrlUsaENX3hJTGHwiihnCi1hYpQ3loCZYHxaem3LFPypFhwep8AdxVOYtKP8kLgR6CIDCnIOxDjqlZJGwXjcZedBpiB7fpwyAeRtrC66s4n06awI7isonBncvR2y-FlB6BT7KyWYJ9ClLLW9NmWz80iYn7u35Lnd0aLymBV1SxyOjwbY7jljDU-FmiyutSjdD02Hw');">
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
+            <div class="relative z-10 flex flex-col justify-end h-full p-20 text-white w-full">
+
+                <div class="max-w-xl">
+                    <div class="mb-6 w-12 h-1 bg-primary rounded-full"></div>
+                    <h2 class="text-4xl font-bold leading-tight tracking-tight mb-4">
+                        정밀한 기술과 혁신으로<br />글로벌 리더십을 실현합니다
+                    </h2>
+                    <p class="text-lg text-gray-200 font-light mb-8 max-w-md">
+                        오리엔탈정공은 최첨단 설비와 독보적인 기술력을 바탕으로 세계 최고의 조선해양 기자재 전문 기업으로 도약하고 있습니다.
+                    </p>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                            <span class="material-symbols-outlined text-white">precision_manufacturing</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-base font-semibold">Oriental Precision &amp; Engineering</span>
+                            <span class="text-xs text-gray-300 uppercase tracking-widest">이벤트 심사 관리 포털</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    </div>
 
+    <!-- Main Logic using Supabase CDN and local main.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/main.js"></script>
     <script>
         async function handleLogin(event) {
@@ -188,6 +213,13 @@
 
             if (roleEmployee) {
                 // 임직원 로그인: 사번/이름 (empno, empnm)
+                // main.js에서 window.supabase 객체가 초기화되어 있어야 함
+                if (typeof signInWithEmployeeId !== 'function') {
+                    alert('시스템 오류: 로그인 함수를 찾을 수 없습니다.');
+                    button.textContent = originalText;
+                    button.disabled = false;
+                    return;
+                }
                 result = await signInWithEmployeeId(loginId, secondInput);
             } else {
                 // 관리자 로그인: ID/PW (현재는 로직이 없으므로 임시 알림)
@@ -196,7 +228,7 @@
                 if (adminCode !== "OPCO_ADMIN_2024") { // 예시 코드
                     result = { error: "관리자 인증 코드가 올바르지 않습니다." };
                 } else {
-                    // 관리자 로그인 시뮬레이션 (여기서는 ID/PW 검증 생략하고 바로 성공 처리 예시)
+                    // 관리자 로그인 시뮬레이션
                     // 실제로는 별도 Supabase Auth 로직 필요
                     result = await signInWithEmployeeId('ADMIN', '관리자');
                 }
@@ -241,6 +273,6 @@
         // 초기화
         document.addEventListener('DOMContentLoaded', toggleLoginFields);
     </script>
-    </body>
+</body>
 
 </html>
