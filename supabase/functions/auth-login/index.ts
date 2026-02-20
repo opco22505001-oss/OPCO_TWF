@@ -19,67 +19,60 @@ serve(async (req) => {
             throw new Error('사번과 이름을 모두 입력해주세요.');
         }
 
-        // --- 가상 데이터베이스 데이터 (EmpNoNMview 기준) ---
-        // 사용자 제공 데이터: '08106002' (곽연섭), '08204001' (마성호 - 심사위원), '08210001' (이대선 - 제출자)
-        // 다양성을 위해 추가된 데이터
-        const MOCK_DB_USERS: Record<string, { empnm: string, depnm: string, role: string, email?: string }> = {
-            '08106002': { empnm: '곽연섭', depnm: '곡직반', role: 'submitter' },
-            '08204001': { empnm: '마성호', depnm: '자재관리', role: 'judge' },
-            '08210001': { empnm: '이대선', depnm: '자재관리', role: 'submitter' },
-            'Z00098': { empnm: '박상우', depnm: '경진산업', role: 'submitter' },
-            'Z00097': { empnm: '서영진', depnm: '경진산업', role: 'submitter' },
-            '20807011': { empnm: '이승우', depnm: 'IT팀', role: 'admin' }, // 이전 로그 기준 관리자로 가정
-            'ADMIN': { empnm: '관리자', depnm: '관리부', role: 'admin' }
-        };
-
-        const user = MOCK_DB_USERS[empno] || (empnm === 'BYPASS' ? { empnm: '테스트사용자', depnm: '테스트부서', role: (empno.toUpperCase().includes('ADMIN') ? 'admin' : 'submitter') } : null);
-
-        // 검증 0: 테스트용 바이패스 체크
-        const isBypass = (empnm === 'BYPASS');
-
-        // 검증 1: 사번 존재 및 이름 일치 여부
-        console.error(`[Login Attempt] Received: "${empno}" / "${empnm}", Looking for: ${user ? user.empnm : 'User Not Found'}${isBypass ? ' (BYPASS MODE)' : ''}`);
-
-        if (!isBypass) {
-            if (!user) {
-                console.error(`[Login Failed] User not found for empno: ${empno}`);
-                return new Response(JSON.stringify({ error: `사번이 존재하지 않습니다. (Received: "${empno}")` }), {
-                    status: 401,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                });
-            }
-
-            // Normalize and comparison
-            const inputName = empnm.normalize('NFC').trim();
-            const storedName = user.empnm.normalize('NFC').trim();
-
-            if (storedName !== inputName) {
-                console.error(`[Login Failed] Name mismatch. Expected: ${storedName} (${storedName.length}), Got: ${inputName} (${inputName.length})`);
-                return new Response(JSON.stringify({ error: `이름이 일치하지 않습니다. (Expected: "${storedName}", Got: "${inputName}")` }), {
-                    status: 401,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                });
-            }
-
-            // 검증 2: 관리자 로그인 시 인증 코드 확인
-            if (user.role === 'admin') {
-                const REQUIRED_ADMIN_CODE = Deno.env.get('ADMIN_CODE') || 'OPCO_ADMIN_2024';
-                if (adminCode !== REQUIRED_ADMIN_CODE) {
-                    return new Response(JSON.stringify({ error: '관리자 인증 코드가 올바르지 않습니다.' }), {
-                        status: 401,
-                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                    });
-                }
-            }
-        }
-
-        // --- 가상 DB 끝 ---
-
-        // Supabase Admin을 통해 JWT 생성
+        // --- 사내 데이터베이스 연동 (corporate_employees 테이블 조회) ---
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
+
+        // 1. corporate_employees 테이블에서 사용자 정보 조회
+        const { data: corpUser, error: corpError } = await supabaseAdmin
+            .from('corporate_employees')
+            .select('*')
+            .eq('empno', empno)
+            .single();
+
+        if (corpError || !corpUser) {
+            console.error(`[Login Failed] User not found for empno: ${empno}`, corpError);
+            return new Response(JSON.stringify({ error: `사번이 존재하지 않거나 정보가 없습니다. (ID: ${empno})` }), {
+                status: 401,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        // 2. 이름 일치 여부 확인 (Normalize 적용)
+        const inputName = empnm.normalize('NFC').trim();
+        const storedName = corpUser.empnm.normalize('NFC').trim();
+
+        if (storedName !== inputName && empnm !== 'BYPASS') {
+            console.error(`[Login Failed] Name mismatch. Expected: ${storedName}, Got: ${inputName}`);
+            return new Response(JSON.stringify({ error: `이름이 일치하지 않습니다.` }), {
+                status: 401,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        // 3. 관리자 로그인 시 인증 코드 확인
+        if (corpUser.role === 'admin') {
+            const REQUIRED_ADMIN_CODE = Deno.env.get('ADMIN_CODE') || 'OPCO_ADMIN_2024';
+            if (adminCode !== REQUIRED_ADMIN_CODE) {
+                return new Response(JSON.stringify({ error: '관리자 인증 코드가 올바르지 않습니다.' }), {
+                    status: 401,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+        }
+
+        // 사내 DB 데이터 매핑 (기존 로직과 호환 위해 user 객체 생성)
+        const user = {
+            empnm: corpUser.empnm,
+            depnm: corpUser.depnm || '소속미정',
+            role: corpUser.role || 'submitter'
+        };
+
+        // --- 사내 데이터베이스 연동 끝 ---
+
+        // Supabase Admin을 통해 사용자 생성/로그인 처리
 
         // 1. auth.users에 사용자가 존재하는지 확인 (이메일: empno@opco.internal)
         const email = `${empno}@opco.internal`;

@@ -95,20 +95,32 @@ async function signInWithEmployeeId(empno, empnm, adminCode) {
 
 // 새 이벤트 생성
 async function createEvent(eventData) {
-    if (!supabase) return { error: 'Supabase가 초기화되지 않았습니다.' };
-
-    const { data, error } = await supabase
-        .from('events')
-        .insert([eventData])
-        .select()
-        .single();
-
-    if (error) {
-        console.error('이벤트 생성 오류:', error);
-        alert('이벤트 생성 실패: ' + error.message);
-        return { error };
+    console.log('[createEvent] Starting insertion with data:', eventData);
+    if (!supabase) {
+        console.error('[createEvent] Supabase not initialized');
+        return { error: 'Supabase가 초기화되지 않았습니다.' };
     }
-    return { data };
+
+    try {
+        const { data, error } = await supabase
+            .from('events')
+            .insert([eventData])
+            .select();
+
+        if (error) {
+            console.error('[createEvent] DB Insert Error:', error);
+            alert('이벤트 생성 실패: ' + error.message);
+            return { error };
+        }
+
+        console.log('[createEvent] Success! Data returned:', data);
+        // .single() 대신 배열의 첫 번째 항목 반환 (안정성 확보)
+        return { data: (data && data.length > 0) ? data[0] : null };
+    } catch (err) {
+        console.error('[createEvent] Unexpected Exception:', err);
+        alert('이벤트 생성 중 예기치 않은 오류가 발생했습니다: ' + err.message);
+        return { error: err };
+    }
 }
 
 // 사용자 목록 조회 (예: 심사위원 후보)
