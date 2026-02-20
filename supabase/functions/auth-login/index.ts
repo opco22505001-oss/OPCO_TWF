@@ -13,7 +13,7 @@ serve(async (req) => {
     }
 
     try {
-        const { empno, empnm } = await req.json();
+        const { empno, empnm, adminCode } = await req.json();
 
         if (!empno || !empnm) {
             throw new Error('사번과 이름을 모두 입력해주세요.');
@@ -34,12 +34,23 @@ serve(async (req) => {
 
         const user = MOCK_DB_USERS[empno];
 
-        // 검증: 사번이 존재하고 이름이 일치하는지 확인
+        // 검증 1: 사번 존재 및 이름 일치 여부
         if (!user || user.empnm !== empnm) {
             return new Response(JSON.stringify({ error: '사번 또는 이름이 일치하지 않습니다.' }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
+        }
+
+        // 검증 2: 관리자 로그인 시 인증 코드 확인 (서버 사이드 보안 강화)
+        if (user.role === 'admin') {
+            const REQUIRED_ADMIN_CODE = Deno.env.get('ADMIN_CODE') || 'OPCO_ADMIN_2024'; // 환경 변수 또는 하드코딩 백업
+            if (adminCode !== REQUIRED_ADMIN_CODE) {
+                return new Response(JSON.stringify({ error: '관리자 인증 코드가 올바르지 않습니다.' }), {
+                    status: 401,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
         }
 
         // --- 가상 DB 끝 ---

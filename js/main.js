@@ -63,12 +63,12 @@ async function fetchEventDetails(eventId) {
 }
 
 // 인증: 사번 로그인 (하이브리드)
-async function signInWithEmployeeId(empno, empnm) {
+async function signInWithEmployeeId(empno, empnm, adminCode) {
     if (!supabase) return { error: 'Supabase가 초기화되지 않았습니다.' };
 
     try {
         const { data, error } = await supabase.functions.invoke('auth-login', {
-            body: { empno, empnm }
+            body: { empno, empnm, adminCode }
         });
 
         if (error) throw error;
