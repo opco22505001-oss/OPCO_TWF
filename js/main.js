@@ -266,10 +266,11 @@ async function updateEvent(eventId, updateData) {
 
 // 현재 로그인 사용자 가져오기
 async function getCurrentUser() {
-    const mockUserStr = localStorage.getItem('MOCK_USER');
-    if (mockUserStr) return JSON.parse(mockUserStr);
     if (!supabaseClient) return null;
     const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session && session.user) {
+        localStorage.removeItem('MOCK_USER');
+    }
     return session ? session.user : null;
 }
 
@@ -328,23 +329,10 @@ function navigateToEvent(eventId) {
  * 알림 기능 관련 로직
  */
 document.addEventListener('DOMContentLoaded', async () => {
-    // Guest Mode (테스트용 우회)
-    const mockUserStr = localStorage.getItem('MOCK_USER');
-    if (mockUserStr) {
-        const mockUser = JSON.parse(mockUserStr);
-        console.warn('⚠️ GUEST MODE ACTIVE:', mockUser);
-
-        // Supabase Auth Mocking
-        supabaseClient.auth.getSession = async () => ({ data: { session: { user: mockUser } }, error: null });
-        supabaseClient.auth.getUser = async () => ({ data: { user: mockUser }, error: null });
-
-        // 알림 초기화 (ID가 있으므로 가능)
-        initNotifications(mockUser.id);
-        return;
-    }
-
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) return;
+
+    localStorage.removeItem('MOCK_USER');
 
     initNotifications(session.user.id);
 });
@@ -496,13 +484,8 @@ async function setupUI() {
             }
         }
 
-        // 2) 세션이 없을 때만 MOCK_USER (게스트/테스트 모드) 확인
-        if (!user) {
-            const mockUserStr = localStorage.getItem('MOCK_USER');
-            if (mockUserStr) {
-                user = JSON.parse(mockUserStr);
-                meta = user.user_metadata || {};
-            }
+        if (user) {
+            localStorage.removeItem('MOCK_USER');
         }
 
         if (!user) return;

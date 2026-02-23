@@ -271,9 +271,21 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const eventId = getQueryParam('id');
-            const toStorageFileName = (file) => `${Date.now()}_${encodeURIComponent(file.name)}`;
+            const buildStoredName = (file) => {
+                const normalized = (file?.name || 'file').normalize('NFC');
+                const extIndex = normalized.lastIndexOf('.');
+                const ext = extIndex > -1 ? normalized.slice(extIndex) : '';
+                const token = (crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`).replace(/[^a-zA-Z0-9_-]/g, '');
+                return `${Date.now()}_${token}${ext}`;
+            };
+            const withOriginalName = (publicUrl, originalName) => {
+                const normalized = (originalName || '').normalize('NFC');
+                return `${publicUrl}#name=${encodeURIComponent(normalized)}`;
+            };
             const getDisplayNameFromUrl = (url) => {
                 try {
+                    const nameParam = new URL(url).hash.match(/(?:^#|&)name=([^&]+)/)?.[1];
+                    if (nameParam) return decodeURIComponent(nameParam);
                     const filename = (url || '').split('/').pop() || '';
                     const separatorIdx = filename.indexOf('_');
                     const encodedName = separatorIdx >= 0 ? filename.slice(separatorIdx + 1) : filename;
@@ -298,12 +310,12 @@
 
             // 현재 로그인 사용자 정보
             let currentUser = null;
-            const mockUserStr = localStorage.getItem('MOCK_USER');
-            if (mockUserStr) {
-                currentUser = JSON.parse(mockUserStr);
-            } else if (supabaseClient) {
+            if (supabaseClient) {
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) currentUser = session.user;
+                if (session) {
+                    currentUser = session.user;
+                    localStorage.removeItem('MOCK_USER');
+                }
             }
 
             // 심사자 목록 로드
@@ -603,7 +615,7 @@
                         if (event.allow_file_upload && fileInput.files.length > 0) {
                             const files = Array.from(fileInput.files);
                             for (const file of files) {
-                                const fileName = toStorageFileName(file);
+                                const fileName = buildStoredName(file);
                                 const filePath = `submissions/${eventId}/${fileName}`;
 
                                 const { data: uploadData, error: uploadError } = await supabaseClient.storage
@@ -616,7 +628,7 @@
                                     .from('submission-files')
                                     .getPublicUrl(filePath);
 
-                                uploadedFiles.push(publicUrl);
+                                uploadedFiles.push(withOriginalName(publicUrl, file.name));
                             }
                         }
 

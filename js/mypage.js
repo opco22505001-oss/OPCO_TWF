@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 로그아웃
     document.getElementById('logout-btn').addEventListener('click', async () => {
         await supabaseClient.auth.signOut();
+        localStorage.removeItem('MOCK_USER');
         window.location.href = 'login.html';
     });
 });

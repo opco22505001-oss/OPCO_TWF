@@ -472,6 +472,18 @@
 
             // ========== 공통 데이터 수집 ==========
             async function collectEventData(status) {
+                const buildStoredName = (file) => {
+                    const normalized = (file?.name || 'file').normalize('NFC');
+                    const extIndex = normalized.lastIndexOf('.');
+                    const ext = extIndex > -1 ? normalized.slice(extIndex) : '';
+                    const token = (crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`).replace(/[^a-zA-Z0-9_-]/g, '');
+                    return `${Date.now()}_${token}${ext}`;
+                };
+                const withOriginalName = (publicUrl, originalName) => {
+                    const normalized = (originalName || '').normalize('NFC');
+                    return `${publicUrl}#name=${encodeURIComponent(normalized)}`;
+                };
+
                 const data = {
                     title: document.getElementById('event-title').value,
                     description: document.getElementById('event-desc').value,
@@ -491,8 +503,7 @@
                     const uploadedUrls = [];
 
                     for (const file of files) {
-                        const safeOriginal = encodeURIComponent(file.name);
-                        const fileName = `${Date.now()}_${safeOriginal}`;
+                        const fileName = buildStoredName(file);
                         const filePath = `event-guides/${fileName}`;
 
                         try {
@@ -506,7 +517,7 @@
                                 .from('event-attachments')
                                 .getPublicUrl(filePath);
 
-                            uploadedUrls.push(publicUrl);
+                            uploadedUrls.push(withOriginalName(publicUrl, file.name));
                         } catch (err) {
                             console.error(`[EventCreate] 파일 업로드 실패 (${file.name}):`, err);
                             if (!confirm(`'${file.name}' 파일 업로드에 실패했습니다. 이 파일을 제외하고 계속하시겠습니까?`)) {
