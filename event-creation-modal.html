@@ -491,8 +491,8 @@
                     const uploadedUrls = [];
 
                     for (const file of files) {
-                        const fileExt = file.name.split('.').pop();
-                        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                        const safeOriginal = encodeURIComponent(file.name);
+                        const fileName = `${Date.now()}_${safeOriginal}`;
                         const filePath = `event-guides/${fileName}`;
 
                         try {

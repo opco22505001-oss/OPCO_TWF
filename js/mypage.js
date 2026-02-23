@@ -49,11 +49,45 @@ async function loadUserProfile(userId) {
     const user = session?.user;
     const meta = user?.user_metadata || {};
 
+    let dbProfile = null;
+    const email = user?.email || '';
+    const empnoFromEmail = email.includes('@') ? email.split('@')[0] : '';
+
+    const { data: userRow } = await supabaseClient
+        .from('users')
+        .select('name, department, role, email')
+        .eq('id', userId)
+        .maybeSingle();
+
+    if (userRow) {
+        dbProfile = userRow;
+    } else if (email) {
+        const { data: userByEmail } = await supabaseClient
+            .from('users')
+            .select('name, department, role, email')
+            .eq('email', email)
+            .maybeSingle();
+        if (userByEmail) dbProfile = userByEmail;
+    }
+
+    let corpDept = '';
+    if (empnoFromEmail) {
+        const { data: corpRow } = await supabaseClient
+            .from('corporate_employees')
+            .select('depnm, empnm')
+            .eq('empno', empnoFromEmail)
+            .maybeSingle();
+        corpDept = corpRow?.depnm || '';
+        if (!dbProfile?.name && corpRow?.empnm) {
+            dbProfile = { ...(dbProfile || {}), name: corpRow.empnm };
+        }
+    }
+
     // 화면 업데이트 (헤더 및 프로필 카드)
-    const name = meta.empnm || meta.name || '사용자';
-    const role = meta.role || 'employee';
-    const dept = meta.depnm || meta.department || '부서 미정';
-    const empno = meta.empno || '';
+    const name = dbProfile?.name || meta.empnm || meta.name || '사용자';
+    const role = dbProfile?.role || meta.role || 'employee';
+    const dept = dbProfile?.department || meta.depnm || meta.department || corpDept || '부서 미정';
+    const empno = meta.empno || empnoFromEmail || '';
 
     // 헤더 업데이트 (main.js의 setupUI와 별개로 마이페이지 특화 요소가 있을 수 있음)
     if (document.getElementById('header-user-name')) document.getElementById('header-user-name').textContent = name;

@@ -271,6 +271,17 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const eventId = getQueryParam('id');
+            const toStorageFileName = (file) => `${Date.now()}_${encodeURIComponent(file.name)}`;
+            const getDisplayNameFromUrl = (url) => {
+                try {
+                    const filename = (url || '').split('/').pop() || '';
+                    const separatorIdx = filename.indexOf('_');
+                    const encodedName = separatorIdx >= 0 ? filename.slice(separatorIdx + 1) : filename;
+                    return decodeURIComponent(encodedName);
+                } catch (e) {
+                    return (url || '').split('/').pop() || '첨부파일';
+                }
+            };
             if (!eventId) {
                 alert('잘못된 접근입니다.');
                 window.location.href = 'dashboard.html';
@@ -347,7 +358,7 @@
             if (event.attachments && event.attachments.length > 0) {
                 document.getElementById('sidebar-attachments').classList.remove('hidden');
                 document.getElementById('guide-links').innerHTML = event.attachments.map(url => {
-                    const fileName = url.split('/').pop().split('_').slice(1).join('_') || '기획안내.pdf';
+                    const fileName = getDisplayNameFromUrl(url) || '기획안내.pdf';
                     return `
                         <a href="${url}" target="_blank" class="flex items-center gap-2 text-xs text-primary hover:underline bg-primary/5 p-2 rounded">
                             <span class="material-symbols-outlined text-[16px]">description</span>
@@ -404,7 +415,7 @@
 
                         let fileLinks = '';
                         if (sub.files && sub.files.length > 0) {
-                            fileLinks = `<div class="mt-2 space-y-1">${sub.files.map(f => `<a href="${f}" target="_blank" class="text-[10px] text-primary hover:underline flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">attach_file</span>${f.split('/').pop().split('_').slice(1).join('_')}</a>`).join('')}</div>`;
+                            fileLinks = `<div class="mt-2 space-y-1">${sub.files.map(f => `<a href="${f}" target="_blank" class="text-[10px] text-primary hover:underline flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">attach_file</span>${getDisplayNameFromUrl(f)}</a>`).join('')}</div>`;
                         }
 
                         return `
@@ -483,7 +494,7 @@
                 const subContent = sub.content || {};
                 let fileLinks = '';
                 if (sub.files && sub.files.length > 0) {
-                    fileLinks = `<div class="mt-4 pt-4 border-t border-dashed border-border flex flex-wrap gap-2">${sub.files.map(f => `<a href="${f}" target="_blank" class="px-3 py-1.5 bg-gray-50 border border-border rounded text-xs text-primary hover:bg-gray-100 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">description</span>${f.split('/').pop().split('_').slice(1).join('_')}</a>`).join('')}</div>`;
+                    fileLinks = `<div class="mt-4 pt-4 border-t border-dashed border-border flex flex-wrap gap-2">${sub.files.map(f => `<a href="${f}" target="_blank" class="px-3 py-1.5 bg-gray-50 border border-border rounded text-xs text-primary hover:bg-gray-100 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">description</span>${getDisplayNameFromUrl(f)}</a>`).join('')}</div>`;
                 }
 
                 submissionSection.innerHTML = `
@@ -592,8 +603,7 @@
                         if (event.allow_file_upload && fileInput.files.length > 0) {
                             const files = Array.from(fileInput.files);
                             for (const file of files) {
-                                const fileExt = file.name.split('.').pop();
-                                const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                                const fileName = toStorageFileName(file);
                                 const filePath = `submissions/${eventId}/${fileName}`;
 
                                 const { data: uploadData, error: uploadError } = await supabaseClient.storage
