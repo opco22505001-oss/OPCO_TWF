@@ -231,8 +231,18 @@
                 <div class="p-6 flex-1">
                     <div class="flex justify-between items-start mb-4">
                         ${statusBadge}
-                        <div class="p-1 rounded text-text-muted group-hover:text-primary transition-colors">
-                            <span class="material-symbols-outlined text-[20px]">more_horiz</span>
+                        <div class="relative admin-menu-wrap" style="display:none;">
+                            <button class="p-1 rounded text-text-muted hover:text-primary hover:bg-gray-100 transition-colors" onclick="event.stopPropagation(); toggleAdminMenu(this)" title="관리">
+                                <span class="material-symbols-outlined text-[20px]">more_horiz</span>
+                            </button>
+                            <div class="admin-dropdown hidden absolute right-0 top-8 w-36 bg-white border border-border-light rounded-lg shadow-lg z-50 overflow-hidden">
+                                <button class="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center gap-2 text-text-main" onclick="event.stopPropagation(); openEditEvent('${event.id}')">
+                                    <span class="material-symbols-outlined text-[16px]">edit</span> 수정
+                                </button>
+                                <button class="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 flex items-center gap-2 text-red-600" onclick="event.stopPropagation(); confirmDeleteEvent('${event.id}', '${event.title.replace(/'/g, "\\'")}')">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span> 삭제
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <h3 class="text-lg font-semibold text-text-main dark:text-white mb-2 leading-tight">${event.title}</h3>
@@ -262,14 +272,53 @@
                 }).join('');
 
                 eventList.innerHTML = eventCards + newEventCardHtml;
+
+                // 관리자인 경우 관리 메뉴 노출
+                if (window.setupUI) await window.setupUI();
+                if (window.__isAdmin) {
+                    document.querySelectorAll('.admin-menu-wrap').forEach(el => el.style.display = 'block');
+                }
+
             } catch (err) {
                 console.error('[Dashboard] Error during initialization:', err);
                 eventList.innerHTML = `<div class="col-span-full p-10 text-center text-red-500">데이터 로드 중 오류가 발생했습니다: ${err.message}</div>`;
             }
-
-            // 헤더 정보 업데이트 재시도 (main.js에서 자동 실행되나 보장 차원)
-            if (window.setupUI) window.setupUI();
         }
+
+        // 관리 메뉴 토글
+        window.toggleAdminMenu = (btn) => {
+            const dropdown = btn.nextElementSibling;
+            // 다른 열린 드롭다운 닫기
+            document.querySelectorAll('.admin-dropdown').forEach(d => {
+                if (d !== dropdown) d.classList.add('hidden');
+            });
+            dropdown.classList.toggle('hidden');
+        };
+
+        // 드롭다운 외부 클릭 시 닫기
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.admin-dropdown').forEach(d => d.classList.add('hidden'));
+        });
+
+        // 이벤트 삭제 확인
+        window.confirmDeleteEvent = async (id, title) => {
+            if (confirm(`'${title}' 이벤트를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+                const { error } = await window.deleteEvent(id);
+                if (error) {
+                    alert('삭제 실패: ' + error.message);
+                } else {
+                    alert('성공적으로 삭제되었습니다.');
+                    location.reload();
+                }
+            }
+        };
+
+        // 이벤트 수정 열기 (상세 페이지에서 처리하거나 모달로 연결)
+        window.openEditEvent = (id) => {
+            // 현재는 간단하게 상세 페이지로 이동하도록 하되, 
+            // 나중에 모달을 띄우거나 edit 모드로 진입하는 로직 가능
+            window.location.href = `event-detail.html?id=${id}&edit=true`;
+        };
 
         // 페이지 로드 시 초기화 실행
         document.addEventListener('DOMContentLoaded', initDashboard);

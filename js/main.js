@@ -50,6 +50,9 @@ window.getQueryParam = getQueryParam;
 window.fetchSubmissions = fetchSubmissions;
 window.createSubmission = createSubmission;
 window.createJudgment = createJudgment;
+window.deleteEvent = deleteEvent;
+window.updateEvent = updateEvent;
+window.getCurrentUser = getCurrentUser;
 
 // 진단용 함수: 연결 테스트
 async function testConnection() {
@@ -244,6 +247,30 @@ async function createJudgment(judgmentData) {
         .select();
     if (error) return { error };
     return { data: data && data.length > 0 ? data[0] : null };
+}
+
+// 이벤트 삭제
+async function deleteEvent(eventId) {
+    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    const { error } = await supabaseClient.from('events').delete().eq('id', eventId);
+    return { error };
+}
+
+// 이벤트 수정
+async function updateEvent(eventId, updateData) {
+    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    const { data, error } = await supabaseClient.from('events').update(updateData).eq('id', eventId).select();
+    if (error) return { error };
+    return { data: data && data.length > 0 ? data[0] : null };
+}
+
+// 현재 로그인 사용자 가져오기
+async function getCurrentUser() {
+    const mockUserStr = localStorage.getItem('MOCK_USER');
+    if (mockUserStr) return JSON.parse(mockUserStr);
+    if (!supabaseClient) return null;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    return session ? session.user : null;
 }
 
 // 이벤트에 배정된 심사위원 조회
@@ -456,41 +483,50 @@ window.markAllAsRead = async (userId) => {
 
 // UI 초기화 및 헤더 사용자 정보 연동
 async function setupUI() {
-    if (!supabaseClient) return;
-
     try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session && session.user) {
-            const user = session.user;
-            const meta = user.user_metadata || {};
+        let user = null;
+        let meta = {};
 
-            // 헤더 이름/역할 업데이트
-            const nameEl = document.getElementById('header-user-name');
-            const roleEl = document.getElementById('header-user-role');
-            const avatarEl = document.getElementById('header-avatar'); // 마이페이지 등에서 사용 가능
-
-            if (nameEl) nameEl.textContent = meta.empnm || meta.name || '사용자';
-            if (roleEl) {
-                const roleMap = { 'admin': '관리자', 'judge': '심사위원', 'submitter': '임직원', 'employee': '임직원' };
-                let roleText = roleMap[meta.role] || meta.role || '임직원';
-
-                // 관리자일 경우 시각적 표시 추가
-                if (meta.role === 'admin') {
-                    roleText = `[${roleText}]`;
-                    roleEl.classList.add('text-primary', 'font-bold');
-                }
-                roleEl.textContent = roleText;
-            }
-            if (avatarEl) {
-                const name = meta.empnm || meta.name || 'U';
-                avatarEl.textContent = name.substring(0, 1);
-            }
-
-            // 알림 카운트 로드 (함수가 존재할 경우에만)
-            if (typeof window.loadNotificationCount === 'function') {
-                window.loadNotificationCount(user.id);
+        // 1) MOCK_USER (게스트/테스트 모드) 먼저 확인
+        const mockUserStr = localStorage.getItem('MOCK_USER');
+        if (mockUserStr) {
+            user = JSON.parse(mockUserStr);
+            meta = user.user_metadata || {};
+        } else if (supabaseClient) {
+            // 2) Supabase 세션
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                user = session.user;
+                meta = user.user_metadata || {};
             }
         }
+
+        if (!user) return;
+
+        // 헤더 이름/역할 업데이트
+        const nameEl = document.getElementById('header-user-name');
+        const roleEl = document.getElementById('header-user-role');
+        const avatarEl = document.getElementById('header-avatar');
+
+        const displayName = meta.empnm || meta.name || '사용자';
+        if (nameEl) nameEl.textContent = displayName;
+        if (roleEl) {
+            const roleMap = { 'admin': '관리자', 'judge': '심사위원', 'submitter': '임직원', 'employee': '임직원' };
+            let roleText = roleMap[meta.role] || meta.role || '임직원';
+            if (meta.role === 'admin') {
+                roleText = `[${roleText}]`;
+                roleEl.classList.add('text-primary', 'font-bold');
+            }
+            roleEl.textContent = roleText;
+        }
+        if (avatarEl) {
+            avatarEl.textContent = displayName.substring(0, 1);
+        }
+
+        // 관리자 플래그를 전역으로 저장 (다른 페이지에서 활용)
+        window.__isAdmin = (meta.role === 'admin');
+        window.__currentUser = user;
+
     } catch (e) {
         console.error('[UI] Failed to setup common UI:', e);
     }

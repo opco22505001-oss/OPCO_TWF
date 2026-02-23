@@ -159,6 +159,17 @@
                     </div>
                 </div>
             </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="text-sm font-medium text-text-main" for="guide-file">이벤트 기획안내 파일 (참가자 열람용)</label>
+                <div class="relative">
+                    <input
+                        class="w-full rounded border-border-light bg-white px-4 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                        id="guide-file" type="file" />
+                    <p class="text-[10px] text-text-muted mt-1">* 이벤트 상세 페이지에서 참가자들이 다운로드할 수 있는 가이드 파일입니다.</p>
+                </div>
+            </div>
+
             <hr class="border-border-light my-1" />
             <div
                 class="flex items-center justify-between p-4 rounded-lg border border-border-light bg-background-light/50">
@@ -381,26 +392,36 @@
                 const selected = getSelectedJudgeEmpnos();
                 if (selected.length === 0) return;
 
-                // 선택된 사번으로 users 테이블에서 id 찾기
-                const allUsers = await window.fetchUsers();
+                // 1) 전체 사용자 목록(public.users) 가져오기
+                let allUsers = [];
+                try {
+                    const { data, error } = await supabaseClient.from('users').select('id, email, name');
+                    if (!error) allUsers = data;
+                } catch (e) { console.error(e); }
+
                 const userMap = {};
                 allUsers.forEach(u => {
-                    if (u.user_metadata && u.user_metadata.empno) userMap[u.user_metadata.empno] = u.id;
-                    // 직접 매핑도 시도
-                    if (u.empno) userMap[u.empno] = u.id;
+                    // 이메일에서 사번 추출 (예: 22505001@opco.internal -> 22505001)
+                    if (u.email) {
+                        const empno = u.email.split('@')[0];
+                        userMap[empno] = u.id;
+                    }
                 });
 
+                let successCount = 0;
+                let failCount = 0;
+
                 for (const judge of selected) {
-                    // users 테이블에서 해당 사번의 UUID를 찾기
                     let userId = userMap[judge.empno];
+
                     if (!userId) {
-                        // users 테이블에 없으면 건너뜀 (로그인하지 않은 사용자)
-                        console.warn(`[EventCreate] 사번 ${judge.empno} (${judge.name})은 아직 로그인하지 않은 사용자입니다. 배정 건너뜀.`);
+                        console.warn(`[EventCreate] 사번 ${judge.empno} (${judge.name})은 아직 가입하지 않았거나 찾을 수 없습니다.`);
+                        failCount++;
                         continue;
                     }
+
                     try {
                         await window.assignJudge(eventId, userId);
-                        // 알림 생성
                         if (typeof window.createNotification === 'function') {
                             await window.createNotification(
                                 userId,
@@ -408,16 +429,21 @@
                                 `event-detail.html?id=${eventId}`
                             );
                         }
+                        successCount++;
                     } catch (e) {
                         console.error(`[EventCreate] 심사자 배정 실패 (${judge.name}):`, e);
+                        failCount++;
                     }
                 }
-                console.log('[EventCreate] 심사자 배정 및 알림 발송 완료');
+
+                if (failCount > 0) {
+                    console.log(`[EventCreate] 배정 완료: 성공 ${successCount}명, 실패 ${failCount}명 (미가입자 포함)`);
+                }
             }
 
             // ========== 공통 데이터 수집 ==========
-            function collectEventData(status) {
-                return {
+            async function collectEventData(status) {
+                const data = {
                     title: document.getElementById('event-title').value,
                     description: document.getElementById('event-desc').value,
                     start_date: document.getElementById('start-date').value,
@@ -425,19 +451,52 @@
                     allow_file_upload: document.getElementById('allow-file').checked,
                     is_blind_judging: document.getElementById('is-blind').checked,
                     pass_criteria: collectCriteria(),
-                    status: status
+                    status: status,
+                    attachments: []
                 };
+
+                // 기획안내 파일 업로드 처리
+                const guideFileInput = document.getElementById('guide-file');
+                if (guideFileInput && guideFileInput.files.length > 0) {
+                    const file = guideFileInput.files[0];
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                    const filePath = `event-guides/${fileName}`;
+
+                    try {
+                        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                            .from('files') // 'files' 버킷 사용 (없을 경우 대비하여 일반적인 이름)
+                            .upload(filePath, file);
+
+                        if (uploadError) throw uploadError;
+
+                        const { data: { publicUrl } } = supabaseClient.storage
+                            .from('files')
+                            .getPublicUrl(filePath);
+
+                        data.attachments = [publicUrl];
+                    } catch (err) {
+                        console.error('[EventCreate] 파일 업로드 실패:', err);
+                        // 파일 업로드 실패 시 경고만 하고 진행하거나 중단 가능
+                        if (!confirm('기획안내 파일 업로드에 실패했습니다. 파일 없이 계속하시겠습니까?')) {
+                            throw new Error('파일 업로드 중단');
+                        }
+                    }
+                }
+
+                return data;
             }
 
             // ========== 이벤트 등록 공통 함수 ==========
             async function submitEvent(status, btn, originalText) {
-                const data = collectEventData(status);
-                if (!data.title) { alert('이벤트 제목을 입력해주세요.'); return; }
+                if (!document.getElementById('event-title').value) { alert('이벤트 제목을 입력해주세요.'); return; }
 
                 btn.textContent = status === 'draft' ? '저장 중...' : '등록 중...';
                 btn.disabled = true;
 
                 try {
+                    const data = await collectEventData(status);
+
                     if (typeof window.createEvent !== 'function') {
                         throw new Error('시스템 초기화 중입니다. 잠시 후 다시 시도해 주세요.');
                     }
@@ -455,8 +514,10 @@
                         window.location.href = 'dashboard.html';
                     }
                 } catch (err) {
-                    console.error('[EventCreate] Error:', err);
-                    alert('이벤트 ' + (status === 'draft' ? '저장' : '등록') + ' 중 오류: ' + err.message);
+                    if (err.message !== '파일 업로드 중단') {
+                        console.error('[EventCreate] Error:', err);
+                        alert('이벤트 ' + (status === 'draft' ? '저장' : '등록') + ' 중 오류: ' + err.message);
+                    }
                     btn.textContent = originalText;
                     btn.disabled = false;
                 }
