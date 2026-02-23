@@ -1,15 +1,16 @@
-let allEmployees = [];
+﻿let allEmployees = [];
 
 async function requireAdminSession() {
     if (!window.supabaseClient) return null;
+
     const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session || !session.user) {
+    if (!session?.user) {
         window.location.href = 'login.html';
         return null;
     }
 
-    const sessionRole = session.user.user_metadata?.role;
-    if (sessionRole === 'admin') return session.user;
+    const roleFromMeta = session.user.user_metadata?.role;
+    if (roleFromMeta === 'admin') return session.user;
 
     const { data: me } = await supabaseClient
         .from('users')
@@ -27,24 +28,24 @@ async function requireAdminSession() {
 }
 
 async function loadEmployees() {
-    const { data, error } = await supabaseClient
-        .from('corporate_employees')
-        .select('empno, empnm, depnm, role')
-        .order('empnm');
+    const { data, error } = await supabaseClient.functions.invoke('admin-manage-user-role', {
+        body: { action: 'list' }
+    });
 
-    if (error) {
-        console.error('[Admin] 직원 목록 조회 실패:', error);
-        alert(`직원 목록 조회 실패: ${error.message}`);
+    if (error || data?.error) {
+        const msg = data?.error || error?.message || '목록 조회 실패';
+        console.error('[Admin] 직원 목록 조회 실패:', msg);
+        alert(`직원 목록 조회 실패: ${msg}`);
         return;
     }
 
-    allEmployees = data || [];
+    allEmployees = Array.isArray(data?.employees) ? data.employees : [];
     renderEmployees();
 }
 
 function updateStats(rows) {
     document.getElementById('stat-total').textContent = rows.length;
-    document.getElementById('stat-admin').textContent = rows.filter(r => r.role === 'admin').length;
+    document.getElementById('stat-admin').textContent = rows.filter((r) => r.role === 'admin').length;
 }
 
 function getRoleBadge(role) {
@@ -103,22 +104,19 @@ window.changeEmployeeRole = async (empno, nextRole) => {
         : `${empno} 사원의 관리자 권한을 해제하시겠습니까?`;
     if (!confirm(confirmMsg)) return;
 
-    const { error } = await supabaseClient
-        .from('corporate_employees')
-        .update({ role: nextRole })
-        .eq('empno', empno);
+    const adminCode = prompt('관리자 인증 코드를 입력하세요.');
+    if (!adminCode) return;
 
-    if (error) {
-        console.error('[Admin] 권한 변경 실패(corporate_employees):', error);
-        alert(`권한 변경 실패: ${error.message}`);
+    const { data, error } = await supabaseClient.functions.invoke('admin-manage-user-role', {
+        body: { action: 'update_role', empno, nextRole, adminCode }
+    });
+
+    if (error || data?.error) {
+        const msg = data?.error || error?.message || '권한 변경 실패';
+        console.error('[Admin] 권한 변경 실패:', msg);
+        alert(`권한 변경 실패: ${msg}`);
         return;
     }
-
-    // trigger 동기화가 실패하거나 지연될 경우를 대비한 보정 업데이트
-    await supabaseClient
-        .from('users')
-        .update({ role: nextRole })
-        .eq('email', `${empno}@opco.internal`);
 
     alert('권한이 변경되었습니다.');
     await loadEmployees();

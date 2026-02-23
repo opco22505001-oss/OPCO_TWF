@@ -1,11 +1,11 @@
-<!-- 이벤트 상세 페이지 (제출 + 심사 통합) -->
+﻿<!-- ?대깽???곸꽭 ?섏씠吏 (?쒖텧 + ?ъ궗 ?듯빀) -->
 <!DOCTYPE html>
 <html lang="ko">
 
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>이벤트 상세 - OPCO : TWF</title>
+    <title>?대깽???곸꽭 - OPCO : TWF</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link
@@ -52,11 +52,11 @@
                 </div>
                 <div class="flex items-center gap-4">
                     <button class="text-sm font-medium text-text-muted hover:text-text-main"
-                        onclick="window.location.href='dashboard.html'">이벤트 목록</button>
+                        onclick="window.location.href='dashboard.html'">?대깽??紐⑸줉</button>
                     <button class="text-sm font-medium text-text-muted hover:text-text-main"
-                        onclick="window.location.href='mypage.html'">나의 제안</button>
+                        onclick="window.location.href='mypage.html'">?섏쓽 ?쒖븞</button>
                     <button class="admin-only-tab hidden text-sm font-medium text-text-muted hover:text-text-main"
-                        onclick="window.location.href='admin.html'">관리자</button>
+                        onclick="window.location.href='admin.html'">愿由ъ옄</button>
                     <div class="h-6 w-px bg-border"></div>
                     <button
                         class="p-2 rounded-full text-text-muted hover:bg-background-light transition-colors relative">
@@ -67,8 +67,8 @@
                     <div class="h-6 w-px bg-border"></div>
                     <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='mypage.html'">
                         <div class="text-right hidden sm:block">
-                            <p id="header-user-name" class="text-xs font-medium leading-none">불러오는 중...</p>
-                            <p id="header-user-role" class="text-[10px] text-text-muted mt-1">로그인 필요</p>
+                            <p id="header-user-name" class="text-xs font-medium leading-none">遺덈윭?ㅻ뒗 以?..</p>
+                            <p id="header-user-role" class="text-[10px] text-text-muted mt-1">濡쒓렇???꾩슂</p>
                         </div>
                         <div id="header-avatar"
                             class="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-text-muted border border-border">
@@ -80,83 +80,93 @@
     </header>
 
     <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- 뒤로가기 -->
+        <!-- ?ㅻ줈媛湲?-->
         <div class="mb-4">
             <a class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors cursor-pointer"
                 onclick="window.location.href='dashboard.html'">
                 <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                이벤트 목록으로 돌아가기
+                ?대깽??紐⑸줉?쇰줈 ?뚯븘媛湲?
             </a>
         </div>
 
-        <!-- 로딩 상태 -->
+        <!-- 濡쒕뵫 ?곹깭 -->
         <div id="loading-state" class="text-center py-20">
             <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4">
             </div>
-            <p class="text-text-muted">이벤트 정보를 불러오는 중...</p>
+            <p class="text-text-muted">?대깽???뺣낫瑜?遺덈윭?ㅻ뒗 以?..</p>
         </div>
 
-        <!-- 실제 콘텐츠 (JS로 채움) -->
+        <!-- ?ㅼ젣 肄섑뀗痢?(JS濡?梨꾩?) -->
         <div id="event-content" class="hidden">
-            <!-- 배너 -->
+            <!-- 諛곕꼫 -->
             <div class="bg-white rounded-xl border border-border shadow-sm overflow-hidden mb-6">
                 <div class="relative h-48 bg-gradient-to-r from-blue-600 to-indigo-700">
                     <div class="absolute inset-0 bg-black/20"></div>
                     <div class="absolute bottom-0 left-0 p-8 w-full bg-gradient-to-t from-black/80 to-transparent">
                         <div class="flex items-center gap-3 text-white/90 text-sm font-medium mb-2">
                             <span id="event-status-badge"
-                                class="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded border border-white/30">진행중</span>
+                                class="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded border border-white/30">吏꾪뻾以?/span>
                             <span class="flex items-center gap-1" id="event-period">
                                 <span class="material-symbols-outlined text-[16px]">calendar_today</span>
-                                기간 정보 로딩 중...
+                                湲곌컙 ?뺣낫 濡쒕뵫 以?..
                             </span>
                         </div>
-                        <h1 class="text-3xl font-bold text-white" id="event-title">이벤트 제목</h1>
+                        <h1 class="text-3xl font-bold text-white" id="event-title">?대깽???쒕ぉ</h1>
                     </div>
                 </div>
             </div>
 
-            <!-- 본문 2단 레이아웃 -->
+            <!-- 蹂몃Ц 2???덉씠?꾩썐 -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- 왼쪽: 설명 + 심사기준 + 제출물/심사 -->
+                <!-- ?쇱そ: ?ㅻ챸 + ?ъ궗湲곗? + ?쒖텧臾??ъ궗 -->
                 <div class="lg:col-span-2 space-y-6">
-                    <!-- 이벤트 설명 -->
+                    <!-- ?대깽???ㅻ챸 -->
                     <div class="bg-white rounded-xl border border-border p-6">
-                        <h3 class="text-lg font-bold mb-3">이벤트 개요</h3>
-                        <p id="event-desc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-line">설명 로딩 중...
+                        <h3 class="text-lg font-bold mb-3">?대깽??媛쒖슂</h3>
+                        <p id="event-desc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-line">?ㅻ챸 濡쒕뵫 以?..
                         </p>
                     </div>
 
-                    <!-- 심사 기준 -->
+                    <!-- ?ъ궗 湲곗? -->
                     <div id="criteria-section" class="bg-white rounded-xl border border-border p-6 hidden">
-                        <h3 class="text-lg font-bold mb-4">심사 기준 <span class="text-xs text-text-muted font-normal">(각 기준
-                                1~10점)</span></h3>
+                        <h3 class="text-lg font-bold mb-4">?ъ궗 湲곗? <span class="text-xs text-text-muted font-normal">(媛?湲곗?
+                                1~10??</span></h3>
                         <div id="criteria-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
                     </div>
 
-                    <!-- 제출물 작성 섹션 (일반 사용자용) -->
+                    <!-- 留덇컧 ???쒖쐞 -->
+                    <div id="ranking-section" class="bg-white rounded-xl border border-border p-6 hidden">
+                        <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-amber-600">leaderboard</span>
+                            ?ъ궗 ?쒖쐞
+                        </h3>
+                        <p class="text-xs text-text-muted mb-4">留덇컧???대깽?몄쓽 ?ъ궗 ?먯닔瑜?湲곗??쇰줈 ?먮룞 吏묎퀎?⑸땲??</p>
+                        <div id="ranking-list" class="space-y-2"></div>
+                    </div>
+
+                    <!-- ?쒖텧臾??묒꽦 ?뱀뀡 (?쇰컲 ?ъ슜?먯슜) -->
                     <div id="submission-section" class="bg-white rounded-xl border border-border p-6 hidden">
                         <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary">edit_document</span>
-                            이벤트 제출
+                            ?대깽???쒖텧
                         </h3>
                         <div class="space-y-4">
                             <div>
-                                <label class="text-sm font-medium text-text-main mb-1 block">제목</label>
+                                <label class="text-sm font-medium text-text-main mb-1 block">?쒕ぉ</label>
                                 <input type="text" id="sub-title"
                                     class="w-full rounded border-border bg-white px-4 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                                    placeholder="상세 제목을 입력하세요">
+                                    placeholder="?곸꽭 ?쒕ぉ???낅젰?섏꽭??>
                             </div>
                             <div>
-                                <label class="text-sm font-medium text-text-main mb-1 block">내용</label>
+                                <label class="text-sm font-medium text-text-main mb-1 block">?댁슜</label>
                                 <textarea id="sub-content" rows="6"
                                     class="w-full rounded border-border bg-white px-4 py-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                                    placeholder="상세 내용을 입력하세요..."></textarea>
+                                    placeholder="?곸꽭 ?댁슜???낅젰?섏꽭??.."></textarea>
                             </div>
 
-                            <!-- 파일 업로드 섹션 -->
+                            <!-- ?뚯씪 ?낅줈???뱀뀡 -->
                             <div id="sub-file-container" class="hidden">
-                                <label class="text-sm font-medium text-text-main mb-1 block">파일 첨부</label>
+                                <label class="text-sm font-medium text-text-main mb-1 block">?뚯씪 泥⑤?</label>
                                 <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-border border-dashed rounded-lg hover:border-primary/50 transition-colors cursor-pointer bg-gray-50/50"
                                     onclick="document.getElementById('sub-file').click()">
                                     <div class="space-y-1 text-center">
@@ -165,12 +175,12 @@
                                         <div class="flex text-sm text-text-muted">
                                             <span
                                                 class="relative cursor-pointer rounded-md font-medium text-primary hover:text-primary-hover focus-within:outline-none">
-                                                <span>파일 업로드</span>
+                                                <span>?뚯씪 ?낅줈??/span>
                                                 <input id="sub-file" type="file" class="sr-only" multiple>
                                             </span>
-                                            <p class="pl-1">또는 여기로 파일을 끌어보세요</p>
+                                            <p class="pl-1">?먮뒗 ?ш린濡??뚯씪???뚯뼱蹂댁꽭??/p>
                                         </div>
-                                        <p class="text-xs text-text-muted">PDF, PNG, JPG, CAD (최대 50MB)</p>
+                                        <p class="text-xs text-text-muted">PDF, PNG, JPG, CAD (理쒕? 50MB)</p>
                                         <p id="selected-file-name" class="text-xs text-primary font-medium mt-2 hidden">
                                         </p>
                                     </div>
@@ -180,38 +190,38 @@
                             <button id="btn-submit"
                                 class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
                                 <span class="material-symbols-outlined text-[20px]">send</span>
-                                이벤트 제출하기
+                                ?대깽???쒖텧?섍린
                             </button>
                         </div>
                     </div>
 
-                    <!-- 심사 패널 (심사자용) -->
+                    <!-- ?ъ궗 ?⑤꼸 (?ъ궗?먯슜) -->
                     <div id="judge-panel" class="hidden space-y-4">
                         <div class="bg-white rounded-xl border border-border p-6">
                             <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
                                 <span class="material-symbols-outlined text-purple-600">gavel</span>
-                                제출물 심사
+                                ?쒖텧臾??ъ궗
                             </h3>
-                            <p class="text-xs text-text-muted mb-4">배정된 심사자로서 제출된 제안서를 평가할 수 있습니다.</p>
+                            <p class="text-xs text-text-muted mb-4">諛곗젙???ъ궗?먮줈???쒖텧???쒖븞?쒕? ?됯??????덉뒿?덈떎.</p>
                             <div id="submissions-list" class="space-y-3">
-                                <p class="text-sm text-text-muted text-center py-4">제출물을 불러오는 중...</p>
+                                <p class="text-sm text-text-muted text-center py-4">?쒖텧臾쇱쓣 遺덈윭?ㅻ뒗 以?..</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 오른쪽: 정보 사이드바 -->
+                <!-- ?ㅻⅨ履? ?뺣낫 ?ъ씠?쒕컮 -->
                 <div class="space-y-6">
                     <div class="bg-white rounded-xl border border-border p-6 sticky top-24">
-                        <h3 class="text-lg font-bold mb-4">참가 정보</h3>
+                        <h3 class="text-lg font-bold mb-4">李멸? ?뺣낫</h3>
                         <div class="space-y-4 mb-6">
                             <div class="flex items-start gap-3">
                                 <div class="p-2 bg-background-light rounded border border-border text-primary">
                                     <span class="material-symbols-outlined">schedule</span>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-semibold">접수 마감</p>
-                                    <p class="text-sm text-text-muted" id="sidebar-deadline">로딩 중...</p>
+                                    <p class="text-sm font-semibold">?묒닔 留덇컧</p>
+                                    <p class="text-sm text-text-muted" id="sidebar-deadline">濡쒕뵫 以?..</p>
                                     <p class="text-xs text-red-500 font-medium mt-0.5" id="sidebar-dday"></p>
                                 </div>
                             </div>
@@ -220,41 +230,46 @@
                                     <span class="material-symbols-outlined">group</span>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-semibold">참가 대상</p>
-                                    <p class="text-sm text-text-muted">전 임직원</p>
+                                    <p class="text-sm font-semibold">李멸? ???/p>
+                                    <p class="text-sm text-text-muted">???꾩쭅??/p>
                                 </div>
                             </div>
                         </div>
                         <hr class="border-border mb-6">
 
-                        <!-- 심사자 목록 -->
+                        <!-- ?ъ궗??紐⑸줉 -->
                         <div id="sidebar-judges" class="mb-6 hidden">
-                            <h4 class="text-sm font-semibold mb-2">배정된 심사자</h4>
+                            <h4 class="text-sm font-semibold mb-2">諛곗젙???ъ궗??/h4>
                             <div id="judges-names" class="space-y-1"></div>
                         </div>
 
-                        <!-- 기획안내 파일 -->
+                        <!-- 湲고쉷?덈궡 ?뚯씪 -->
                         <div id="sidebar-attachments" class="mb-6 hidden">
-                            <h4 class="text-sm font-semibold mb-2">이벤트 기획안내</h4>
+                            <h4 class="text-sm font-semibold mb-2">?대깽??湲고쉷?덈궡</h4>
                             <div id="guide-links" class="space-y-2"></div>
                         </div>
 
-                        <!-- 설정 정보 -->
+                        <!-- ?ㅼ젙 ?뺣낫 -->
                         <div id="sidebar-settings" class="space-y-2 text-xs text-text-muted mb-6">
                         </div>
 
-                        <!-- 관리자 액션 -->
+                        <!-- 愿由ъ옄 ?≪뀡 -->
                         <div id="admin-actions" class="hidden space-y-2 pt-4 border-t border-border">
-                            <p class="text-[10px] uppercase tracking-wider text-text-muted font-bold mb-2">관리자 기능</p>
+                            <p class="text-[10px] uppercase tracking-wider text-text-muted font-bold mb-2">愿由ъ옄 湲곕뒫</p>
                             <button onclick="editThisEvent()"
                                 class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
-                                이벤트 수정
+                                ?대깽???섏젙
                             </button>
                             <button onclick="deleteThisEvent()"
                                 class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors">
                                 <span class="material-symbols-outlined text-[18px]">delete</span>
-                                이벤트 삭제
+                                ?대깽????젣
+                            </button>
+                            <button onclick="closeThisEvent()"
+                                class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-amber-200 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-50 transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">task_alt</span>
+                                ?대깽??利됱떆 留덇컧
                             </button>
                         </div>
                     </div>
@@ -265,14 +280,20 @@
 
     <footer class="border-t border-border bg-white mt-12 py-8">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-sm text-text-muted">© 2024 Oriental Precision & Engineering. All rights reserved.</p>
+            <p class="text-sm text-text-muted">짤 2024 Oriental Precision & Engineering. All rights reserved.</p>
         </div>
     </footer>
 
-    <script src="js/main.js"></script>
+        <script src="js/main.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const eventId = getQueryParam('id');
+            if (!eventId) {
+                alert('잘못된 접근입니다.');
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
             const buildStoredName = (file) => {
                 const normalized = (file?.name || 'file').normalize('NFC');
                 const extIndex = normalized.lastIndexOf('.');
@@ -280,10 +301,12 @@
                 const token = (crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`).replace(/[^a-zA-Z0-9_-]/g, '');
                 return `${Date.now()}_${token}${ext}`;
             };
+
             const withOriginalName = (publicUrl, originalName) => {
                 const normalized = (originalName || '').normalize('NFC');
                 return `${publicUrl}#name=${encodeURIComponent(normalized)}`;
             };
+
             const getDisplayNameFromUrl = (url) => {
                 try {
                     const nameParam = new URL(url).hash.match(/(?:^#|&)name=([^&]+)/)?.[1];
@@ -296,13 +319,9 @@
                     return (url || '').split('/').pop() || '첨부파일';
                 }
             };
-            if (!eventId) {
-                alert('잘못된 접근입니다.');
-                window.location.href = 'dashboard.html';
-                return;
-            }
 
-            // 이벤트 상세 로드
+            const sumScore = (scoreObj) => Object.values(scoreObj || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
+
             const event = await fetchEventDetails(eventId);
             if (!event) {
                 alert('이벤트 정보를 불러올 수 없습니다.');
@@ -310,68 +329,57 @@
                 return;
             }
 
-            // 현재 로그인 사용자 정보
             let currentUser = null;
             if (supabaseClient) {
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) {
+                if (session?.user) {
                     currentUser = session.user;
                     localStorage.removeItem('MOCK_USER');
                 }
             }
 
-            // 심사자 목록 로드
             const judges = await fetchEventJudges(eventId);
-            const isJudge = currentUser && judges.some(j => j.judge_id === currentUser.id);
+            const isJudge = !!(currentUser && judges.some(j => j.judge_id === currentUser.id));
 
-            // === 렌더링 ===
             document.getElementById('loading-state').classList.add('hidden');
             document.getElementById('event-content').classList.remove('hidden');
 
-            // 관리자 메뉴 처리
             if (window.__isAdmin) {
                 document.getElementById('admin-actions').classList.remove('hidden');
             }
 
-            // 배너
             document.getElementById('event-title').textContent = event.title;
             document.title = `${event.title} - OPCO : TWF`;
             const start = formatDate(event.start_date);
             const end = formatDate(event.end_date);
             document.getElementById('event-period').innerHTML = `<span class="material-symbols-outlined text-[16px]">calendar_today</span> ${start} ~ ${end}`;
 
-            const statusMap = { 'active': '진행중', 'draft': '초안', 'completed': '완료', 'closed': '마감' };
+            const statusMap = { active: '진행중', draft: '초안', completed: '완료', closed: '마감' };
             document.getElementById('event-status-badge').textContent = statusMap[event.status] || event.status;
-
-            // 설명
             document.getElementById('event-desc').textContent = event.description || '상세 설명이 없습니다.';
-
-            // 사이드바
             document.getElementById('sidebar-deadline').textContent = end || '미정';
+
             if (event.end_date) {
                 const diff = Math.ceil((new Date(event.end_date) - new Date()) / (1000 * 60 * 60 * 24));
                 document.getElementById('sidebar-dday').textContent = diff > 0 ? `D-${diff}일 남음` : '마감됨';
             }
 
-            // 설정 정보
             const settings = [];
             if (event.allow_file_upload) settings.push('<span class="material-symbols-outlined text-[14px] align-middle">attach_file</span> 파일 첨부 허용');
             if (event.is_blind_judging) settings.push('<span class="material-symbols-outlined text-[14px] align-middle">visibility_off</span> 블라인드 심사');
             document.getElementById('sidebar-settings').innerHTML = settings.map(s => `<div class="flex items-center gap-1">${s}</div>`).join('');
 
-            // 심사자 목록
             if (judges.length > 0) {
                 document.getElementById('sidebar-judges').classList.remove('hidden');
-                document.getElementById('judges-names').innerHTML = judges.map(j => {
-                    const jName = j.judge ? j.judge.name : '(이름없음)';
-                    return `<div class="flex items-center gap-2 text-sm"><span class="h-6 w-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">${jName.charAt(0)}</span>${jName}</div>`;
+                document.getElementById('judges-names').innerHTML = judges.map((j) => {
+                    const name = j.judge?.name || '(이름없음)';
+                    return `<div class="flex items-center gap-2 text-sm"><span class="h-6 w-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">${name.charAt(0)}</span>${name}</div>`;
                 }).join('');
             }
 
-            // 기획안내 파일 표시
             if (event.attachments && event.attachments.length > 0) {
                 document.getElementById('sidebar-attachments').classList.remove('hidden');
-                document.getElementById('guide-links').innerHTML = event.attachments.map(url => {
+                document.getElementById('guide-links').innerHTML = event.attachments.map((url) => {
                     const fileName = getDisplayNameFromUrl(url) || '기획안내.pdf';
                     return `
                         <a href="${url}" target="_blank" class="flex items-center gap-2 text-xs text-primary hover:underline bg-primary/5 p-2 rounded">
@@ -382,9 +390,8 @@
                 }).join('');
             }
 
-            // 심사 기준 표시
-            const criteria = event.pass_criteria;
-            if (criteria && Array.isArray(criteria) && criteria.length > 0) {
+            const criteria = Array.isArray(event.pass_criteria) ? event.pass_criteria : [];
+            if (criteria.length > 0) {
                 document.getElementById('criteria-section').classList.remove('hidden');
                 const colors = ['text-blue-600 bg-blue-50', 'text-green-600 bg-green-50', 'text-purple-600 bg-purple-50', 'text-orange-600 bg-orange-50', 'text-pink-600 bg-pink-50'];
                 document.getElementById('criteria-cards').innerHTML = criteria.map((c, i) => `
@@ -395,28 +402,97 @@
                 `).join('');
             }
 
-            // === 역할별 기능 표시 ===
-            // === 역할별 기능 표시 및 본인 제출물 확인 ===
             const submissions = await fetchSubmissions(eventId);
-            const mySubmission = submissions.find(s => s.submitter_id === currentUser.id);
+            const submissionIds = submissions.map(s => s.id);
+            const mySubmission = currentUser ? submissions.find(s => s.submitter_id === currentUser.id) : null;
+            const myJudgmentMap = new Map();
 
-            // 1) 심사자 패널 (배정된 경우에만)
+            if (isJudge && submissionIds.length > 0) {
+                const { data: mine, error: mineError } = await supabaseClient
+                    .from('judgments')
+                    .select('submission_id, score, comments')
+                    .eq('judge_id', currentUser.id)
+                    .in('submission_id', submissionIds);
+                if (!mineError && Array.isArray(mine)) {
+                    mine.forEach((row) => myJudgmentMap.set(row.submission_id, row));
+                }
+            }
+
+            if (window.__isAdmin && event.status === 'closed' && submissionIds.length > 0) {
+                const { data: allJudgments, error: rankError } = await supabaseClient
+                    .from('judgments')
+                    .select('submission_id, score')
+                    .in('submission_id', submissionIds);
+                if (!rankError) {
+                    const grouped = new Map();
+                    (allJudgments || []).forEach((j) => {
+                        if (!grouped.has(j.submission_id)) grouped.set(j.submission_id, []);
+                        grouped.get(j.submission_id).push(sumScore(j.score));
+                    });
+
+                    const ranked = submissions
+                        .map((sub) => {
+                            const scores = grouped.get(sub.id) || [];
+                            if (!scores.length) return null;
+                            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                            return { sub, avg, judgeCount: scores.length };
+                        })
+                        .filter(Boolean)
+                        .sort((a, b) => b.avg - a.avg);
+
+                    if (ranked.length > 0) {
+                        document.getElementById('ranking-section').classList.remove('hidden');
+                        document.getElementById('ranking-list').innerHTML = ranked.map((item, idx) => {
+                            const title = item.sub?.content?.title || `제출물 #${idx + 1}`;
+                            const submitter = item.sub?.submitter?.name || '익명';
+                            const rankStyle = idx === 0 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-border';
+                            return `
+                                <div class="flex items-center justify-between rounded-lg border px-4 py-3 ${rankStyle}">
+                                    <div>
+                                        <p class="text-xs text-text-muted mb-0.5">${idx + 1}위 · ${submitter}</p>
+                                        <p class="text-sm font-bold">${title}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-bold text-primary">${item.avg.toFixed(2)}점</p>
+                                        <p class="text-[11px] text-text-muted">${item.judgeCount}명 평가</p>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                }
+            }
+
             if (isJudge) {
                 document.getElementById('judge-panel').classList.remove('hidden');
-
                 if (submissions.length === 0) {
                     document.getElementById('submissions-list').innerHTML = '<p class="text-sm text-text-muted text-center py-8">아직 제출된 제안이 없습니다.</p>';
                 } else {
                     document.getElementById('submissions-list').innerHTML = submissions.map((sub, idx) => {
-                        const submitterName = event.is_blind_judging ? `익명 제출자 #${idx + 1}` : (sub.submitter ? sub.submitter.name : '알 수 없음');
-                        const submitterDept = event.is_blind_judging ? '' : (sub.submitter ? sub.submitter.department : '');
-                        const content = sub.content ? (typeof sub.content === 'string' ? sub.content : JSON.stringify(sub.content)) : '';
-                        const title = (sub.content && sub.content.title) ? sub.content.title : `제출물 #${idx + 1}`;
+                        const myJudgment = myJudgmentMap.get(sub.id);
+                        const submitterName = event.is_blind_judging ? `익명 제출자 #${idx + 1}` : (sub.submitter?.name || '정보없음');
+                        const submitterDept = event.is_blind_judging ? '' : (sub.submitter?.department || '');
+                        const title = sub.content?.title || `제출물 #${idx + 1}`;
+                        const body = sub.content?.body || '';
+                        const fileLinks = (sub.files && sub.files.length > 0)
+                            ? `<div class="mt-2 space-y-1">${sub.files.map(f => `<a href="${f}" target="_blank" class="text-[10px] text-primary hover:underline flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">attach_file</span>${getDisplayNameFromUrl(f)}</a>`).join('')}</div>`
+                            : '';
 
-                        // 심사 기준별 점수 입력
-                        let criteriaInputs = '';
-                        if (criteria && criteria.length > 0) {
-                            criteriaInputs = criteria.map((c, ci) => `
+                        let judgeBlock = '';
+                        if (myJudgment) {
+                            const scoreRows = Object.entries(myJudgment.score || {})
+                                .map(([name, value]) => `<div class="text-xs"><span class="font-semibold">${name}</span>: ${value}</div>`)
+                                .join('');
+                            judgeBlock = `
+                                <div class="border-t border-border pt-3 mt-3 space-y-2">
+                                    <p class="text-xs font-bold text-emerald-700 uppercase tracking-wider">이미 평가한 항목</p>
+                                    ${scoreRows || '<div class="text-xs text-text-muted">저장된 점수가 없습니다.</div>'}
+                                    ${myJudgment.comments ? `<p class="text-xs text-text-muted">코멘트: ${myJudgment.comments}</p>` : ''}
+                                    <button class="w-full py-2 bg-emerald-600 text-white rounded text-sm font-bold cursor-not-allowed opacity-80" disabled>이미 평가한 항목입니다</button>
+                                </div>
+                            `;
+                        } else if (criteria.length > 0) {
+                            const sliders = criteria.map((c) => `
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-medium text-text-main">${c.name}</span>
                                     <div class="flex items-center gap-2">
@@ -425,11 +501,16 @@
                                     </div>
                                 </div>
                             `).join('');
-                        }
-
-                        let fileLinks = '';
-                        if (sub.files && sub.files.length > 0) {
-                            fileLinks = `<div class="mt-2 space-y-1">${sub.files.map(f => `<a href="${f}" target="_blank" class="text-[10px] text-primary hover:underline flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">attach_file</span>${getDisplayNameFromUrl(f)}</a>`).join('')}</div>`;
+                            judgeBlock = `
+                                <div class="border-t border-border pt-3 mt-3 space-y-2">
+                                    <p class="text-xs font-bold text-text-muted uppercase tracking-wider">점수 평가</p>
+                                    ${sliders}
+                                    <div class="mt-2">
+                                        <textarea class="judge-comment w-full rounded border-border text-xs p-2 resize-none" rows="2" placeholder="심사 코멘트 (선택)" data-sub="${sub.id}"></textarea>
+                                    </div>
+                                    <button class="btn-submit-judgment w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-bold transition-colors" data-sub="${sub.id}">점수 제출</button>
+                                </div>
+                            `;
                         }
 
                         return `
@@ -437,44 +518,35 @@
                                 <div class="flex items-center justify-between mb-2">
                                     <div>
                                         <h4 class="font-bold text-sm">${title}</h4>
-                                        <p class="text-xs text-text-muted">${submitterName} ${submitterDept ? '· ' + submitterDept : ''} · ${new Date(sub.created_at).toLocaleDateString()}</p>
+                                        <p class="text-xs text-text-muted">${submitterName}${submitterDept ? ' · ' + submitterDept : ''} · ${new Date(sub.created_at).toLocaleDateString()}</p>
                                     </div>
-                                    <span class="text-xs px-2 py-0.5 rounded-full ${sub.status === 'submitted' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}">${sub.status === 'submitted' ? '제출완료' : sub.status}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full ${myJudgment ? 'bg-emerald-50 text-emerald-700' : 'bg-green-50 text-green-700'}">${myJudgment ? '내 평가 완료' : '평가 전'}</span>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-2">${(sub.content && sub.content.body) || content}</p>
+                                <p class="text-sm text-gray-600 mb-2 whitespace-pre-wrap">${body}</p>
                                 ${fileLinks}
-                                ${criteriaInputs ? `
-                                    <div class="border-t border-border pt-3 mt-3 space-y-2">
-                                        <p class="text-xs font-bold text-text-muted uppercase tracking-wider">점수 평가</p>
-                                        ${criteriaInputs}
-                                        <div class="mt-2">
-                                            <textarea class="judge-comment w-full rounded border-border text-xs p-2 resize-none" rows="2" placeholder="심사 코멘트 (선택)" data-sub="${sub.id}"></textarea>
-                                        </div>
-                                        <button class="btn-submit-judgment w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-bold transition-colors" data-sub="${sub.id}">
-                                            점수 제출
-                                        </button>
-                                    </div>
-                                ` : ''}
+                                ${judgeBlock}
                             </div>
                         `;
                     }).join('');
 
-                    // 슬라이더 값 표시
-                    document.querySelectorAll('.score-slider').forEach(slider => {
+                    document.querySelectorAll('.score-slider').forEach((slider) => {
                         const valueEl = slider.nextElementSibling;
                         slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
                     });
 
-                    // 점수 제출 이벤트
-                    document.querySelectorAll('.btn-submit-judgment').forEach(btn => {
+                    document.querySelectorAll('.btn-submit-judgment').forEach((btn) => {
                         btn.addEventListener('click', async () => {
                             const subId = btn.dataset.sub;
+                            if (myJudgmentMap.has(subId)) {
+                                alert('이미 평가한 제출물입니다.');
+                                return;
+                            }
+
                             const card = btn.closest('[data-sub-id]');
                             const sliders = card.querySelectorAll('.score-slider');
                             const comment = card.querySelector('.judge-comment')?.value || '';
-
                             const score = {};
-                            sliders.forEach(s => { score[s.dataset.criteria] = parseInt(s.value); });
+                            sliders.forEach((s) => { score[s.dataset.criteria] = parseInt(s.value, 10); });
 
                             btn.textContent = '제출 중...';
                             btn.disabled = true;
@@ -482,7 +554,7 @@
                             const result = await createJudgment({
                                 submission_id: subId,
                                 judge_id: currentUser.id,
-                                score: score,
+                                score,
                                 comments: comment
                             });
 
@@ -490,26 +562,24 @@
                                 alert('심사 제출 실패: ' + (result.error.message || result.error));
                                 btn.textContent = '점수 제출';
                                 btn.disabled = false;
-                            } else {
-                                btn.textContent = '✓ 제출 완료';
-                                btn.classList.replace('bg-purple-600', 'bg-green-600');
-                                btn.classList.replace('hover:bg-purple-700', 'hover:bg-green-700');
+                                return;
                             }
+
+                            alert('평가가 저장되었습니다.');
+                            location.reload();
                         });
                     });
                 }
             }
 
-            // 2) 본인의 제출물 처리 (심사자일지라도 제출 가능)
             const submissionSection = document.getElementById('submission-section');
             submissionSection.classList.remove('hidden');
 
             function renderMySubmission(sub) {
                 const subContent = sub.content || {};
-                let fileLinks = '';
-                if (sub.files && sub.files.length > 0) {
-                    fileLinks = `<div class="mt-4 pt-4 border-t border-dashed border-border flex flex-wrap gap-2">${sub.files.map(f => `<a href="${f}" target="_blank" class="px-3 py-1.5 bg-gray-50 border border-border rounded text-xs text-primary hover:bg-gray-100 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">description</span>${getDisplayNameFromUrl(f)}</a>`).join('')}</div>`;
-                }
+                const fileLinks = (sub.files && sub.files.length > 0)
+                    ? `<div class="mt-4 pt-4 border-t border-dashed border-border flex flex-wrap gap-2">${sub.files.map(f => `<a href="${f}" target="_blank" class="px-3 py-1.5 bg-gray-50 border border-border rounded text-xs text-primary hover:bg-gray-100 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">description</span>${getDisplayNameFromUrl(f)}</a>`).join('')}</div>`
+                    : '';
 
                 submissionSection.innerHTML = `
                     <div class="bg-primary/5 border border-primary/20 rounded-xl p-6">
@@ -525,7 +595,7 @@
                         </div>
                         <div class="space-y-3">
                             <div>
-                                <p class="text-xs text-text-muted font-bold mb-1">제시 제목</p>
+                                <p class="text-xs text-text-muted font-bold mb-1">제출 제목</p>
                                 <p class="text-sm font-medium">${subContent.title || '제목 없음'}</p>
                             </div>
                             <div>
@@ -534,7 +604,7 @@
                             </div>
                             ${fileLinks}
                         </div>
-                        <p class="text-[11px] text-text-muted mt-4">* 이벤트 마감 전까지 언제든 내용을 수정할 수 있습니다.</p>
+                        <p class="text-[11px] text-text-muted mt-4">* 이벤트 마감 전까지 제출 내용을 수정할 수 있습니다.</p>
                     </div>
                 `;
 
@@ -553,11 +623,11 @@
                         <div class="space-y-5">
                             <div>
                                 <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">제안 제목</label>
-                                <input type="text" id="sub-title" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="제목을 입력하세요" value="${existingSub ? existingSub.content.title : ''}">
+                                <input type="text" id="sub-title" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="제목을 입력하세요" value="${existingSub ? (existingSub.content?.title || '') : ''}">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">상세 내용</label>
-                                <textarea id="sub-content" rows="6" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="제안의 배경, 목적, 기대효과 등을 자유롭게 기술하세요">${existingSub ? existingSub.content.body : ''}</textarea>
+                                <textarea id="sub-content" rows="6" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="제안의 배경, 목적, 기대효과 등을 자유롭게 기술하세요">${existingSub ? (existingSub.content?.body || '') : ''}</textarea>
                             </div>
                             <div id="sub-file-container" class="${event.allow_file_upload ? '' : 'hidden'}">
                                 <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">첨부 파일 (선택)</label>
@@ -569,11 +639,16 @@
                                     </label>
                                 </div>
                                 <p id="selected-file-name" class="mt-2 text-xs text-primary font-medium hidden"></p>
-                                ${existingSub && existingSub.files && existingSub.files.length > 0 ? `<p class="mt-2 text-[10px] text-text-muted">기본 파일이 유지됩니다. 새로 업로드할 경우 기존 파일에 추가됩니다.</p>` : ''}
+                                <div id="existing-file-list" class="mt-2 space-y-1 ${existingSub && existingSub.files && existingSub.files.length > 0 ? '' : 'hidden'}">
+                                    ${(existingSub && existingSub.files && existingSub.files.length > 0)
+                        ? existingSub.files.map(f => `<a href="${f}" target="_blank" class="flex items-center gap-1 text-xs text-primary hover:underline"><span class="material-symbols-outlined text-[12px]">attach_file</span>${getDisplayNameFromUrl(f)}</a>`).join('')
+                        : ''}
+                                </div>
+                                ${existingSub && existingSub.files && existingSub.files.length > 0 ? '<p class="mt-2 text-[10px] text-text-muted">기존 첨부 파일입니다. 새 파일 업로드 시 기존 목록에 추가됩니다.</p>' : ''}
                             </div>
                         </div>
                         <div class="mt-8 flex gap-3">
-                            ${existingSub ? `<button id="btn-cancel-edit" class="flex-1 py-3 px-4 border border-border-light rounded-lg text-sm font-bold text-text-main hover:bg-gray-50 transition-colors">취소</button>` : ''}
+                            ${existingSub ? '<button id="btn-cancel-edit" class="flex-1 py-3 px-4 border border-border-light rounded-lg text-sm font-bold text-text-main hover:bg-gray-50 transition-colors">취소</button>' : ''}
                             <button id="btn-submit" class="flex-[2] py-3 px-4 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all">
                                 ${existingSub ? '수정 내용 저장' : '지금 제출하기'}
                             </button>
@@ -582,9 +657,7 @@
                 `;
 
                 if (existingSub) {
-                    document.getElementById('btn-cancel-edit').addEventListener('click', () => {
-                        renderMySubmission(existingSub);
-                    });
+                    document.getElementById('btn-cancel-edit').addEventListener('click', () => renderMySubmission(existingSub));
                 }
 
                 if (event.allow_file_upload) {
@@ -603,7 +676,6 @@
                     const title = document.getElementById('sub-title').value.trim();
                     const body = document.getElementById('sub-content').value.trim();
                     const fileInput = document.getElementById('sub-file');
-
                     if (!title) { alert('제목을 입력해주세요.'); return; }
                     if (!body) { alert('내용을 입력해주세요.'); return; }
 
@@ -613,23 +685,14 @@
                     btn.disabled = true;
 
                     try {
-                        let uploadedFiles = existingSub ? [...existingSub.files] : [];
-                        if (event.allow_file_upload && fileInput.files.length > 0) {
-                            const files = Array.from(fileInput.files);
-                            for (const file of files) {
+                        const uploadedFiles = existingSub?.files ? [...existingSub.files] : [];
+                        if (event.allow_file_upload && fileInput && fileInput.files.length > 0) {
+                            for (const file of Array.from(fileInput.files)) {
                                 const fileName = buildStoredName(file);
                                 const filePath = `submissions/${eventId}/${fileName}`;
-
-                                const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                                    .from('submission-files')
-                                    .upload(filePath, file);
-
+                                const { error: uploadError } = await supabaseClient.storage.from('submission-files').upload(filePath, file);
                                 if (uploadError) throw uploadError;
-
-                                const { data: { publicUrl } } = supabaseClient.storage
-                                    .from('submission-files')
-                                    .getPublicUrl(filePath);
-
+                                const { data: { publicUrl } } = supabaseClient.storage.from('submission-files').getPublicUrl(filePath);
                                 uploadedFiles.push(withOriginalName(publicUrl, file.name));
                             }
                         }
@@ -652,10 +715,8 @@
                         }
 
                         if (result.error) throw result.error;
-
                         alert(existingSub ? '수정되었습니다!' : '성공적으로 제출되었습니다!');
                         location.reload();
-
                     } catch (err) {
                         console.error('[Detail] Submission Error:', err);
                         alert('처리 실패: ' + (err.message || err));
@@ -665,14 +726,11 @@
                 });
             }
 
-            if (mySubmission) {
-                renderMySubmission(mySubmission);
-            } else {
-                initSubmissionForm();
-            }
+            if (mySubmission) renderMySubmission(mySubmission);
+            else initSubmissionForm();
         });
 
-        // 관리자 전용 함수
+        // 관리자 액션
         window.editThisEvent = () => {
             const eventId = getQueryParam('id');
             window.location.href = `event-creation-modal.html?id=${eventId}`;
@@ -681,17 +739,43 @@
         window.deleteThisEvent = async () => {
             const eventId = getQueryParam('id');
             const eventTitle = document.getElementById('event-title').textContent;
-            if (confirm(`'${eventTitle}' 이벤트를 삭제하시겠습니까?`)) {
-                const { error } = await window.deleteEvent(eventId);
-                if (error) {
-                    alert('삭제 실패: ' + error.message);
-                } else {
-                    alert('성공적으로 삭제되었습니다.');
-                    window.location.href = 'dashboard.html';
-                }
+            if (!confirm(`'${eventTitle}' 이벤트를 삭제하시겠습니까?`)) return;
+
+            const adminCode = prompt('관리자 인증 코드를 입력하세요.');
+            if (!adminCode) return;
+
+            const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
+                body: { action: 'delete_event', eventId, adminCode }
+            });
+            if (error || data?.error) {
+                const msg = data?.error || error?.message || '삭제 실패';
+                alert('삭제 실패: ' + msg);
+                return;
             }
+            alert('성공적으로 삭제되었습니다.');
+            window.location.href = 'dashboard.html';
+        };
+
+        window.closeThisEvent = async () => {
+            const eventId = getQueryParam('id');
+            if (!confirm('이벤트를 지금 즉시 마감하시겠습니까?')) return;
+
+            const adminCode = prompt('관리자 인증 코드를 입력하세요.');
+            if (!adminCode) return;
+
+            const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
+                body: { action: 'close_event', eventId, adminCode }
+            });
+            if (error || data?.error) {
+                const msg = data?.error || error?.message || '마감 처리 실패';
+                alert('마감 처리 실패: ' + msg);
+                return;
+            }
+            alert('이벤트가 마감되었습니다. 심사 순위를 확인하세요.');
+            location.reload();
         };
     </script>
 </body>
 
 </html>
+

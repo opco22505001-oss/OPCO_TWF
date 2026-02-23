@@ -1,4 +1,4 @@
-
+﻿
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -16,16 +16,16 @@ serve(async (req) => {
         const { empno, empnm, adminCode } = await req.json();
 
         if (!empno || !empnm) {
-            throw new Error('사번과 이름을 모두 입력해주세요.');
+            throw new Error('?щ쾲怨??대쫫??紐⑤몢 ?낅젰?댁＜?몄슂.');
         }
 
-        // --- 사내 데이터베이스 연동 (corporate_employees 테이블 조회) ---
+        // --- ?щ궡 ?곗씠?곕쿋?댁뒪 ?곕룞 (corporate_employees ?뚯씠釉?議고쉶) ---
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
 
-        // 1. corporate_employees 테이블에서 사용자 정보 조회
+        // 1. corporate_employees ?뚯씠釉붿뿉???ъ슜???뺣낫 議고쉶
         console.log(`[Auth] Checking corporate_employees for empno: ${empno}`);
         const { data: corpUser, error: corpError } = await supabaseAdmin
             .from('corporate_employees')
@@ -35,7 +35,7 @@ serve(async (req) => {
 
         if (corpError) {
             console.error(`[Auth] corpError for empno ${empno}:`, corpError);
-            return new Response(JSON.stringify({ error: `사용자 조회 중 오류가 발생했습니다: ${corpError.message}` }), {
+            return new Response(JSON.stringify({ error: `?ъ슜??議고쉶 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎: ${corpError.message}` }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
@@ -43,60 +43,69 @@ serve(async (req) => {
 
         if (!corpUser) {
             console.error(`[Auth] No such user in corporate_employees: ${empno}`);
-            return new Response(JSON.stringify({ error: `사번이 존재하지 않습니다. (ID: ${empno})` }), {
+            return new Response(JSON.stringify({ error: `?щ쾲??議댁옱?섏? ?딆뒿?덈떎. (ID: ${empno})` }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
         }
 
-        // 2. 이름 일치 여부 확인 (Normalize 적용)
+        // 2. ?대쫫 ?쇱튂 ?щ? ?뺤씤 (Normalize ?곸슜)
         const inputName = empnm.normalize('NFC').trim();
         const storedName = corpUser.empnm.normalize('NFC').trim();
         console.log(`[Auth] Comparing names - Input: "${inputName}", Stored: "${storedName}"`);
 
         if (storedName !== inputName && empnm !== 'BYPASS') {
             console.error(`[Auth] Name mismatch. Input: "${inputName}", Stored: "${storedName}"`);
-            return new Response(JSON.stringify({ error: `사번(${empno})과 성함(${empnm}) 정보가 일치하지 않습니다.` }), {
+            return new Response(JSON.stringify({ error: `?щ쾲(${empno})怨??깊븿(${empnm}) ?뺣낫媛 ?쇱튂?섏? ?딆뒿?덈떎.` }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
         }
 
-        // 3. 관리자 로그인 시 인증 코드 확인
+        // 3. 愿由ъ옄 濡쒓렇?????몄쬆 肄붾뱶 ?뺤씤
         if (corpUser.role === 'admin') {
             const REQUIRED_ADMIN_CODE = Deno.env.get('ADMIN_CODE') || 'OPCO_ADMIN_2024';
             if (adminCode !== REQUIRED_ADMIN_CODE) {
-                return new Response(JSON.stringify({ error: '관리자 인증 코드가 올바르지 않습니다.' }), {
+                return new Response(JSON.stringify({ error: '愿由ъ옄 ?몄쬆 肄붾뱶媛 ?щ컮瑜댁? ?딆뒿?덈떎.' }), {
                     status: 401,
                     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 });
             }
         }
 
-        // 사내 DB 데이터 매핑 (기존 로직과 호환 위해 user 객체 생성)
+        // ?щ궡 DB ?곗씠??留ㅽ븨 (湲곗〈 濡쒖쭅怨??명솚 ?꾪빐 user 媛앹껜 ?앹꽦)
         const user = {
             empnm: corpUser.empnm,
-            depnm: corpUser.depnm || '소속미정',
+            depnm: corpUser.depnm || '?뚯냽誘몄젙',
             role: corpUser.role || 'submitter'
         };
 
-        // --- 사내 데이터베이스 연동 끝 ---
+        // --- ?щ궡 ?곗씠?곕쿋?댁뒪 ?곕룞 ??---
 
-        // Supabase Admin을 통해 사용자 생성/로그인 처리
+        // Supabase Admin???듯빐 ?ъ슜???앹꽦/濡쒓렇??泥섎━
 
-        // 1. auth.users에 사용자가 존재하는지 확인 (이메일: empno@opco.internal)
+        // 1. auth.users???ъ슜?먭? 議댁옱?섎뒗吏 ?뺤씤 (?대찓?? empno@opco.internal)
         const email = `${empno}@opco.internal`;
         let userId;
 
-        // 이메일로 사용자 조회 시도
+        // ?대찓?쇰줈 ?ъ슜??議고쉶 ?쒕룄
         const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
         const existingUser = users.find(u => u.email === email);
 
         if (existingUser) {
             userId = existingUser.id;
-            // 필요한 경우 메타데이터 업데이트 가능
+            // 기존 사용자의 메타데이터를 최신 인사정보로 동기화
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+                user_metadata: {
+                    ...(existingUser.user_metadata || {}),
+                    empno: empno,
+                    name: user.empnm,
+                    department: user.depnm,
+                    role: user.role
+                }
+            });
         } else {
-            // 새 사용자 생성
+            // ???ъ슜???앹꽦
             const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
                 email: email,
                 password: 'prevent_login_' + crypto.randomUUID(),
@@ -112,7 +121,7 @@ serve(async (req) => {
             userId = newUser.user.id;
         }
 
-        // 2. public.users 테이블 삽입/업데이트 (동기화)
+        // 2. public.users ?뚯씠釉??쎌엯/?낅뜲?댄듃 (?숆린??
         await supabaseAdmin.from('users').upsert({
             id: userId,
             email: email,
@@ -122,8 +131,8 @@ serve(async (req) => {
             updated_at: new Date().toISOString()
         });
 
-        // 3. 세션 생성
-        // 로그인용 임시 비밀번호로 업데이트 후 세션 반환
+        // 3. ?몄뀡 ?앹꽦
+        // 濡쒓렇?몄슜 ?꾩떆 鍮꾨?踰덊샇濡??낅뜲?댄듃 ???몄뀡 諛섑솚
         const tempPassword = `temp_${crypto.randomUUID()}!`;
         await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword });
 
@@ -145,3 +154,4 @@ serve(async (req) => {
         });
     }
 });
+
