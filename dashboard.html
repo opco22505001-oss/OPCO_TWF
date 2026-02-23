@@ -94,12 +94,14 @@
                     <div class="flex items-center gap-3 cursor-pointer group"
                         onclick="window.location.href='mypage.html'">
                         <div class="text-right hidden sm:block">
-                            <p class="text-sm font-medium text-text-main dark:text-white leading-none">김진우</p>
-                            <p class="text-xs text-text-muted mt-1">심사위원장</p>
+                            <p id="header-user-name"
+                                class="text-sm font-medium text-text-main dark:text-white leading-none">불러오는 중...</p>
+                            <p id="header-user-role" class="text-xs text-text-muted mt-1">로그인 필요</p>
                         </div>
-                        <img alt="사용자 아바타"
-                            class="h-9 w-9 rounded-full bg-gray-300 object-cover border border-border-light"
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBU98lsOAFjR3ikMOevMbPsWpJVTddXR0br56UbBuGq8NWh639y0Pd6CJoMqjdeZJ-41CFx4IxnoC8TfxqceDoD6l2WAfS9FiqIfUtJ1ax7oX8NUWFqdDHUmOlUIM0tWxCIqAXZib9SOFYmZdLksDNSmcHI1nLxRAV-NmjhF00floC23VfY2BoLgsnwrFbdSMOl1ji3lQ0M_6PaRtXQngVtnmiLDTcLPJFAUTUEkKJwE9S5sr-lwghi2Klaon4UTuAQPrjNtf4X1WI" />
+                        <div id="header-avatar"
+                            class="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-bold border border-border-light">
+                            U
+                        </div>
                     </div>
                 </div>
             </div>
@@ -182,15 +184,24 @@
 
     <script src="js/main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
+        // 대시보드 이벤트 로드 메인 함수
+        async function initDashboard() {
             const eventList = document.getElementById('event-list');
             if (!eventList) return;
 
-            console.log('Fetching events...');
-            const events = await fetchEvents();
-            console.log('Fetched events:', events);
+            // window.fetchEvents가 준비될 때까지 안전하게 대기
+            if (typeof window.fetchEvents !== 'function') {
+                console.warn('[Dashboard] fetchEvents not found, retrying...');
+                setTimeout(initDashboard, 100);
+                return;
+            }
 
-            const newEventCardHtml = `
+            try {
+                console.log('[Dashboard] Fetching events...');
+                const events = await window.fetchEvents();
+                console.log('[Dashboard] Fetched events:', events);
+
+                const newEventCardHtml = `
                 <article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light dark:border-gray-600 shadow-sm hover:border-primary hover:bg-primary-light/10 transition-all duration-200 group flex flex-col h-full items-center justify-center p-6 min-h-[250px] cursor-pointer" onclick="window.location.href='event-creation-modal.html'">
                     <div class="w-12 h-12 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center mb-4 group-hover:bg-white group-hover:text-primary transition-colors">
                         <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-2xl">add</span>
@@ -199,23 +210,23 @@
                     <p class="text-xs text-text-muted mt-2 text-center">조직을 위한 새로운 TWF 혁신 챌린지를 시작하세요.</p>
                 </article>`;
 
-            if (!events || events.length === 0) {
-                console.warn('No events found or returned.');
-                eventList.innerHTML = `<div class="col-span-full p-10 text-center text-text-muted bg-white rounded-lg border border-dashed border-border-light">등록된 이벤트가 없습니다.</div>` + newEventCardHtml;
-                return;
-            }
-
-            const eventCards = events.map(event => {
-                let statusBadge = '';
-                if (event.status === 'active') {
-                    statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"><span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>진행 중</span>`;
-                } else if (event.status === 'draft') {
-                    statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20"><span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span>작성 중</span>`;
-                } else {
-                    statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"><span class="h-1.5 w-1.5 rounded-full bg-gray-500"></span>종료됨</span>`;
+                if (!events || events.length === 0) {
+                    console.warn('No events found or returned.');
+                    eventList.innerHTML = `<div class="col-span-full p-10 text-center text-text-muted bg-white rounded-lg border border-dashed border-border-light">등록된 이벤트가 없습니다.</div>` + newEventCardHtml;
+                    return;
                 }
 
-                return `
+                const eventCards = events.map(event => {
+                    let statusBadge = '';
+                    if (event.status === 'active') {
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"><span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>진행 중</span>`;
+                    } else if (event.status === 'draft') {
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20"><span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span>작성 중</span>`;
+                    } else {
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"><span class="h-1.5 w-1.5 rounded-full bg-gray-500"></span>종료됨</span>`;
+                    }
+
+                    return `
             <article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full" onclick="navigateToEvent('${event.id}')">
                 <div class="p-6 flex-1">
                     <div class="flex justify-between items-start mb-4">
@@ -248,10 +259,20 @@
                     </div>
                 </div>
             </article>`;
-            }).join('');
+                }).join('');
 
-            eventList.innerHTML = eventCards + newEventCardHtml;
-        });
+                eventList.innerHTML = eventCards + newEventCardHtml;
+            } catch (err) {
+                console.error('[Dashboard] Error during initialization:', err);
+                eventList.innerHTML = `<div class="col-span-full p-10 text-center text-red-500">데이터 로드 중 오류가 발생했습니다: ${err.message}</div>`;
+            }
+
+            // 헤더 정보 업데이트 재시도 (main.js에서 자동 실행되나 보장 차원)
+            if (window.setupUI) window.setupUI();
+        }
+
+        // 페이지 로드 시 초기화 실행
+        document.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
 

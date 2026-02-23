@@ -139,21 +139,21 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium text-text-main">시작일</label>
+                    <label class="text-sm font-medium text-text-main" for="start-date">시작일</label>
                     <div class="relative">
                         <input
                             class="w-full rounded border-border-light bg-white pl-10 pr-4 py-2.5 text-text-main font-mono text-sm focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer hover:bg-gray-50 transition-all shadow-sm"
-                            readonly="" type="text" value="2023-10-24" />
+                            id="start-date" type="date" value="2026-02-23" />
                         <span
                             class="material-symbols-outlined absolute left-3 top-2.5 text-text-muted text-[18px]">calendar_today</span>
                     </div>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium text-text-main">종료일</label>
+                    <label class="text-sm font-medium text-text-main" for="end-date">종료일</label>
                     <div class="relative">
                         <input
                             class="w-full rounded border-border-light bg-white pl-10 pr-4 py-2.5 text-text-main font-mono text-sm focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer hover:bg-gray-50 transition-all shadow-sm"
-                            readonly="" type="text" value="2023-11-15" />
+                            id="end-date" type="date" value="2026-03-31" />
                         <span
                             class="material-symbols-outlined absolute left-3 top-2.5 text-text-muted text-[18px]">event</span>
                     </div>
@@ -166,9 +166,11 @@
                     <span class="text-sm font-medium text-text-main">파일 업로드 허용</span>
                     <span class="text-xs text-text-muted">참가자가 PDF, PNG, CAD 파일 등을 첨부할 수 있습니다.</span>
                 </div>
-                <button aria-checked="true"
+                <input type="checkbox" id="allow-file" class="hidden" checked>
+                <button id="toggle-allow-file" aria-checked="true"
                     class="group relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-primary transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                    role="switch" type="button">
+                    role="switch" type="button"
+                    onclick="this.ariaChecked = this.ariaChecked === 'true' ? 'false' : 'true'; this.classList.toggle('bg-primary'); this.classList.toggle('bg-gray-200'); this.querySelector('span').classList.toggle('translate-x-5'); this.querySelector('span').classList.toggle('translate-x-0'); document.getElementById('allow-file').checked = this.ariaChecked === 'true';">
                     <span class="sr-only">설정 사용</span>
                     <span aria-hidden="true"
                         class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
@@ -180,9 +182,11 @@
                     <span class="text-sm font-medium text-text-main">블라인드 심사</span>
                     <span class="text-xs text-text-muted">심사 위원에게 제안자의 익명성을 보장합니다.</span>
                 </div>
-                <button aria-checked="false"
+                <input type="checkbox" id="is-blind" class="hidden">
+                <button id="toggle-is-blind" aria-checked="false"
                     class="group relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                    role="switch" type="button">
+                    role="switch" type="button"
+                    onclick="this.ariaChecked = this.ariaChecked === 'true' ? 'false' : 'true'; this.classList.toggle('bg-primary'); this.classList.toggle('bg-gray-200'); this.querySelector('span').classList.toggle('translate-x-5'); this.querySelector('span').classList.toggle('translate-x-0'); document.getElementById('is-blind').checked = this.ariaChecked === 'true';">
                     <span class="sr-only">설정 사용</span>
                     <span aria-hidden="true"
                         class="pointer-events-none inline-block h-5 w-5 translate-x-0 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
@@ -211,15 +215,17 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const btnSaveDraft = document.getElementById('btn-save-draft');
-            const btnCancel = document.querySelector('button.text-text-muted.hover\\:text-text-main.px-4'); // 하단 취소 버튼
+            const btnContinue = document.getElementById('btn-continue');
 
+            // 초안 저장 버튼
             if (btnSaveDraft) {
                 btnSaveDraft.addEventListener('click', async () => {
                     const title = document.getElementById('event-title').value;
                     const description = document.getElementById('event-desc').value;
-                    // 초안을 위한 임시 하드코딩된 날짜/상태
-                    const startDate = '2023-11-01';
-                    const endDate = '2023-11-15';
+                    const startDate = document.getElementById('start-date').value;
+                    const endDate = document.getElementById('end-date').value;
+                    const allowFile = document.getElementById('allow-file').checked;
+                    const isBlind = document.getElementById('is-blind').checked;
 
                     if (!title) {
                         alert('이벤트 제목을 입력해주세요.');
@@ -229,47 +235,56 @@
                     btnSaveDraft.textContent = '저장 중...';
                     btnSaveDraft.disabled = true;
 
-                    const { data, error } = await createEvent({
-                        title,
-                        description,
-                        start_date: startDate,
-                        end_date: endDate,
-                        status: 'draft'
-                    });
+                    try {
+                        if (typeof window.createEvent !== 'function') {
+                            throw new Error('시스템 초기화 중입니다. 잠시 후 다시 시도해 주세요.');
+                        }
 
-                    if (error) {
-                        alert('저장 실패: ' + error.message);
+                        const result = await window.createEvent({
+                            title,
+                            description,
+                            start_date: startDate,
+                            end_date: endDate,
+                            allow_file_upload: allowFile,
+                            is_blind_judging: isBlind,
+                            status: 'draft'
+                        });
+
+                        if (result.error) {
+                            alert('저장 실패: ' + (result.error.message || result.error));
+                            btnSaveDraft.textContent = '초안 저장';
+                            btnSaveDraft.disabled = false;
+                        } else {
+                            alert('초안이 저장되었습니다.');
+                            window.location.href = 'dashboard.html';
+                        }
+                    } catch (err) {
+                        console.error('초안 저장 오류:', err);
+                        alert('초안 저장 중 오류: ' + err.message);
                         btnSaveDraft.textContent = '초안 저장';
                         btnSaveDraft.disabled = false;
-                    } else {
-                        alert('초안이 저장되었습니다.');
-                        window.location.href = 'dashboard.html';
                     }
                 });
             }
 
-            if (btnCancel) {
-                btnCancel.addEventListener('click', () => {
-                    window.location.href = 'dashboard.html';
-                });
-            }
-
-            // Top close button
-            const btnClose = document.querySelector('button span.material-symbols-outlined.text-\\[20px\\]').parentElement;
+            // 닫기(X) 버튼
+            const btnClose = document.querySelector('.text-text-muted.hover\\:text-text-main');
             if (btnClose) {
                 btnClose.addEventListener('click', () => {
                     window.location.href = 'dashboard.html';
                 });
             }
 
-            const btnContinue = document.getElementById('btn-continue');
+            // 이벤트 등록 및 대시보드 이동 버튼
             if (btnContinue) {
                 btnContinue.addEventListener('click', async () => {
-                    console.log('Continue button clicked');
+                    console.log('[EventCreate] Continue button clicked');
                     const title = document.getElementById('event-title').value;
                     const description = document.getElementById('event-desc').value;
-                    const startDate = '2023-11-01';
-                    const endDate = '2023-11-30';
+                    const startDate = document.getElementById('start-date').value;
+                    const endDate = document.getElementById('end-date').value;
+                    const allowFile = document.getElementById('allow-file').checked;
+                    const isBlind = document.getElementById('is-blind').checked;
 
                     if (!title) {
                         alert('이벤트 제목을 입력해주세요.');
@@ -277,22 +292,28 @@
                     }
 
                     try {
-                        console.log('Sending event data to createEvent...', { title, description });
+                        console.log('[EventCreate] Data:', { title, description, startDate, endDate, allowFile, isBlind });
                         btnContinue.textContent = '등록 중...';
                         btnContinue.disabled = true;
 
-                        const result = await createEvent({
+                        if (typeof window.createEvent !== 'function') {
+                            throw new Error('시스템 초기화 중입니다. 잠시 후 다시 시도해 주세요.');
+                        }
+
+                        const result = await window.createEvent({
                             title,
                             description,
                             start_date: startDate,
                             end_date: endDate,
+                            allow_file_upload: allowFile,
+                            is_blind_judging: isBlind,
                             status: 'active'
                         });
 
-                        console.log('createEvent result:', result);
+                        console.log('[EventCreate] Result:', result);
 
                         if (result.error) {
-                            alert('등록 실패: ' + result.error.message);
+                            alert('등록 실패: ' + (result.error.message || result.error));
                             btnContinue.textContent = '이벤트 등록 및 대시보드 이동';
                             btnContinue.disabled = false;
                         } else {
@@ -300,8 +321,8 @@
                             window.location.href = 'dashboard.html';
                         }
                     } catch (err) {
-                        console.error('클라이언트 코드 실행 오류:', err);
-                        alert('이벤트 등록 중 예기치 않은 오류가 발생했습니다: ' + err.message);
+                        console.error('[EventCreate] Error:', err);
+                        alert('이벤트 등록 중 오류: ' + err.message);
                         btnContinue.textContent = '이벤트 등록 및 대시보드 이동';
                         btnContinue.disabled = false;
                     }

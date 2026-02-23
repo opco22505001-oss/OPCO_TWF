@@ -26,15 +26,24 @@ serve(async (req) => {
         );
 
         // 1. corporate_employees 테이블에서 사용자 정보 조회
+        console.log(`[Auth] Checking corporate_employees for empno: ${empno}`);
         const { data: corpUser, error: corpError } = await supabaseAdmin
             .from('corporate_employees')
             .select('*')
             .eq('empno', empno)
             .single();
 
-        if (corpError || !corpUser) {
-            console.error(`[Login Failed] User not found for empno: ${empno}`, corpError);
-            return new Response(JSON.stringify({ error: `사번이 존재하지 않거나 정보가 없습니다. (ID: ${empno})` }), {
+        if (corpError) {
+            console.error(`[Auth] corpError for empno ${empno}:`, corpError);
+            return new Response(JSON.stringify({ error: `사용자 조회 중 오류가 발생했습니다: ${corpError.message}` }), {
+                status: 401,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        if (!corpUser) {
+            console.error(`[Auth] No such user in corporate_employees: ${empno}`);
+            return new Response(JSON.stringify({ error: `사번이 존재하지 않습니다. (ID: ${empno})` }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
@@ -43,10 +52,11 @@ serve(async (req) => {
         // 2. 이름 일치 여부 확인 (Normalize 적용)
         const inputName = empnm.normalize('NFC').trim();
         const storedName = corpUser.empnm.normalize('NFC').trim();
+        console.log(`[Auth] Comparing names - Input: "${inputName}", Stored: "${storedName}"`);
 
         if (storedName !== inputName && empnm !== 'BYPASS') {
-            console.error(`[Login Failed] Name mismatch. Expected: ${storedName}, Got: ${inputName}`);
-            return new Response(JSON.stringify({ error: `이름이 일치하지 않습니다.` }), {
+            console.error(`[Auth] Name mismatch. Input: "${inputName}", Stored: "${storedName}"`);
+            return new Response(JSON.stringify({ error: `사번(${empno})과 성함(${empnm}) 정보가 일치하지 않습니다.` }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });

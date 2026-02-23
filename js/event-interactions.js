@@ -16,10 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // === 좋아요 기능 ===
 async function loadLikeStatus(eventId) {
-    if (!supabase) return;
+    if (!supabaseClient) return;
 
     // 1. 전체 좋아요 수 조회
-    const { count, error: countError } = await supabase
+    const { count, error: countError } = await supabaseClient
         .from('likes')
         .select('*', { count: 'exact', head: true })
         .eq('target_id', eventId)
@@ -30,11 +30,11 @@ async function loadLikeStatus(eventId) {
     }
 
     // 2. 현재 사용자의 좋아요 여부 확인 (로그인 상태인 경우)
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabaseClient.auth.getSession();
     const user = sessionData?.session?.user;
 
     if (user) {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('likes')
             .select('id')
             .eq('target_id', eventId)
@@ -53,10 +53,10 @@ async function loadLikeStatus(eventId) {
 }
 
 async function toggleLike(eventId) {
-    if (!supabase) return;
+    if (!supabaseClient) return;
 
     // 로그인 체크
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabaseClient.auth.getSession();
     const user = sessionData?.session?.user;
 
     if (!user) {
@@ -72,7 +72,7 @@ async function toggleLike(eventId) {
     try {
         if (isLiked) {
             // 좋아요 취소 (삭제)
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('likes')
                 .delete()
                 .eq('target_id', eventId)
@@ -92,7 +92,7 @@ async function toggleLike(eventId) {
 
         } else {
             // 좋아요 추가 (등록)
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('likes')
                 .insert({
                     user_id: user.id,
@@ -119,10 +119,10 @@ async function toggleLike(eventId) {
 
 // === 댓글 기능 ===
 async function loadComments(eventId) {
-    if (!supabase) return;
+    if (!supabaseClient) return;
 
     // 댓글 목록 및 작성자 정보 조회
-    const { data: comments, error } = await supabase
+    const { data: comments, error } = await supabaseClient
         .from('comments')
         .select(`
             *,
@@ -156,7 +156,7 @@ function renderComments(comments) {
     }
 
     // 현재 사용자 확인 (삭제 버튼 표시용)
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabaseClient.auth.getUser().then(({ data: { user } }) => {
         const currentUserId = user?.id;
 
         comments.forEach(comment => {
@@ -207,7 +207,7 @@ function escapeHtml(text) {
 
 async function handleCommentSubmit(e, eventId) {
     e.preventDefault();
-    if (!supabase) return;
+    if (!supabaseClient) return;
 
     const inputEl = document.getElementById('comment-input');
     const content = inputEl.value.trim();
@@ -215,7 +215,7 @@ async function handleCommentSubmit(e, eventId) {
     if (!content) return;
 
     // 로그인 체크
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) {
         alert('로그인이 필요한 기능입니다.');
         window.location.href = 'login.html';
@@ -223,7 +223,7 @@ async function handleCommentSubmit(e, eventId) {
     }
 
     try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('comments')
             .insert({
                 user_id: user.id,
@@ -249,7 +249,7 @@ window.deleteComment = async function (commentId, eventId) {
     if (!confirm('댓글을 삭제하시겠습니까?')) return;
 
     try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('comments')
             .delete()
             .eq('id', commentId);

@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadUserProfile(user.id);
     await loadMySubmissions(user.id); // Default Tab
 
+    // 헤더/UI 통합 업데이트
+    if (window.setupUI) window.setupUI();
+
     // 탭 전환 이벤트
     const tabSub = document.getElementById('tab-submissions');
     const tabJudge = document.getElementById('tab-judgments');
@@ -24,14 +27,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 로그아웃
     document.getElementById('logout-btn').addEventListener('click', async () => {
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
         window.location.href = 'login.html';
     });
 });
 
 async function checkSession() {
-    if (!supabase) return null;
-    const { data: { session } } = await supabase.auth.getSession();
+    if (!supabaseClient) return null;
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
         window.location.href = 'login.html';
         return null;
@@ -41,40 +44,47 @@ async function checkSession() {
 
 // 프로필 정보 및 통계 로드
 async function loadUserProfile(userId) {
-    // 사용자 정보
-    const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+    // 세션 정보에서 먼저 시도 (속도 및 일관성)
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const user = session?.user;
+    const meta = user?.user_metadata || {};
 
-    if (userData) {
-        document.getElementById('header-user-name').textContent = userData.name;
-        document.getElementById('header-user-role').textContent = getRoleName(userData.role);
-        document.getElementById('header-avatar').textContent = userData.name.substring(0, 1);
+    // 화면 업데이트 (헤더 및 프로필 카드)
+    const name = meta.empnm || meta.name || '사용자';
+    const role = meta.role || 'employee';
+    const dept = meta.department || meta.depnm || '부서 미정';
+    const empno = meta.empno || '';
 
-        document.getElementById('profile-name').textContent = userData.name;
-        document.getElementById('profile-dept').textContent = userData.department || '부서 미정';
-        document.getElementById('profile-role').textContent = getRoleName(userData.role);
-        document.getElementById('profile-avatar').textContent = userData.name.substring(0, 1);
+    // 헤더 업데이트 (main.js의 setupUI와 별개로 마이페이지 특화 요소가 있을 수 있음)
+    if (document.getElementById('header-user-name')) document.getElementById('header-user-name').textContent = name;
+    if (document.getElementById('header-user-role')) document.getElementById('header-user-role').textContent = getRoleName(role);
 
-        // 통계 (내 제안 수)
-        const { count: subCount } = await supabase
-            .from('submissions')
-            .select('*', { count: 'exact', head: true })
-            .eq('submitter_id', userId);
-        document.getElementById('stat-submissions').textContent = subCount || 0;
+    // 프로필 카드 업데이트
+    if (document.getElementById('profile-name')) document.getElementById('profile-name').textContent = name;
+    if (document.getElementById('profile-dept')) document.getElementById('profile-dept').textContent = dept;
+    if (document.getElementById('profile-role')) document.getElementById('profile-role').textContent = getRoleName(role);
+    if (document.getElementById('profile-empno')) document.getElementById('profile-empno').textContent = empno;
 
-        // 통계 (할당된 심사 수 - 심사위원인 경우)
-        // event_judges 테이블에서 judge_id = userId 인 이벤트 개수 확인
-        // 또는 실제 judgments 테이블 카운트 (여기선 배정된 이벤트 수로 표시 or 실제 심사한 수)
-        // 배정된 건수로 표시
-        const { count: judgeCount } = await supabase
-            .from('event_judges')
-            .select('*', { count: 'exact', head: true })
-            .eq('judge_id', userId);
-        document.getElementById('stat-judgments').textContent = judgeCount || 0;
-    }
+    const avatarStr = name.substring(0, 1);
+    if (document.getElementById('header-avatar')) document.getElementById('header-avatar').textContent = avatarStr;
+    if (document.getElementById('profile-avatar')) document.getElementById('profile-avatar').textContent = avatarStr;
+
+    // 통계 (내 제안 수)
+    const { count: subCount } = await supabaseClient
+        .from('submissions')
+        .select('*', { count: 'exact', head: true })
+        .eq('submitter_id', userId);
+    document.getElementById('stat-submissions').textContent = subCount || 0;
+
+    // 통계 (할당된 심사 수 - 심사위원인 경우)
+    // event_judges 테이블에서 judge_id = userId 인 이벤트 개수 확인
+    // 또는 실제 judgments 테이블 카운트 (여기선 배정된 이벤트 수로 표시 or 실제 심사한 수)
+    // 배정된 건수로 표시
+    const { count: judgeCount } = await supabaseClient
+        .from('event_judges')
+        .select('*', { count: 'exact', head: true })
+        .eq('judge_id', userId);
+    document.getElementById('stat-judgments').textContent = judgeCount || 0;
 }
 
 // 내 제안 목록 로드
@@ -82,7 +92,7 @@ async function loadMySubmissions(userId) {
     const contentEl = document.getElementById('content-area');
     contentEl.innerHTML = '<div class="animate-pulse space-y-4"><div class="h-24 bg-slate-100 rounded-lg"></div></div>'; // Loading
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('submissions')
         .select(`
             id,
@@ -135,7 +145,7 @@ async function loadAssignedJudgments(userId) {
     // 그리고 그 이벤트에 제출된 제안서 중 '제출됨(submitted)' 상태인 것들 (심사 대상)
 
     // 1. 배정된 이벤트 ID 조회
-    const { data: judgeEvents } = await supabase
+    const { data: judgeEvents } = await supabaseClient
         .from('event_judges')
         .select('event_id')
         .eq('judge_id', userId);
@@ -151,7 +161,7 @@ async function loadAssignedJudgments(userId) {
     const eventIds = judgeEvents.map(e => e.event_id);
 
     // 2. 해당 이벤트의 제출용 제안서 조회 (심사 대기/진행 중인 건)
-    const { data: submissions, error } = await supabase
+    const { data: submissions, error } = await supabaseClient
         .from('submissions')
         .select(`
             id,

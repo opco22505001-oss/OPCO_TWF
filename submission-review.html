@@ -129,9 +129,15 @@
                     <span class="material-symbols-outlined text-[18px]">close</span>
                     <span>검토 종료</span>
                 </button>
-                <div class="size-8 rounded-full bg-slate-200 border border-slate-300 overflow-hidden relative">
-                    <img alt="사용자 아바타" class="w-full h-full object-cover"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8Fkj-TQYeB2OEcHtY5-vZFCDkcHG9lvLX6fWeoz_2pSvjiqSFCZvSKEOyDhFHvxGxE1yN5QHlVI0D5KgJWNdIumwjdbmQNIZQkHhNsSM8YtY6bGZfB_jEV49fQNe5wUieeJ4iX6eMoqHDCHHDy6e5JqOSuTlXM6BQW6VfAIs_iu38wBdIsI-4D0SyU_pSmq5E5mvrz9JasWI2mnWFVsCcUpd37qeVJGIt2ArTzUIwE-32Zarcc7jFT6ukGig4Q8F7-oX39MKupXE" />
+                <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='mypage.html'">
+                    <div class="text-right hidden sm:block">
+                        <p id="header-user-name" class="text-xs font-medium text-text-main leading-none">불러오는 중...</p>
+                        <p id="header-user-role" class="text-[10px] text-text-muted mt-1">로그인 필요</p>
+                    </div>
+                    <div id="header-avatar"
+                        class="size-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-xs font-bold text-text-muted">
+                        -
+                    </div>
                 </div>
             </div>
     </header>
@@ -352,6 +358,8 @@
         </aside>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/main.js"></script>
 </body>
 
 </html>

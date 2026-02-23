@@ -7,15 +7,62 @@
 const SUPABASE_URL = 'https://fuevhcdfgmdjhpdiwtzr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
 
-// Supabase 클라이언트 초기화
-let supabase;
-const _createClient = (window.supabase && window.supabase.createClient);
-if (_createClient) {
-    supabase = _createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} else if (typeof createClient !== 'undefined') {
-    // Fallback for environments where createClient might be global
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase 클라이언트 초기화 (중복 선언 방지를 위해 전역 변수명 유지)
+var supabaseClient = window.supabaseClient || null;
+console.log('[Init] Supabase initialization started');
+
+function initSupabase() {
+    try {
+        // supabase-js CDN이 window.supabase 전역 객체를 생성함
+        const _supabase = window.supabase;
+        if (_supabase && _supabase.createClient) {
+            supabaseClient = _supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            window.supabaseClient = supabaseClient;
+            console.log('[Init] Supabase client initialized successfully');
+            return true;
+        } else {
+            console.error('[Init] Supabase SDK not found! window.supabase is missing.');
+            return false;
+        }
+    } catch (e) {
+        console.error('[Init] Error during Supabase initialization:', e);
+        return false;
+    }
 }
+
+initSupabase();
+
+// --- 전역 함수 노출 (ReferenceError 방지용 - 선언 즉시 할당) ---
+window.fetchEvents = fetchEvents;
+window.createEvent = createEvent;
+window.fetchEventDetails = fetchEventDetails;
+window.fetchUsers = fetchUsers;
+window.fetchEventJudges = fetchEventJudges;
+window.assignJudge = assignJudge;
+window.removeJudge = removeJudge;
+window.navigateToEvent = navigateToEvent;
+window.signInWithEmployeeId = signInWithEmployeeId;
+window.setupUI = setupUI;
+window.formatDate = formatDate;
+window.getQueryParam = getQueryParam;
+
+// 진단용 함수: 연결 테스트
+async function testConnection() {
+    if (!supabaseClient) {
+        console.error('[Test] Supabase not initialized');
+        return;
+    }
+    console.log('[Test] Testing connection to "events" table...');
+    const { data, error, count } = await supabaseClient.from('events').select('*', { count: 'exact', head: true });
+    if (error) {
+        console.error('[Test] Connection failed:', error);
+    } else {
+        console.log('[Test] Connection successful! Total events in DB:', count);
+    }
+}
+
+// 초기 로드 시 연결 테스트 수행 (콘솔 확인용)
+if (supabaseClient) testConnection();
 
 // URL 파라미터 추출 유틸리티
 function getQueryParam(param) {
@@ -32,9 +79,13 @@ function formatDate(dateString) {
 
 // 대시보드용 이벤트 목록 조회
 async function fetchEvents(statusFilter = 'all') {
-    if (!supabase) return;
+    if (!supabaseClient) {
+        console.error('[fetchEvents] Supabase client not initialized');
+        return [];
+    }
 
-    let query = supabase.from('events').select('*').order('created_at', { ascending: false });
+    console.log(`[fetchEvents] Fetching events with statusFilter: ${statusFilter}`);
+    let query = supabaseClient.from('events').select('*').order('created_at', { ascending: false });
 
     if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
@@ -43,18 +94,19 @@ async function fetchEvents(statusFilter = 'all') {
     const { data, error } = await query;
 
     if (error) {
-        console.error('이벤트 목록 조회 오류:', error);
-        alert('이벤트 목록 조회 실패: ' + error.message);
+        console.error('[fetchEvents] Error fetching events:', error);
         return [];
     }
-    return data;
+
+    console.log(`[fetchEvents] Successfully fetched ${data ? data.length : 0} events`);
+    return data || [];
 }
 
 // 단일 이벤트 상세 정보 조회
 async function fetchEventDetails(eventId) {
-    if (!supabase) return null;
+    if (!supabaseClient) return null;
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('events')
         .select('*')
         .eq('id', eventId)
@@ -69,10 +121,10 @@ async function fetchEventDetails(eventId) {
 
 // 인증: 사번 로그인 (하이브리드)
 async function signInWithEmployeeId(empno, empnm, adminCode) {
-    if (!supabase) return { error: 'Supabase가 초기화되지 않았습니다.' };
+    if (!supabaseClient) return { error: 'Supabase가 초기화되지 않았습니다.' };
 
     try {
-        const { data, error } = await supabase.functions.invoke('auth-login', {
+        const { data, error } = await supabaseClient.functions.invoke('auth-login', {
             body: { empno, empnm, adminCode }
         });
 
@@ -82,7 +134,7 @@ async function signInWithEmployeeId(empno, empnm, adminCode) {
         // 필요한 경우 세션 수동 저장
         // Edge Function이 signInWithPassword 결과와 유사한 { session: ... } 구조를 반환함
         if (data.session) {
-            const { error: setSessionError } = await supabase.auth.setSession(data.session);
+            const { error: setSessionError } = await supabaseClient.auth.setSession(data.session);
             if (setSessionError) throw setSessionError;
         }
 
@@ -96,13 +148,13 @@ async function signInWithEmployeeId(empno, empnm, adminCode) {
 // 새 이벤트 생성
 async function createEvent(eventData) {
     console.log('[createEvent] Starting insertion with data:', eventData);
-    if (!supabase) {
+    if (!supabaseClient) {
         console.error('[createEvent] Supabase not initialized');
         return { error: 'Supabase가 초기화되지 않았습니다.' };
     }
 
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('events')
             .insert([eventData])
             .select();
@@ -125,9 +177,9 @@ async function createEvent(eventData) {
 
 // 사용자 목록 조회 (예: 심사위원 후보)
 async function fetchUsers() {
-    if (!supabase) return [];
+    if (!supabaseClient) return [];
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('users')
         .select('*')
         .order('name');
@@ -141,10 +193,10 @@ async function fetchUsers() {
 
 // 이벤트에 배정된 심사위원 조회
 async function fetchEventJudges(eventId) {
-    if (!supabase) return [];
+    if (!supabaseClient) return [];
 
     // 사용자 정보와 조인하여 상세 내용 조회
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('event_judges')
         .select(`
             *,
@@ -161,9 +213,9 @@ async function fetchEventJudges(eventId) {
 
 // 이벤트에 심사위원 배정
 async function assignJudge(eventId, judgeId) {
-    if (!supabase) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('event_judges')
         .insert([{ event_id: eventId, judge_id: judgeId }])
         .select();
@@ -174,9 +226,9 @@ async function assignJudge(eventId, judgeId) {
 
 // 이벤트에서 심사위원 제거
 async function removeJudge(eventId, judgeId) {
-    if (!supabase) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
 
-    const { error } = await supabase
+    const { error } = await supabaseClient
         .from('event_judges')
         .delete()
         .eq('event_id', eventId)
@@ -201,15 +253,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn('⚠️ GUEST MODE ACTIVE:', mockUser);
 
         // Supabase Auth Mocking
-        supabase.auth.getSession = async () => ({ data: { session: { user: mockUser } }, error: null });
-        supabase.auth.getUser = async () => ({ data: { user: mockUser }, error: null });
+        supabaseClient.auth.getSession = async () => ({ data: { session: { user: mockUser } }, error: null });
+        supabaseClient.auth.getUser = async () => ({ data: { user: mockUser }, error: null });
 
         // 알림 초기화 (ID가 있으므로 가능)
         initNotifications(mockUser.id);
         return;
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) return;
 
     initNotifications(session.user.id);
@@ -241,7 +293,7 @@ async function initNotifications(userId) {
     updateUnreadCount(userId, notificationButton);
 
     // 실시간 구독
-    supabase
+    supabaseClient
         .channel('public:notifications')
         .on('postgres_changes', {
             event: 'INSERT',
@@ -263,7 +315,7 @@ async function initNotifications(userId) {
 }
 
 async function updateUnreadCount(userId, btn) {
-    const { count, error } = await supabase
+    const { count, error } = await supabaseClient
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
@@ -293,7 +345,7 @@ async function toggleNotificationDropdown(userId, btn) {
     dropdown.className = 'absolute right-0 mt-2 w-80 bg-white dark:bg-surface-dark border border-border-light dark:border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden';
     dropdown.style.top = '100%';
 
-    const { data: notifications, error } = await supabase
+    const { data: notifications, error } = await supabaseClient
         .from('notifications')
         .select('*')
         .eq('user_id', userId)
@@ -333,7 +385,7 @@ async function toggleNotificationDropdown(userId, btn) {
 }
 
 window.handleNotificationClick = async (id, link) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    await supabaseClient.from('notifications').update({ is_read: true }).eq('id', id);
     if (link && link !== 'null') {
         window.location.href = link;
     } else {
@@ -342,15 +394,66 @@ window.handleNotificationClick = async (id, link) => {
 };
 
 window.markAllAsRead = async (userId) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
+    await supabaseClient.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
     location.reload();
 };
 
-function showToast(message) {
-    const toast = document.createElement('div');
-    toast.className = 'fixed bottom-4 right-4 bg-primary text-white px-6 py-3 rounded-lg shadow-2xl z-[100] animate-bounce';
-    toast.textContent = `🔔 ${message}`;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+
+// UI 초기화 및 헤더 사용자 정보 연동
+async function setupUI() {
+    if (!supabaseClient) return;
+
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session && session.user) {
+            const user = session.user;
+            const meta = user.user_metadata || {};
+
+            // 헤더 이름/역할 업데이트
+            const nameEl = document.getElementById('header-user-name');
+            const roleEl = document.getElementById('header-user-role');
+            const avatarEl = document.getElementById('header-avatar'); // 마이페이지 등에서 사용 가능
+
+            if (nameEl) nameEl.textContent = meta.empnm || meta.name || '사용자';
+            if (roleEl) {
+                const roleMap = { 'admin': '관리자', 'judge': '심사위원', 'submitter': '임직원', 'employee': '임직원' };
+                let roleText = roleMap[meta.role] || meta.role || '임직원';
+
+                // 관리자일 경우 시각적 표시 추가
+                if (meta.role === 'admin') {
+                    roleText = `[${roleText}]`;
+                    roleEl.classList.add('text-primary', 'font-bold');
+                }
+                roleEl.textContent = roleText;
+            }
+            if (avatarEl) {
+                const name = meta.empnm || meta.name || 'U';
+                avatarEl.textContent = name.substring(0, 1);
+            }
+
+            // 알림 카운트 로드 (함수가 존재할 경우에만)
+            if (typeof window.loadNotificationCount === 'function') {
+                window.loadNotificationCount(user.id);
+            }
+        }
+    } catch (e) {
+        console.error('[UI] Failed to setup common UI:', e);
+    }
 }
+
+// 이미 상단에서 window 객체에 할당함
+
+// 공통 초기화 실행
+document.addEventListener('DOMContentLoaded', () => {
+    setupUI();
+
+    // 알림 아이콘 클릭 이벤트 연결
+    const notifBtn = document.querySelector('button .material-symbols-outlined[textContent="notifications"]')?.parentElement;
+    if (notifBtn) {
+        notifBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleNotificationDropdown(notifBtn);
+        });
+    }
+});
 

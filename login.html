@@ -142,6 +142,7 @@
                         <div class="absolute right-3 top-4 text-text-muted dark:text-gray-500">
                             <span class="material-symbols-outlined text-[20px]">verified_user</span>
                         </div>
+                        <p class="text-[10px] text-text-muted mt-1.5 ml-1">* 인증 코드: OPCO_ADMIN_2024</p>
                     </div>
 
                     <div class="flex items-center justify-between mt-2">
@@ -262,16 +263,20 @@
                 });
 
                 if (error) {
-                    // Supabase FunctionsHttpError 처리
-                    // error.context에 서버 응답 본문이 담겨있을 수 있음
+                    console.error('[Login] Edge Function Error:', error);
                     let errorMessage = error.message;
-                    if (error.context && error.context.json) {
+
+                    // Supabase FunctionsHttpError의 경우 응답 본문을 읽어오기 시도
+                    if (error.context && typeof error.context.json === 'function') {
                         try {
                             const errorBody = await error.context.json();
-                            if (errorBody.error) errorMessage = errorBody.error;
+                            console.log('[Login] Error body:', errorBody);
+                            if (errorBody && errorBody.error) errorMessage = errorBody.error;
                         } catch (e) {
-                            // JSON 파싱 실패 시 기본 메시지 유지
+                            console.warn('[Login] Failed to parse error JSON', e);
                         }
+                    } else if (error.context && error.context.statusText) {
+                        errorMessage = `${error.context.statusText} (${error.context.status})`;
                     }
                     throw new Error(errorMessage);
                 }
