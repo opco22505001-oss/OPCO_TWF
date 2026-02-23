@@ -37,14 +37,19 @@ window.fetchEvents = fetchEvents;
 window.createEvent = createEvent;
 window.fetchEventDetails = fetchEventDetails;
 window.fetchUsers = fetchUsers;
+window.fetchCorporateEmployees = fetchCorporateEmployees;
 window.fetchEventJudges = fetchEventJudges;
 window.assignJudge = assignJudge;
 window.removeJudge = removeJudge;
 window.navigateToEvent = navigateToEvent;
+window.createNotification = createNotification;
 window.signInWithEmployeeId = signInWithEmployeeId;
 window.setupUI = setupUI;
 window.formatDate = formatDate;
 window.getQueryParam = getQueryParam;
+window.fetchSubmissions = fetchSubmissions;
+window.createSubmission = createSubmission;
+window.createJudgment = createJudgment;
 
 // 진단용 함수: 연결 테스트
 async function testConnection() {
@@ -175,20 +180,70 @@ async function createEvent(eventData) {
     }
 }
 
-// 사용자 목록 조회 (예: 심사위원 후보)
+// 사용자 목록 조회 (로그인한 users만)
 async function fetchUsers() {
     if (!supabaseClient) return [];
-
-    const { data, error } = await supabaseClient
-        .from('users')
-        .select('*')
-        .order('name');
-
-    if (error) {
-        console.error('사용자 목록 조회 오류:', error);
-        return [];
-    }
+    const { data, error } = await supabaseClient.from('users').select('*').order('name');
+    if (error) { console.error('사용자 목록 조회 오류:', error); return []; }
     return data;
+}
+
+// 전체 임직원 목록 조회 (corporate_employees - 125명 전체)
+async function fetchCorporateEmployees() {
+    if (!supabaseClient) return [];
+    const { data, error } = await supabaseClient
+        .from('corporate_employees')
+        .select('empno, empnm, depnm, role')
+        .order('empnm');
+    if (error) { console.error('임직원 목록 조회 오류:', error); return []; }
+    return data;
+}
+
+// 알림 생성
+async function createNotification(userId, message, link) {
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.from('notifications').insert([{
+        user_id: userId,
+        message: message,
+        link: link || null,
+        is_read: false
+    }]);
+    if (error) console.error('알림 생성 실패:', error);
+}
+
+// 제출물 목록 조회
+async function fetchSubmissions(eventId) {
+    if (!supabaseClient) return [];
+    const { data, error } = await supabaseClient
+        .from('submissions')
+        .select('*, submitter:users!submitter_id(id, name, department)')
+        .eq('event_id', eventId)
+        .neq('status', 'draft')
+        .order('created_at', { ascending: false });
+    if (error) { console.error('제출물 조회 오류:', error); return []; }
+    return data || [];
+}
+
+// 제출물 생성
+async function createSubmission(submissionData) {
+    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    const { data, error } = await supabaseClient
+        .from('submissions')
+        .insert([submissionData])
+        .select();
+    if (error) return { error };
+    return { data: data && data.length > 0 ? data[0] : null };
+}
+
+// 심사 점수 생성
+async function createJudgment(judgmentData) {
+    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    const { data, error } = await supabaseClient
+        .from('judgments')
+        .insert([judgmentData])
+        .select();
+    if (error) return { error };
+    return { data: data && data.length > 0 ? data[0] : null };
 }
 
 // 이벤트에 배정된 심사위원 조회
@@ -237,10 +292,10 @@ async function removeJudge(eventId, judgeId) {
     return { error };
 }
 
-// 페이지 이동 헬퍼
-window.navigateToEvent = (eventId) => {
+// 페이지 이동 헬퍼 (function 선언문 → 호이스팅 가능)
+function navigateToEvent(eventId) {
     window.location.href = `event-detail.html?id=${eventId}`;
-};
+}
 
 /**
  * 알림 기능 관련 로직

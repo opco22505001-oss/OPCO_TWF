@@ -1,86 +1,53 @@
-<!-- 이벤트 상세 (제출자 화면) -->
+<!-- 이벤트 상세 페이지 (제출 + 심사 통합) -->
 <!DOCTYPE html>
 <html lang="ko">
 
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>3분기 효율성 향상 챌린지 - OPCO : TWF</title>
+    <title>이벤트 상세 - OPCO : TWF</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
         rel="stylesheet" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
-    <script id="tailwind-config">
+    <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#3B82F6", // 제출자 화면용 파란색
+                        "primary": "#3B82F6",
                         "primary-hover": "#2563EB",
-                        "primary-light": "#EFF6FF",
                         "background-light": "#F8FAFC",
-                        "background-dark": "#0F172A",
                         "surface": "#FFFFFF",
                         "surface-dark": "#1E293B",
                         "text-main": "#0F172A",
                         "text-muted": "#64748B",
                         "border": "#E2E8F0",
-                        "success": "#10B981",
-                        "warning": "#F59E0B",
                     },
-                    fontFamily: {
-                        "sans": ["Noto Sans KR", "Inter", "sans-serif"],
-                        "display": ["Inter", "Noto Sans KR", "sans-serif"],
-                        "mono": ["JetBrains Mono", "monospace"],
-                    },
+                    fontFamily: { "sans": ["Noto Sans KR", "Inter", "sans-serif"] },
                 },
             },
         }
     </script>
     <style type="text/tailwindcss">
-        body {
-            font-family: 'Noto Sans KR', 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-        }
-        .prose h3 {
-            font-size: 1.125rem;
-            font-weight: 700;
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-            color: #0F172A;
-        }
-        .prose p {
-            margin-bottom: 1rem;
-            line-height: 1.75;
-            color: #334155;
-        }
-        .prose ul {
-            list-style-type: disc;
-            padding-left: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        .prose li {
-            margin-bottom: 0.5rem;
-            color: #334155;
-        }
+        body { font-family: 'Noto Sans KR', 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
     </style>
 </head>
 
-<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen flex flex-col">
-    <header class="bg-surface dark:bg-surface-dark border-b border-border dark:border-gray-700 sticky top-0 z-30">
+<body class="bg-background-light text-text-main min-h-screen flex flex-col">
+    <header class="bg-surface border-b border-border sticky top-0 z-30">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-4">
-                    <a class="flex items-center gap-2" href="#">
-                        <div class="w-8 h-8 bg-black rounded flex items-center justify-center text-white font-bold">
-                            TWF
-                        </div>
-                        <span class="font-bold text-lg tracking-tight text-text-main dark:text-white">OPCO</span>
+                    <a class="flex items-center gap-2" href="dashboard.html">
+                        <div
+                            class="w-8 h-8 bg-black rounded flex items-center justify-center text-white font-bold text-xs">
+                            TWF</div>
+                        <span class="font-bold text-lg tracking-tight">OPCO</span>
                     </a>
                 </div>
                 <div class="flex items-center gap-4">
@@ -90,242 +57,390 @@
                         onclick="window.location.href='mypage.html'">나의 제안</button>
                     <div class="h-6 w-px bg-border"></div>
                     <button
-                        class="p-2 rounded-full text-text-muted hover:bg-background-light dark:hover:bg-gray-800 transition-colors relative">
+                        class="p-2 rounded-full text-text-muted hover:bg-background-light transition-colors relative">
                         <span class="material-symbols-outlined text-[20px]">notifications</span>
                         <span
                             class="absolute top-2 right-2 hidden h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
                     </button>
                     <div class="h-6 w-px bg-border"></div>
-                    <div class="flex items-center gap-3 cursor-pointer group"
-                        onclick="window.location.href='mypage.html'">
+                    <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='mypage.html'">
                         <div class="text-right hidden sm:block">
-                            <p id="header-user-name"
-                                class="text-xs font-medium text-text-main dark:text-white leading-none">불러오는 중...</p>
+                            <p id="header-user-name" class="text-xs font-medium leading-none">불러오는 중...</p>
                             <p id="header-user-role" class="text-[10px] text-text-muted mt-1">로그인 필요</p>
                         </div>
                         <div id="header-avatar"
                             class="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-text-muted border border-border">
-                            -
-                        </div>
+                            -</div>
                     </div>
                 </div>
             </div>
         </div>
     </header>
+
     <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 뒤로가기 -->
         <div class="mb-4">
-            <a class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors"
-                href="#">
+            <a class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors cursor-pointer"
+                onclick="window.location.href='dashboard.html'">
                 <span class="material-symbols-outlined text-[16px]">arrow_back</span>
                 이벤트 목록으로 돌아가기
             </a>
         </div>
-        <div
-            class="bg-white dark:bg-surface-dark rounded-xl border border-border dark:border-gray-700 shadow-sm overflow-hidden">
-            <div class="relative h-48 bg-gradient-to-r from-blue-600 to-indigo-700">
-                <div class="absolute inset-0 bg-black/20"></div>
-                <div class="absolute bottom-0 left-0 p-8 w-full bg-gradient-to-t from-black/80 to-transparent">
-                    <div class="flex items-center gap-3 text-white/90 text-sm font-medium mb-2">
-                        <span
-                            class="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded border border-white/30">기술연구소</span>
-                        <span class="flex items-center gap-1" id="event-period">
-                            <span class="material-symbols-outlined text-[16px]">calendar_today</span>
-                            2023-10-01 ~ 2023-10-31
-                        </span>
+
+        <!-- 로딩 상태 -->
+        <div id="loading-state" class="text-center py-20">
+            <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4">
+            </div>
+            <p class="text-text-muted">이벤트 정보를 불러오는 중...</p>
+        </div>
+
+        <!-- 실제 콘텐츠 (JS로 채움) -->
+        <div id="event-content" class="hidden">
+            <!-- 배너 -->
+            <div class="bg-white rounded-xl border border-border shadow-sm overflow-hidden mb-6">
+                <div class="relative h-48 bg-gradient-to-r from-blue-600 to-indigo-700">
+                    <div class="absolute inset-0 bg-black/20"></div>
+                    <div class="absolute bottom-0 left-0 p-8 w-full bg-gradient-to-t from-black/80 to-transparent">
+                        <div class="flex items-center gap-3 text-white/90 text-sm font-medium mb-2">
+                            <span id="event-status-badge"
+                                class="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded border border-white/30">진행중</span>
+                            <span class="flex items-center gap-1" id="event-period">
+                                <span class="material-symbols-outlined text-[16px]">calendar_today</span>
+                                기간 정보 로딩 중...
+                            </span>
+                        </div>
+                        <h1 class="text-3xl font-bold text-white" id="event-title">이벤트 제목</h1>
                     </div>
-                    <h1 class="text-3xl font-bold text-white shadow-sm" id="event-title">3분기 효율성 향상 챌린지</h1>
                 </div>
             </div>
-            <!-- Like Button -->
-            <div class="absolute bottom-8 right-8">
-                <button id="like-btn"
-                    class="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full hover:bg-white/20 transition-all text-white border border-white/20 group">
-                    <span class="material-symbols-outlined group-hover:scale-110 transition-transform"
-                        id="like-icon">favorite_border</span>
-                    <span class="font-medium" id="like-count">0</span>
-                </button>
-            </div>
-        </div>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-3">
-            <div class="lg:col-span-2 p-8 border-r border-border dark:border-gray-700">
-                <div class="prose max-w-none text-text-main dark:text-gray-300">
-                    <h3>이벤트 개요</h3>
-                    <p id="event-desc">
-                        2023년 3분기 전사적 목표인 생산 효율성 15% 증대를 달성하기 위해, 각 부서의 현장 경험을 바탕으로 한 창의적이고 실질적인 개선 아이디어를 모집합니다. 특히
-                        반복적인 공정에서의 시간 단축, 불필요한 자재 낭비 절감, 그리고 설비 가동률 향상 방안에 중점을 둡니다.
-                    </p>
-                    <h3>참가 주제 (예시)</h3>
-                    <ul>
-                        <li>조립 라인 병목 현상 해소 방안</li>
-                        <li>자재 이동 동선 최적화</li>
-                        <li>설비 예방 정비 프로세스 개선</li>
-                        <li>에너지 소비 절감 아이디어</li>
-                    </ul>
-                    <h3>심사 기준</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 not-prose my-6">
-                        <div
-                            class="bg-slate-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-gray-700">
-                            <div class="text-primary font-bold mb-1">혁신성 (40%)</div>
-                            <p class="text-xs text-text-muted leading-relaxed">기존 방식과 차별화된 새로운 접근 방식인가?</p>
-                        </div>
-                        <div
-                            class="bg-slate-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-gray-700">
-                            <div class="text-primary font-bold mb-1">실현 가능성 (30%)</div>
-                            <p class="text-xs text-text-muted leading-relaxed">현실적으로 즉시 적용 가능한가?</p>
-                        </div>
-                        <div
-                            class="bg-slate-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-gray-700">
-                            <div class="text-primary font-bold mb-1">효과성 (30%)</div>
-                            <p class="text-xs text-text-muted leading-relaxed">예상되는 정량적 효과(비용/시간)가 명확한가?</p>
-                        </div>
+
+            <!-- 본문 2단 레이아웃 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 왼쪽: 설명 + 심사기준 + 제출물/심사 -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- 이벤트 설명 -->
+                    <div class="bg-white rounded-xl border border-border p-6">
+                        <h3 class="text-lg font-bold mb-3">이벤트 개요</h3>
+                        <p id="event-desc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-line">설명 로딩 중...
+                        </p>
                     </div>
-                    <h3>유의 사항</h3>
-                    <p>
-                        모든 제안서는 제공된 양식을 준수해야 하며, 데이터에 기반한 근거 자료(로그, 사진 등)를 첨부할 것을 권장합니다. 블라인드 심사로 진행되므로, 파일 내에 개인
-                        정보를 포함하지 않도록 주의해 주십시오.
-                    </p>
-                </div>
 
-                <!-- Comments Section -->
-                <div class="mt-12 border-t border-border dark:border-gray-700 pt-8 not-prose">
-                    <h3 class="text-lg font-bold text-text-main dark:text-white mb-6 flex items-center gap-2">
-                        댓글 <span class="text-primary" id="comment-count">0</span>
-                    </h3>
+                    <!-- 심사 기준 -->
+                    <div id="criteria-section" class="bg-white rounded-xl border border-border p-6 hidden">
+                        <h3 class="text-lg font-bold mb-4">심사 기준 <span class="text-xs text-text-muted font-normal">(각 기준
+                                1~10점)</span></h3>
+                        <div id="criteria-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+                    </div>
 
-                    <!-- Comment List -->
-                    <div id="comment-list" class="space-y-6 mb-8">
-                        <!-- Loading state -->
-                        <div class="animate-pulse flex gap-4">
-                            <div class="rounded-full bg-slate-200 h-10 w-10"></div>
-                            <div class="flex-1 space-y-2 py-1">
-                                <div class="h-2 bg-slate-200 rounded w-1/4"></div>
-                                <div class="h-2 bg-slate-200 rounded w-full"></div>
+                    <!-- 제출물 작성 섹션 (일반 사용자용) -->
+                    <div id="submission-section" class="bg-white rounded-xl border border-border p-6 hidden">
+                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary">edit_document</span>
+                            제안서 제출
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-sm font-medium text-text-main mb-1 block">제안 제목</label>
+                                <input type="text" id="sub-title"
+                                    class="w-full rounded border-border bg-white px-4 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                                    placeholder="제안 제목을 입력하세요">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-text-main mb-1 block">제안 내용</label>
+                                <textarea id="sub-content" rows="6"
+                                    class="w-full rounded border-border bg-white px-4 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary resize-none"
+                                    placeholder="제안 내용을 상세히 작성하세요..."></textarea>
+                            </div>
+                            <div class="flex justify-end gap-3">
+                                <button id="btn-submit-proposal"
+                                    class="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-lg font-bold text-sm shadow-sm transition-all flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[18px]">send</span>
+                                    제출하기
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Comment Form -->
-                    <form id="comment-form" class="relative group">
-                        <textarea id="comment-input"
-                            class="w-full bg-slate-50 dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-4 text-text-main dark:text-white focus:ring-2 focus:ring-primary focus:border-primary placeholder-text-muted resize-none text-sm transition-all"
-                            rows="3" placeholder="이벤트에 대한 의견을 남겨주세요..." required></textarea>
-                        <div
-                            class="absolute bottom-3 right-3 opacity-0 group-focus-within:opacity-100 transition-opacity">
-                            <button type="submit"
-                                class="bg-primary hover:bg-primary-hover text-white px-4 py-1.5 rounded text-sm font-medium transition-colors shadow-sm">
-                                등록
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <div class="p-8 bg-slate-50 dark:bg-gray-800/50">
-                <div class="sticky top-24">
-                    <h3 class="text-lg font-bold text-text-main dark:text-white mb-4">참가 정보</h3>
-                    <div class="space-y-4 mb-6">
-                        <div class="flex items-start gap-3">
-                            <div
-                                class="p-2 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 text-primary">
-                                <span class="material-symbols-outlined">schedule</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-text-main dark:text-white">접수 마감</p>
-                                <p class="text-sm text-text-muted">2023년 10월 31일 18:00</p>
-                                <p class="text-xs text-red-500 font-medium mt-0.5">D-2일 남음</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-3">
-                            <div
-                                class="p-2 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 text-text-muted">
-                                <span class="material-symbols-outlined">group</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-text-main dark:text-white">참가 대상</p>
-                                <p class="text-sm text-text-muted">전 임직원 (개인 또는 3인 이하 팀)</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-3">
-                            <div
-                                class="p-2 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 text-text-muted">
-                                <span class="material-symbols-outlined">trophy</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-text-main dark:text-white">시상 혜택</p>
-                                <p class="text-sm text-text-muted">최우수상: 200만원 + CEO 표창</p>
+                    <!-- 심사 패널 (심사자용) -->
+                    <div id="judge-panel" class="hidden space-y-4">
+                        <div class="bg-white rounded-xl border border-border p-6">
+                            <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-purple-600">gavel</span>
+                                제출물 심사
+                            </h3>
+                            <p class="text-xs text-text-muted mb-4">배정된 심사자로서 제출된 제안서를 평가할 수 있습니다.</p>
+                            <div id="submissions-list" class="space-y-3">
+                                <p class="text-sm text-text-muted text-center py-4">제출물을 불러오는 중...</p>
                             </div>
                         </div>
                     </div>
-                    <hr class="border-border dark:border-gray-600 mb-6" />
-                    <div class="mb-6">
-                        <h4 class="text-sm font-semibold text-text-main dark:text-white mb-2">관련 자료</h4>
-                        <a class="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 hover:border-primary/50 transition-colors group mb-2"
-                            href="#">
-                            <span class="material-symbols-outlined text-red-500">picture_as_pdf</span>
-                            <div class="flex-1 overflow-hidden">
-                                <p
-                                    class="text-sm font-medium text-text-main dark:text-white truncate group-hover:text-primary">
-                                    제출_가이드라인_v1.0.pdf</p>
-                                <p class="text-xs text-text-muted">1.2 MB</p>
+                </div>
+
+                <!-- 오른쪽: 정보 사이드바 -->
+                <div class="space-y-6">
+                    <div class="bg-white rounded-xl border border-border p-6 sticky top-24">
+                        <h3 class="text-lg font-bold mb-4">참가 정보</h3>
+                        <div class="space-y-4 mb-6">
+                            <div class="flex items-start gap-3">
+                                <div class="p-2 bg-background-light rounded border border-border text-primary">
+                                    <span class="material-symbols-outlined">schedule</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold">접수 마감</p>
+                                    <p class="text-sm text-text-muted" id="sidebar-deadline">로딩 중...</p>
+                                    <p class="text-xs text-red-500 font-medium mt-0.5" id="sidebar-dday"></p>
+                                </div>
                             </div>
-                            <span class="material-symbols-outlined text-text-muted text-[18px]">download</span>
-                        </a>
-                        <a class="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded border border-border dark:border-gray-600 hover:border-primary/50 transition-colors group"
-                            href="#">
-                            <span class="material-symbols-outlined text-green-500">description</span>
-                            <div class="flex-1 overflow-hidden">
-                                <p
-                                    class="text-sm font-medium text-text-main dark:text-white truncate group-hover:text-primary">
-                                    제안서_표준_양식.docx</p>
-                                <p class="text-xs text-text-muted">540 KB</p>
+                            <div class="flex items-start gap-3">
+                                <div class="p-2 bg-background-light rounded border border-border text-text-muted">
+                                    <span class="material-symbols-outlined">group</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold">참가 대상</p>
+                                    <p class="text-sm text-text-muted">전 임직원</p>
+                                </div>
                             </div>
-                            <span class="material-symbols-outlined text-text-muted text-[18px]">download</span>
-                        </a>
+                        </div>
+                        <hr class="border-border mb-6">
+
+                        <!-- 심사자 목록 -->
+                        <div id="sidebar-judges" class="mb-6 hidden">
+                            <h4 class="text-sm font-semibold mb-2">배정된 심사자</h4>
+                            <div id="judges-names" class="space-y-1"></div>
+                        </div>
+
+                        <!-- 설정 정보 -->
+                        <div id="sidebar-settings" class="space-y-2 text-xs text-text-muted">
+                        </div>
                     </div>
-                    <button
-                        class="w-full py-3.5 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined">edit_document</span>
-                        제안서 작성하기
-                    </button>
-                    <p class="text-xs text-center text-text-muted mt-3">
-                        작성 중인 제안서는 자동 저장됩니다.
-                    </p>
                 </div>
             </div>
-        </div>
         </div>
     </main>
-    <footer class="border-t border-border dark:border-gray-700 bg-white dark:bg-surface-dark mt-12 py-8">
+
+    <footer class="border-t border-border bg-white mt-12 py-8">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-sm text-text-muted">© 2024 Oriental Precision &amp; Engineering. All rights reserved.</p>
+            <p class="text-sm text-text-muted">© 2024 Oriental Precision & Engineering. All rights reserved.</p>
         </div>
     </footer>
 
     <script src="js/main.js"></script>
-    <script src="js/event-interactions.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const eventId = getQueryParam('id');
             if (!eventId) {
-                alert('잘못된 접근입니다. 이벤트 목록으로 이동합니다.');
+                alert('잘못된 접근입니다.');
                 window.location.href = 'dashboard.html';
                 return;
             }
 
-            const data = await fetchEventDetails(eventId);
-
-            if (data) {
-                document.getElementById('event-title').textContent = data.title;
-                // Format dates
-                const start = formatDate(data.start_date);
-                const end = formatDate(data.end_date);
-                document.getElementById('event-period').innerHTML = `<span class="material-symbols-outlined text-[16px]">calendar_today</span> ${start} ~ ${end}`;
-
-                document.getElementById('event-desc').textContent = data.description || '상세 설명이 없습니다.';
-                document.title = `${data.title} - OPCO : TWF`;
-            } else {
+            // 이벤트 상세 로드
+            const event = await fetchEventDetails(eventId);
+            if (!event) {
                 alert('이벤트 정보를 불러올 수 없습니다.');
                 window.location.href = 'dashboard.html';
+                return;
+            }
+
+            // 현재 로그인 사용자 정보
+            let currentUser = null;
+            const mockUserStr = localStorage.getItem('MOCK_USER');
+            if (mockUserStr) {
+                currentUser = JSON.parse(mockUserStr);
+            } else if (supabaseClient) {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session) currentUser = session.user;
+            }
+
+            // 심사자 목록 로드
+            const judges = await fetchEventJudges(eventId);
+            const isJudge = currentUser && judges.some(j => j.judge_id === currentUser.id);
+
+            // === 렌더링 ===
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('event-content').classList.remove('hidden');
+
+            // 배너
+            document.getElementById('event-title').textContent = event.title;
+            document.title = `${event.title} - OPCO : TWF`;
+            const start = formatDate(event.start_date);
+            const end = formatDate(event.end_date);
+            document.getElementById('event-period').innerHTML = `<span class="material-symbols-outlined text-[16px]">calendar_today</span> ${start} ~ ${end}`;
+
+            const statusMap = { 'active': '진행중', 'draft': '초안', 'completed': '완료', 'closed': '마감' };
+            document.getElementById('event-status-badge').textContent = statusMap[event.status] || event.status;
+
+            // 설명
+            document.getElementById('event-desc').textContent = event.description || '상세 설명이 없습니다.';
+
+            // 사이드바
+            document.getElementById('sidebar-deadline').textContent = end || '미정';
+            if (event.end_date) {
+                const diff = Math.ceil((new Date(event.end_date) - new Date()) / (1000 * 60 * 60 * 24));
+                document.getElementById('sidebar-dday').textContent = diff > 0 ? `D-${diff}일 남음` : '마감됨';
+            }
+
+            // 설정 정보
+            const settings = [];
+            if (event.allow_file_upload) settings.push('<span class="material-symbols-outlined text-[14px] align-middle">attach_file</span> 파일 첨부 허용');
+            if (event.is_blind_judging) settings.push('<span class="material-symbols-outlined text-[14px] align-middle">visibility_off</span> 블라인드 심사');
+            document.getElementById('sidebar-settings').innerHTML = settings.map(s => `<div class="flex items-center gap-1">${s}</div>`).join('');
+
+            // 심사자 목록
+            if (judges.length > 0) {
+                document.getElementById('sidebar-judges').classList.remove('hidden');
+                document.getElementById('judges-names').innerHTML = judges.map(j => {
+                    const jName = j.judge ? j.judge.name : '(이름없음)';
+                    return `<div class="flex items-center gap-2 text-sm"><span class="h-6 w-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">${jName.charAt(0)}</span>${jName}</div>`;
+                }).join('');
+            }
+
+            // 심사 기준 표시
+            const criteria = event.pass_criteria;
+            if (criteria && Array.isArray(criteria) && criteria.length > 0) {
+                document.getElementById('criteria-section').classList.remove('hidden');
+                const colors = ['text-blue-600 bg-blue-50', 'text-green-600 bg-green-50', 'text-purple-600 bg-purple-50', 'text-orange-600 bg-orange-50', 'text-pink-600 bg-pink-50'];
+                document.getElementById('criteria-cards').innerHTML = criteria.map((c, i) => `
+                    <div class="p-4 rounded-lg border border-border ${colors[i % colors.length].split(' ')[1]}">
+                        <div class="font-bold mb-1 ${colors[i % colors.length].split(' ')[0]}">${c.name}</div>
+                        <p class="text-xs text-text-muted">1 ~ ${c.max_score || 10}점</p>
+                    </div>
+                `).join('');
+            }
+
+            // === 역할별 기능 표시 ===
+            if (isJudge) {
+                // 심사자: 제출물 목록 + 심사 패널
+                document.getElementById('judge-panel').classList.remove('hidden');
+                const submissions = await fetchSubmissions(eventId);
+
+                if (submissions.length === 0) {
+                    document.getElementById('submissions-list').innerHTML = '<p class="text-sm text-text-muted text-center py-8">아직 제출된 제안이 없습니다.</p>';
+                } else {
+                    document.getElementById('submissions-list').innerHTML = submissions.map((sub, idx) => {
+                        const submitterName = event.is_blind_judging ? `익명 제출자 #${idx + 1}` : (sub.submitter ? sub.submitter.name : '알 수 없음');
+                        const submitterDept = event.is_blind_judging ? '' : (sub.submitter ? sub.submitter.department : '');
+                        const content = sub.content ? (typeof sub.content === 'string' ? sub.content : JSON.stringify(sub.content)) : '';
+                        const title = (sub.content && sub.content.title) ? sub.content.title : `제출물 #${idx + 1}`;
+
+                        // 심사 기준별 점수 입력
+                        let criteriaInputs = '';
+                        if (criteria && criteria.length > 0) {
+                            criteriaInputs = criteria.map((c, ci) => `
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-medium text-text-main">${c.name}</span>
+                                    <div class="flex items-center gap-2">
+                                        <input type="range" min="1" max="${c.max_score || 10}" value="5" class="score-slider w-24 accent-primary" data-criteria="${c.name}" data-sub="${sub.id}">
+                                        <span class="score-value text-xs font-bold text-primary w-6 text-center">5</span>
+                                    </div>
+                                </div>
+                            `).join('');
+                        }
+
+                        return `
+                            <div class="border border-border rounded-lg p-4 hover:border-primary/30 transition-colors" data-sub-id="${sub.id}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div>
+                                        <h4 class="font-bold text-sm">${title}</h4>
+                                        <p class="text-xs text-text-muted">${submitterName} ${submitterDept ? '· ' + submitterDept : ''} · ${new Date(sub.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                    <span class="text-xs px-2 py-0.5 rounded-full ${sub.status === 'submitted' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}">${sub.status === 'submitted' ? '제출완료' : sub.status}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3 line-clamp-2">${(sub.content && sub.content.body) || content}</p>
+                                ${criteriaInputs ? `
+                                    <div class="border-t border-border pt-3 mt-3 space-y-2">
+                                        <p class="text-xs font-bold text-text-muted uppercase tracking-wider">점수 평가</p>
+                                        ${criteriaInputs}
+                                        <div class="mt-2">
+                                            <textarea class="judge-comment w-full rounded border-border text-xs p-2 resize-none" rows="2" placeholder="심사 코멘트 (선택)" data-sub="${sub.id}"></textarea>
+                                        </div>
+                                        <button class="btn-submit-judgment w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-bold transition-colors" data-sub="${sub.id}">
+                                            점수 제출
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+
+                    // 슬라이더 값 표시
+                    document.querySelectorAll('.score-slider').forEach(slider => {
+                        const valueEl = slider.nextElementSibling;
+                        slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
+                    });
+
+                    // 점수 제출
+                    document.querySelectorAll('.btn-submit-judgment').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const subId = btn.dataset.sub;
+                            const card = btn.closest('[data-sub-id]');
+                            const sliders = card.querySelectorAll('.score-slider');
+                            const comment = card.querySelector('.judge-comment')?.value || '';
+
+                            const score = {};
+                            sliders.forEach(s => { score[s.dataset.criteria] = parseInt(s.value); });
+
+                            btn.textContent = '제출 중...';
+                            btn.disabled = true;
+
+                            const result = await createJudgment({
+                                submission_id: subId,
+                                judge_id: currentUser.id,
+                                score: score,
+                                comments: comment
+                            });
+
+                            if (result.error) {
+                                alert('심사 제출 실패: ' + (result.error.message || result.error));
+                                btn.textContent = '점수 제출';
+                                btn.disabled = false;
+                            } else {
+                                btn.textContent = '✓ 제출 완료';
+                                btn.classList.replace('bg-purple-600', 'bg-green-600');
+                                btn.classList.replace('hover:bg-purple-700', 'hover:bg-green-700');
+                            }
+                        });
+                    });
+                }
+            } else {
+                // 일반 사용자: 제출 폼
+                document.getElementById('submission-section').classList.remove('hidden');
+
+                document.getElementById('btn-submit-proposal').addEventListener('click', async () => {
+                    const title = document.getElementById('sub-title').value.trim();
+                    const body = document.getElementById('sub-content').value.trim();
+
+                    if (!title) { alert('제안 제목을 입력해주세요.'); return; }
+                    if (!body) { alert('제안 내용을 입력해주세요.'); return; }
+
+                    const btn = document.getElementById('btn-submit-proposal');
+                    btn.textContent = '제출 중...';
+                    btn.disabled = true;
+
+                    const result = await createSubmission({
+                        event_id: eventId,
+                        submitter_id: currentUser ? currentUser.id : null,
+                        content: { title, body },
+                        status: 'submitted'
+                    });
+
+                    if (result.error) {
+                        alert('제출 실패: ' + (result.error.message || result.error));
+                        btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">send</span> 제출하기';
+                        btn.disabled = false;
+                    } else {
+                        alert('제안서가 성공적으로 제출되었습니다!');
+                        document.getElementById('sub-title').value = '';
+                        document.getElementById('sub-content').value = '';
+                        btn.innerHTML = '✓ 제출 완료';
+                        btn.classList.replace('bg-primary', 'bg-green-600');
+                        setTimeout(() => {
+                            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">send</span> 제출하기';
+                            btn.classList.replace('bg-green-600', 'bg-primary');
+                            btn.disabled = false;
+                        }, 3000);
+                    }
+                });
             }
         });
     </script>
