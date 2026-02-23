@@ -39,6 +39,7 @@ window.createSubmission = createSubmission;
 window.createJudgment = createJudgment;
 window.deleteEvent = deleteEvent;
 window.updateEvent = updateEvent;
+window.updateSubmission = updateSubmission;
 window.getCurrentUser = getCurrentUser;
 
 // 진단용 함수: 연결 테스트
@@ -208,7 +209,6 @@ async function fetchSubmissions(eventId) {
         .from('submissions')
         .select('*, submitter:users!submitter_id(id, name, department)')
         .eq('event_id', eventId)
-        .neq('status', 'draft')
         .order('created_at', { ascending: false });
     if (error) { console.error('제출물 조회 오류:', error); return []; }
     return data || [];
@@ -223,6 +223,19 @@ async function createSubmission(submissionData) {
         .select();
     if (error) return { error };
     return { data: data && data.length > 0 ? data[0] : null };
+}
+
+// 제출물 업데이트
+async function updateSubmission(submissionId, submissionData) {
+    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    const { data, error } = await supabaseClient
+        .from('submissions')
+        .update(submissionData)
+        .eq('id', submissionId)
+        .select()
+        .single();
+    if (error) return { error };
+    return { data, error: null };
 }
 
 // 심사 점수 생성
@@ -474,16 +487,20 @@ async function setupUI() {
         let user = null;
         let meta = {};
 
-        // 1) MOCK_USER (게스트/테스트 모드) 먼저 확인
-        const mockUserStr = localStorage.getItem('MOCK_USER');
-        if (mockUserStr) {
-            user = JSON.parse(mockUserStr);
-            meta = user.user_metadata || {};
-        } else if (supabaseClient) {
-            // 2) Supabase 세션
+        // 1) Supabase 세션 먼저 확인 (실제 로그인 우선)
+        if (supabaseClient) {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session && session.user) {
                 user = session.user;
+                meta = user.user_metadata || {};
+            }
+        }
+
+        // 2) 세션이 없을 때만 MOCK_USER (게스트/테스트 모드) 확인
+        if (!user) {
+            const mockUserStr = localStorage.getItem('MOCK_USER');
+            if (mockUserStr) {
+                user = JSON.parse(mockUserStr);
                 meta = user.user_metadata || {};
             }
         }

@@ -476,24 +476,27 @@
             }
 
             // 2) 본인의 제출물 처리 (심사자일지라도 제출 가능)
-            document.getElementById('submission-section').classList.remove('hidden');
+            const submissionSection = document.getElementById('submission-section');
+            submissionSection.classList.remove('hidden');
 
-            if (mySubmission) {
-                // 이미 제출한 경우 표시
-                const subContent = mySubmission.content || {};
+            function renderMySubmission(sub) {
+                const subContent = sub.content || {};
                 let fileLinks = '';
-                if (mySubmission.files && mySubmission.files.length > 0) {
-                    fileLinks = `<div class="mt-4 pt-4 border-t border-dashed border-border flex flex-wrap gap-2">${mySubmission.files.map(f => `<a href="${f}" target="_blank" class="px-3 py-1.5 bg-gray-50 border border-border rounded text-xs text-primary hover:bg-gray-100 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">description</span>${f.split('/').pop().split('_').slice(1).join('_')}</a>`).join('')}</div>`;
+                if (sub.files && sub.files.length > 0) {
+                    fileLinks = `<div class="mt-4 pt-4 border-t border-dashed border-border flex flex-wrap gap-2">${sub.files.map(f => `<a href="${f}" target="_blank" class="px-3 py-1.5 bg-gray-50 border border-border rounded text-xs text-primary hover:bg-gray-100 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">description</span>${f.split('/').pop().split('_').slice(1).join('_')}</a>`).join('')}</div>`;
                 }
 
-                document.getElementById('submission-section').innerHTML = `
+                submissionSection.innerHTML = `
                     <div class="bg-primary/5 border border-primary/20 rounded-xl p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-bold flex items-center gap-2">
                                 <span class="material-symbols-outlined text-green-600">check_circle</span>
                                 나의 제출 내역
                             </h3>
-                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">제출 완료</span>
+                            <button id="btn-edit-submission" class="px-3 py-1 text-xs bg-white border border-border rounded hover:bg-gray-50 flex items-center gap-1 font-bold transition-colors">
+                                <span class="material-symbols-outlined text-[14px]">edit</span>
+                                수정하기
+                            </button>
                         </div>
                         <div class="space-y-3">
                             <div>
@@ -506,13 +509,60 @@
                             </div>
                             ${fileLinks}
                         </div>
-                        <p class="text-[11px] text-text-muted mt-4">* 제출하신 제안은 마감 전까지 수정할 수 없습니다. (추후 기능 추가 예정)</p>
+                        <p class="text-[11px] text-text-muted mt-4">* 이벤트 마감 전까지 언제든 내용을 수정할 수 있습니다.</p>
                     </div>
                 `;
-            } else {
-                // 아직 제출하지 않은 경우: 제출 폼 노출
+
+                document.getElementById('btn-edit-submission').addEventListener('click', () => {
+                    initSubmissionForm(sub);
+                });
+            }
+
+            function initSubmissionForm(existingSub = null) {
+                submissionSection.innerHTML = `
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-border-light dark:border-gray-700 p-8 shadow-sm">
+                        <div class="mb-6">
+                            <h3 class="text-xl font-bold text-text-main dark:text-white mb-1">${existingSub ? '제출물 수정' : '제안서 제출'}</h3>
+                            <p class="text-sm text-text-muted">아이디어를 구체화하여 제출해주세요.</p>
+                        </div>
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">제안 제목</label>
+                                <input type="text" id="sub-title" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="제목을 입력하세요" value="${existingSub ? existingSub.content.title : ''}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">상세 내용</label>
+                                <textarea id="sub-content" rows="6" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="제안의 배경, 목적, 기대효과 등을 자유롭게 기술하세요">${existingSub ? existingSub.content.body : ''}</textarea>
+                            </div>
+                            <div id="sub-file-container" class="${event.allow_file_upload ? '' : 'hidden'}">
+                                <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">첨부 파일 (선택)</label>
+                                <div class="relative group">
+                                    <input type="file" id="sub-file" multiple class="hidden">
+                                    <label for="sub-file" class="flex flex-col items-center justify-center border-2 border-dashed border-border-light rounded-xl py-8 cursor-pointer group-hover:border-primary group-hover:bg-primary/5 transition-all">
+                                        <span class="material-symbols-outlined text-3xl text-text-muted mb-2 group-hover:text-primary">upload_file</span>
+                                        <p class="text-sm text-text-muted group-hover:text-primary">클릭하여 파일 업로드 (다중 선택 가능)</p>
+                                    </label>
+                                </div>
+                                <p id="selected-file-name" class="mt-2 text-xs text-primary font-medium hidden"></p>
+                                ${existingSub && existingSub.files && existingSub.files.length > 0 ? `<p class="mt-2 text-[10px] text-text-muted">기본 파일이 유지됩니다. 새로 업로드할 경우 기존 파일에 추가됩니다.</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="mt-8 flex gap-3">
+                            ${existingSub ? `<button id="btn-cancel-edit" class="flex-1 py-3 px-4 border border-border-light rounded-lg text-sm font-bold text-text-main hover:bg-gray-50 transition-colors">취소</button>` : ''}
+                            <button id="btn-submit" class="flex-[2] py-3 px-4 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all">
+                                ${existingSub ? '수정 내용 저장' : '지금 제출하기'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                if (existingSub) {
+                    document.getElementById('btn-cancel-edit').addEventListener('click', () => {
+                        renderMySubmission(existingSub);
+                    });
+                }
+
                 if (event.allow_file_upload) {
-                    document.getElementById('sub-file-container').classList.remove('hidden');
                     const fileInput = document.getElementById('sub-file');
                     const fileNameDisplay = document.getElementById('selected-file-name');
                     fileInput.addEventListener('change', () => {
@@ -533,12 +583,12 @@
                     if (!body) { alert('내용을 입력해주세요.'); return; }
 
                     const btn = document.getElementById('btn-submit');
-                    const originalText = btn.innerHTML;
-                    btn.textContent = '제출 중...';
+                    const originalText = btn.textContent;
+                    btn.textContent = existingSub ? '수정 중...' : '제출 중...';
                     btn.disabled = true;
 
                     try {
-                        let uploadedFiles = [];
+                        let uploadedFiles = existingSub ? [...existingSub.files] : [];
                         if (event.allow_file_upload && fileInput.files.length > 0) {
                             const files = Array.from(fileInput.files);
                             for (const file of files) {
@@ -547,7 +597,7 @@
                                 const filePath = `submissions/${eventId}/${fileName}`;
 
                                 const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                                    .from('submission-files') // 'submission-files' 버컷 사용
+                                    .from('submission-files')
                                     .upload(filePath, file);
 
                                 if (uploadError) throw uploadError;
@@ -560,26 +610,41 @@
                             }
                         }
 
-                        const result = await createSubmission({
-                            event_id: eventId,
-                            submitter_id: currentUser ? currentUser.id : null,
-                            content: { title, body },
-                            files: uploadedFiles,
-                            status: 'submitted'
-                        });
+                        let result;
+                        if (existingSub) {
+                            result = await window.updateSubmission(existingSub.id, {
+                                content: { title, body },
+                                files: uploadedFiles,
+                                updated_at: new Date().toISOString()
+                            });
+                        } else {
+                            result = await window.createSubmission({
+                                event_id: eventId,
+                                submitter_id: currentUser ? currentUser.id : null,
+                                content: { title, body },
+                                files: uploadedFiles,
+                                status: 'submitted'
+                            });
+                        }
 
                         if (result.error) throw result.error;
 
-                        alert('성공적으로 제출되었습니다!');
-                        location.reload(); // 제출 후 본인 제출 내역 확인을 위해 리로드
+                        alert(existingSub ? '수정되었습니다!' : '성공적으로 제출되었습니다!');
+                        location.reload();
 
                     } catch (err) {
                         console.error('[Detail] Submission Error:', err);
-                        alert('제출 실패: ' + (err.message || err));
-                        btn.innerHTML = originalText;
+                        alert('처리 실패: ' + (err.message || err));
+                        btn.textContent = originalText;
                         btn.disabled = false;
                     }
                 });
+            }
+
+            if (mySubmission) {
+                renderMySubmission(mySubmission);
+            } else {
+                initSubmissionForm();
             }
         });
 
