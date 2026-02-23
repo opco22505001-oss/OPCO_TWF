@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>관리자 설정 - OPCO : TWF</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#00897B",
+                        "primary-hover": "#00695C",
+                        "primary-light": "#E0F2F1",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#0F172A",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1E293B",
+                        "text-main": "#0F172A",
+                        "text-muted": "#64748B",
+                        "border-light": "#E2E8F0",
+                    },
+                    fontFamily: {
+                        "sans": ["Noto Sans KR", "Inter", "sans-serif"],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen flex flex-col">
+    <header
+        class="bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-gray-700 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-4">
+                    <a href="dashboard.html" class="flex-shrink-0 flex items-center gap-2">
+                        <div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
+                            <span class="material-symbols-outlined text-xl">precision_manufacturing</span>
+                        </div>
+                        <span class="font-bold text-lg tracking-tight text-text-main dark:text-white">OPCO : TWF</span>
+                    </a>
+                    <div class="hidden md:flex h-6 w-px bg-border-light mx-2"></div>
+                    <nav class="hidden md:flex space-x-4">
+                        <a class="text-text-muted hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                            href="dashboard.html">이벤트 목록</a>
+                        <a class="text-text-muted hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                            href="mypage.html">마이 페이지</a>
+                        <a class="admin-only-tab text-text-main dark:text-white bg-background-light dark:bg-gray-800 px-3 py-2 rounded-md text-sm font-medium"
+                            href="admin.html">관리자</a>
+                    </nav>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button id="logout-btn"
+                        class="text-sm font-medium text-text-muted hover:text-red-500 transition-colors">로그아웃</button>
+                    <div class="h-6 w-px bg-border-light"></div>
+                    <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='mypage.html'">
+                        <div class="text-right hidden sm:block">
+                            <p id="header-user-name" class="text-sm font-medium text-text-main dark:text-white leading-none">-</p>
+                            <p id="header-user-role" class="text-xs text-text-muted mt-1">-</p>
+                        </div>
+                        <div id="header-avatar"
+                            class="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center text-text-muted font-bold">
+                            -
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-text-main dark:text-white">관리자 권한 관리</h1>
+                <p class="text-sm text-text-muted mt-1">관리자는 다른 사원의 권한을 관리자/일반으로 변경할 수 있습니다.</p>
+            </div>
+            <div class="flex gap-2 text-sm">
+                <div class="px-3 py-2 rounded-md bg-primary-light text-primary font-medium">총 인원: <span id="stat-total">0</span></div>
+                <div class="px-3 py-2 rounded-md bg-slate-100 text-slate-700 font-medium">관리자: <span id="stat-admin">0</span></div>
+            </div>
+        </div>
+
+        <div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-gray-700 rounded-xl shadow-sm p-4 mb-4">
+            <label class="block text-sm font-medium mb-2" for="employee-search">사번/이름/부서 검색</label>
+            <input id="employee-search" type="text" placeholder="예: 08204001, 홍길동, 전산팀"
+                class="w-full rounded-lg border-border-light focus:border-primary focus:ring-primary" />
+        </div>
+
+        <div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 dark:bg-slate-800/60 text-text-muted">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-semibold">사번</th>
+                            <th class="px-4 py-3 text-left font-semibold">이름</th>
+                            <th class="px-4 py-3 text-left font-semibold">부서</th>
+                            <th class="px-4 py-3 text-left font-semibold">현재 권한</th>
+                            <th class="px-4 py-3 text-right font-semibold">작업</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-user-table" class="divide-y divide-border-light dark:divide-gray-700">
+                        <tr>
+                            <td colspan="5" class="px-4 py-10 text-center text-text-muted">불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+
+</html>

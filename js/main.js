@@ -514,6 +514,15 @@ async function setupUI() {
         window.__isAdmin = (meta.role === 'admin');
         window.__currentUser = user;
 
+        // 상단 공통 관리자 탭 표시 제어
+        document.querySelectorAll('.admin-only-tab').forEach((el) => {
+            if (window.__isAdmin) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
+
     } catch (e) {
         console.error('[UI] Failed to setup common UI:', e);
     }
