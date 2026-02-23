@@ -192,6 +192,21 @@
                         class="pointer-events-none inline-block h-5 w-5 translate-x-0 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
                 </button>
             </div>
+
+            <!-- 심사자 배정 섹션 -->
+            <div class="flex flex-col gap-3 p-4 rounded-lg border border-border-light bg-background-light/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-sm font-medium text-text-main">심사자 배정</span>
+                        <span class="text-xs text-text-muted">이 이벤트의 심사를 담당할 직원을 선택하세요.</span>
+                    </div>
+                    <span id="judge-count"
+                        class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">0명 선택</span>
+                </div>
+                <div id="judges-list" class="max-h-40 overflow-y-auto space-y-2 mt-1">
+                    <div class="animate-pulse h-8 bg-gray-200 rounded"></div>
+                </div>
+            </div>
         </div>
         <div
             class="flex items-center justify-between px-8 py-5 border-t border-border-light bg-gray-50/50 rounded-b-xl">
@@ -213,24 +228,83 @@
 
     <script src="js/main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const btnSaveDraft = document.getElementById('btn-save-draft');
             const btnContinue = document.getElementById('btn-continue');
+            const judgesList = document.getElementById('judges-list');
+            const judgeCountEl = document.getElementById('judge-count');
+
+            // 심사자 후보 목록 로드
+            let allUsers = [];
+            try {
+                if (typeof window.fetchUsers === 'function') {
+                    allUsers = await window.fetchUsers();
+                }
+            } catch (e) {
+                console.error('[EventCreate] 사용자 목록 로드 실패:', e);
+            }
+
+            if (judgesList && allUsers.length > 0) {
+                judgesList.innerHTML = allUsers.map(u => `
+                    <label class="flex items-center gap-3 p-2 rounded hover:bg-white cursor-pointer transition-colors">
+                        <input type="checkbox" class="judge-checkbox rounded border-gray-300 text-primary focus:ring-primary" value="${u.id}" data-name="${u.name || ''}">
+                        <div class="flex-1 min-w-0">
+                            <span class="text-sm font-medium text-text-main">${u.name || '이름없음'}</span>
+                            <span class="text-xs text-text-muted ml-2">${u.department || ''}</span>
+                        </div>
+                        <span class="text-xs px-2 py-0.5 rounded-full ${u.role === 'judge' ? 'bg-purple-50 text-purple-700' : 'bg-gray-100 text-gray-600'}">${u.role === 'admin' ? '관리자' : u.role === 'judge' ? '심사위원' : '직원'}</span>
+                    </label>
+                `).join('');
+
+                // 체크 변경 시 카운트 업데이트
+                judgesList.addEventListener('change', () => {
+                    const checked = judgesList.querySelectorAll('.judge-checkbox:checked').length;
+                    judgeCountEl.textContent = `${checked}명 선택`;
+                });
+            } else if (judgesList) {
+                judgesList.innerHTML = '<p class="text-xs text-text-muted text-center py-2">등록된 사용자가 없습니다.</p>';
+            }
+
+            // 선택된 심사자 ID 배열 반환
+            function getSelectedJudgeIds() {
+                if (!judgesList) return [];
+                return Array.from(judgesList.querySelectorAll('.judge-checkbox:checked')).map(cb => cb.value);
+            }
+
+            // 이벤트 생성 후 심사자 배정 처리
+            async function assignSelectedJudges(eventId) {
+                const judgeIds = getSelectedJudgeIds();
+                if (judgeIds.length === 0) return;
+
+                console.log(`[EventCreate] 심사자 ${judgeIds.length}명 배정 중...`, judgeIds);
+                for (const judgeId of judgeIds) {
+                    try {
+                        await window.assignJudge(eventId, judgeId);
+                    } catch (e) {
+                        console.error(`[EventCreate] 심사자 배정 실패 (${judgeId}):`, e);
+                    }
+                }
+                console.log('[EventCreate] 심사자 배정 완료');
+            }
+
+            // 공통 데이터 수집
+            function collectEventData(status) {
+                return {
+                    title: document.getElementById('event-title').value,
+                    description: document.getElementById('event-desc').value,
+                    start_date: document.getElementById('start-date').value,
+                    end_date: document.getElementById('end-date').value,
+                    allow_file_upload: document.getElementById('allow-file').checked,
+                    is_blind_judging: document.getElementById('is-blind').checked,
+                    status: status
+                };
+            }
 
             // 초안 저장 버튼
             if (btnSaveDraft) {
                 btnSaveDraft.addEventListener('click', async () => {
-                    const title = document.getElementById('event-title').value;
-                    const description = document.getElementById('event-desc').value;
-                    const startDate = document.getElementById('start-date').value;
-                    const endDate = document.getElementById('end-date').value;
-                    const allowFile = document.getElementById('allow-file').checked;
-                    const isBlind = document.getElementById('is-blind').checked;
-
-                    if (!title) {
-                        alert('이벤트 제목을 입력해주세요.');
-                        return;
-                    }
+                    const data = collectEventData('draft');
+                    if (!data.title) { alert('이벤트 제목을 입력해주세요.'); return; }
 
                     btnSaveDraft.textContent = '저장 중...';
                     btnSaveDraft.disabled = true;
@@ -239,22 +313,17 @@
                         if (typeof window.createEvent !== 'function') {
                             throw new Error('시스템 초기화 중입니다. 잠시 후 다시 시도해 주세요.');
                         }
-
-                        const result = await window.createEvent({
-                            title,
-                            description,
-                            start_date: startDate,
-                            end_date: endDate,
-                            allow_file_upload: allowFile,
-                            is_blind_judging: isBlind,
-                            status: 'draft'
-                        });
+                        const result = await window.createEvent(data);
 
                         if (result.error) {
                             alert('저장 실패: ' + (result.error.message || result.error));
                             btnSaveDraft.textContent = '초안 저장';
                             btnSaveDraft.disabled = false;
                         } else {
+                            // 심사자 배정
+                            if (result.data && result.data.id) {
+                                await assignSelectedJudges(result.data.id);
+                            }
                             alert('초안이 저장되었습니다.');
                             window.location.href = 'dashboard.html';
                         }
@@ -270,29 +339,16 @@
             // 닫기(X) 버튼
             const btnClose = document.querySelector('.text-text-muted.hover\\:text-text-main');
             if (btnClose) {
-                btnClose.addEventListener('click', () => {
-                    window.location.href = 'dashboard.html';
-                });
+                btnClose.addEventListener('click', () => { window.location.href = 'dashboard.html'; });
             }
 
             // 이벤트 등록 및 대시보드 이동 버튼
             if (btnContinue) {
                 btnContinue.addEventListener('click', async () => {
-                    console.log('[EventCreate] Continue button clicked');
-                    const title = document.getElementById('event-title').value;
-                    const description = document.getElementById('event-desc').value;
-                    const startDate = document.getElementById('start-date').value;
-                    const endDate = document.getElementById('end-date').value;
-                    const allowFile = document.getElementById('allow-file').checked;
-                    const isBlind = document.getElementById('is-blind').checked;
-
-                    if (!title) {
-                        alert('이벤트 제목을 입력해주세요.');
-                        return;
-                    }
+                    const data = collectEventData('active');
+                    if (!data.title) { alert('이벤트 제목을 입력해주세요.'); return; }
 
                     try {
-                        console.log('[EventCreate] Data:', { title, description, startDate, endDate, allowFile, isBlind });
                         btnContinue.textContent = '등록 중...';
                         btnContinue.disabled = true;
 
@@ -300,16 +356,7 @@
                             throw new Error('시스템 초기화 중입니다. 잠시 후 다시 시도해 주세요.');
                         }
 
-                        const result = await window.createEvent({
-                            title,
-                            description,
-                            start_date: startDate,
-                            end_date: endDate,
-                            allow_file_upload: allowFile,
-                            is_blind_judging: isBlind,
-                            status: 'active'
-                        });
-
+                        const result = await window.createEvent(data);
                         console.log('[EventCreate] Result:', result);
 
                         if (result.error) {
@@ -317,6 +364,10 @@
                             btnContinue.textContent = '이벤트 등록 및 대시보드 이동';
                             btnContinue.disabled = false;
                         } else {
+                            // 심사자 배정
+                            if (result.data && result.data.id) {
+                                await assignSelectedJudges(result.data.id);
+                            }
                             alert('이벤트가 성공적으로 생성되었습니다!');
                             window.location.href = 'dashboard.html';
                         }
