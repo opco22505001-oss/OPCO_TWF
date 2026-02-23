@@ -37,6 +37,7 @@ window.getQueryParam = getQueryParam;
 window.fetchSubmissions = fetchSubmissions;
 window.createSubmission = createSubmission;
 window.createJudgment = createJudgment;
+window.updateJudgment = updateJudgment;
 window.deleteEvent = deleteEvent;
 window.updateEvent = updateEvent;
 window.updateSubmission = updateSubmission;
@@ -247,6 +248,19 @@ async function createJudgment(judgmentData) {
         .select();
     if (error) return { error };
     return { data: data && data.length > 0 ? data[0] : null };
+}
+
+// 심사 점수 수정
+async function updateJudgment(judgmentId, judgmentData) {
+    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    const { data, error } = await supabaseClient
+        .from('judgments')
+        .update(judgmentData)
+        .eq('id', judgmentId)
+        .select()
+        .single();
+    if (error) return { error };
+    return { data, error: null };
 }
 
 // 이벤트 삭제

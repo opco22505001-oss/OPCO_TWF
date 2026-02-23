@@ -118,6 +118,31 @@
                 </table>
             </div>
         </div>
+
+        <div class="mt-8 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+            <div class="px-4 py-3 border-b border-border-light dark:border-gray-700">
+                <h2 class="text-base font-bold">심사 통계 (편향 확인)</h2>
+                <p class="text-xs text-text-muted mt-1">심사자별 평가 건수, 평균 점수, 표준편차를 확인합니다.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 dark:bg-slate-800/60 text-text-muted">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-semibold">심사자</th>
+                            <th class="px-4 py-3 text-left font-semibold">부서</th>
+                            <th class="px-4 py-3 text-right font-semibold">평가 건수</th>
+                            <th class="px-4 py-3 text-right font-semibold">평균 점수</th>
+                            <th class="px-4 py-3 text-right font-semibold">표준편차</th>
+                        </tr>
+                    </thead>
+                    <tbody id="judge-stats-table" class="divide-y divide-border-light dark:divide-gray-700">
+                        <tr>
+                            <td colspan="5" class="px-4 py-10 text-center text-text-muted">불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </main>
 
     <script src="js/main.js"></script>

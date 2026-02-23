@@ -98,6 +98,38 @@ function renderEmployees() {
     }).join('');
 }
 
+async function loadJudgeStats() {
+    const tbody = document.getElementById('judge-stats-table');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient.functions.invoke('admin-judgment-analytics', {
+        body: {}
+    });
+
+    if (error || data?.error) {
+        const msg = data?.error || error?.message || '심사 통계 조회 실패';
+        console.error('[Admin] 심사 통계 조회 실패:', msg);
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-red-500">${msg}</td></tr>`;
+        return;
+    }
+
+    const stats = Array.isArray(data?.stats) ? data.stats : [];
+    if (stats.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-text-muted">심사 데이터가 없습니다.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = stats.map((row) => `
+        <tr>
+            <td class="px-4 py-3 font-medium">${row.judgeName || '-'}</td>
+            <td class="px-4 py-3 text-text-muted">${row.department || '-'}</td>
+            <td class="px-4 py-3 text-right font-mono">${row.count ?? 0}</td>
+            <td class="px-4 py-3 text-right font-mono">${row.avgScore ?? 0}</td>
+            <td class="px-4 py-3 text-right font-mono">${row.stddevScore ?? 0}</td>
+        </tr>
+    `).join('');
+}
+
 window.changeEmployeeRole = async (empno, nextRole) => {
     const confirmMsg = nextRole === 'admin'
         ? `${empno} 사원을 관리자로 변경하시겠습니까?`
@@ -143,4 +175,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadEmployees();
+    await loadJudgeStats();
 });

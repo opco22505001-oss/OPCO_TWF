@@ -1,0 +1,94 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function jsonResponse(payload: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+    });
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: authData, error: authError } = await authClient.auth.getUser();
+    if (authError || !authData?.user) {
+      return jsonResponse({ error: "로그인이 필요합니다." }, 401);
+    }
+
+    const requesterId = authData.user.id;
+    const { data: me, error: meError } = await adminClient
+      .from("users")
+      .select("role")
+      .eq("id", requesterId)
+      .maybeSingle();
+
+    if (meError || me?.role !== "admin") {
+      return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
+    }
+
+    const { data: judgments, error: judgmentsError } = await adminClient
+      .from("judgments")
+      .select("judge_id, score, created_at");
+    if (judgmentsError) {
+      return jsonResponse({ error: judgmentsError.message }, 500);
+    }
+
+    const { data: users, error: usersError } = await adminClient
+      .from("users")
+      .select("id, name, department");
+    if (usersError) {
+      return jsonResponse({ error: usersError.message }, 500);
+    }
+
+    const scoreOf = (scoreObj: Record<string, unknown> | null) =>
+      Object.values(scoreObj || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
+
+    const byJudge = new Map<string, number[]>();
+    (judgments || []).forEach((j) => {
+      const key = j.judge_id;
+      if (!byJudge.has(key)) byJudge.set(key, []);
+      byJudge.get(key)!.push(scoreOf(j.score as Record<string, unknown>));
+    });
+
+    const userMap = new Map((users || []).map((u) => [u.id, u]));
+    const stats = Array.from(byJudge.entries()).map(([judgeId, arr]) => {
+      const count = arr.length;
+      const avg = count ? arr.reduce((a, b) => a + b, 0) / count : 0;
+      const variance = count
+        ? arr.reduce((sum, x) => sum + Math.pow(x - avg, 2), 0) / count
+        : 0;
+      const stddev = Math.sqrt(variance);
+      const user = userMap.get(judgeId);
+      return {
+        judgeId,
+        judgeName: user?.name || "알 수 없음",
+        department: user?.department || "",
+        count,
+        avgScore: Number(avg.toFixed(2)),
+        stddevScore: Number(stddev.toFixed(2)),
+      };
+    }).sort((a, b) => b.count - a.count);
+
+    return jsonResponse({ stats });
+  } catch (error) {
+    return jsonResponse({ error: (error as Error).message }, 500);
+  }
+});
