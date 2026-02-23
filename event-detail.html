@@ -164,7 +164,7 @@
                                             <span
                                                 class="relative cursor-pointer rounded-md font-medium text-primary hover:text-primary-hover focus-within:outline-none">
                                                 <span>파일 업로드</span>
-                                                <input id="sub-file" type="file" class="sr-only">
+                                                <input id="sub-file" type="file" class="sr-only" multiple>
                                             </span>
                                             <p class="pl-1">또는 여기로 파일을 끌어보세요</p>
                                         </div>
@@ -371,10 +371,13 @@
             }
 
             // === 역할별 기능 표시 ===
+            // === 역할별 기능 표시 및 본인 제출물 확인 ===
+            const submissions = await fetchSubmissions(eventId);
+            const mySubmission = submissions.find(s => s.submitter_id === currentUser.id);
+
+            // 1) 심사자 패널 (배정된 경우에만)
             if (isJudge) {
-                // 심사자: 제출물 목록 + 심사 패널
                 document.getElementById('judge-panel').classList.remove('hidden');
-                const submissions = await fetchSubmissions(eventId);
 
                 if (submissions.length === 0) {
                     document.getElementById('submissions-list').innerHTML = '<p class="text-sm text-text-muted text-center py-8">아직 제출된 제안이 없습니다.</p>';
@@ -399,6 +402,11 @@
                             `).join('');
                         }
 
+                        let fileLinks = '';
+                        if (sub.files && sub.files.length > 0) {
+                            fileLinks = `<div class="mt-2 space-y-1">${sub.files.map(f => `<a href="${f}" target="_blank" class="text-[10px] text-primary hover:underline flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">attach_file</span>${f.split('/').pop().split('_').slice(1).join('_')}</a>`).join('')}</div>`;
+                        }
+
                         return `
                             <div class="border border-border rounded-lg p-4 hover:border-primary/30 transition-colors" data-sub-id="${sub.id}">
                                 <div class="flex items-center justify-between mb-2">
@@ -408,7 +416,8 @@
                                     </div>
                                     <span class="text-xs px-2 py-0.5 rounded-full ${sub.status === 'submitted' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}">${sub.status === 'submitted' ? '제출완료' : sub.status}</span>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-3 line-clamp-2">${(sub.content && sub.content.body) || content}</p>
+                                <p class="text-sm text-gray-600 mb-2">${(sub.content && sub.content.body) || content}</p>
+                                ${fileLinks}
                                 ${criteriaInputs ? `
                                     <div class="border-t border-border pt-3 mt-3 space-y-2">
                                         <p class="text-xs font-bold text-text-muted uppercase tracking-wider">점수 평가</p>
@@ -431,7 +440,7 @@
                         slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
                     });
 
-                    // 점수 제출
+                    // 점수 제출 이벤트
                     document.querySelectorAll('.btn-submit-judgment').forEach(btn => {
                         btn.addEventListener('click', async () => {
                             const subId = btn.dataset.sub;
@@ -464,18 +473,52 @@
                         });
                     });
                 }
-            } else {
-                // 일반 사용자: 제출 폼
-                document.getElementById('submission-section').classList.remove('hidden');
+            }
 
-                // 파일 업로드 설정 반영
+            // 2) 본인의 제출물 처리 (심사자일지라도 제출 가능)
+            document.getElementById('submission-section').classList.remove('hidden');
+
+            if (mySubmission) {
+                // 이미 제출한 경우 표시
+                const subContent = mySubmission.content || {};
+                let fileLinks = '';
+                if (mySubmission.files && mySubmission.files.length > 0) {
+                    fileLinks = `<div class="mt-4 pt-4 border-t border-dashed border-border flex flex-wrap gap-2">${mySubmission.files.map(f => `<a href="${f}" target="_blank" class="px-3 py-1.5 bg-gray-50 border border-border rounded text-xs text-primary hover:bg-gray-100 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">description</span>${f.split('/').pop().split('_').slice(1).join('_')}</a>`).join('')}</div>`;
+                }
+
+                document.getElementById('submission-section').innerHTML = `
+                    <div class="bg-primary/5 border border-primary/20 rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold flex items-center gap-2">
+                                <span class="material-symbols-outlined text-green-600">check_circle</span>
+                                나의 제출 내역
+                            </h3>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">제출 완료</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-xs text-text-muted font-bold mb-1">제시 제목</p>
+                                <p class="text-sm font-medium">${subContent.title || '제목 없음'}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-text-muted font-bold mb-1">상세 내용</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">${subContent.body || '내용 없음'}</p>
+                            </div>
+                            ${fileLinks}
+                        </div>
+                        <p class="text-[11px] text-text-muted mt-4">* 제출하신 제안은 마감 전까지 수정할 수 없습니다. (추후 기능 추가 예정)</p>
+                    </div>
+                `;
+            } else {
+                // 아직 제출하지 않은 경우: 제출 폼 노출
                 if (event.allow_file_upload) {
                     document.getElementById('sub-file-container').classList.remove('hidden');
                     const fileInput = document.getElementById('sub-file');
                     const fileNameDisplay = document.getElementById('selected-file-name');
                     fileInput.addEventListener('change', () => {
                         if (fileInput.files.length > 0) {
-                            fileNameDisplay.textContent = `선택된 파일: ${fileInput.files[0].name}`;
+                            const names = Array.from(fileInput.files).map(f => f.name).join(', ');
+                            fileNameDisplay.textContent = `선택된 파일 (${fileInput.files.length}개): ${names}`;
                             fileNameDisplay.classList.remove('hidden');
                         }
                     });
@@ -497,22 +540,24 @@
                     try {
                         let uploadedFiles = [];
                         if (event.allow_file_upload && fileInput.files.length > 0) {
-                            const file = fileInput.files[0];
-                            const fileExt = file.name.split('.').pop();
-                            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-                            const filePath = `submissions/${eventId}/${fileName}`;
+                            const files = Array.from(fileInput.files);
+                            for (const file of files) {
+                                const fileExt = file.name.split('.').pop();
+                                const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                                const filePath = `submissions/${eventId}/${fileName}`;
 
-                            const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                                .from('files')
-                                .upload(filePath, file);
+                                const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                                    .from('submission-files') // 'submission-files' 버컷 사용
+                                    .upload(filePath, file);
 
-                            if (uploadError) throw uploadError;
+                                if (uploadError) throw uploadError;
 
-                            const { data: { publicUrl } } = supabaseClient.storage
-                                .from('files')
-                                .getPublicUrl(filePath);
+                                const { data: { publicUrl } } = supabaseClient.storage
+                                    .from('submission-files')
+                                    .getPublicUrl(filePath);
 
-                            uploadedFiles = [publicUrl];
+                                uploadedFiles.push(publicUrl);
+                            }
                         }
 
                         const result = await createSubmission({
@@ -523,23 +568,11 @@
                             status: 'submitted'
                         });
 
-                        if (result.error) {
-                            throw result.error;
-                        } else {
-                            alert('성공적으로 제출되었습니다!');
-                            document.getElementById('sub-title').value = '';
-                            document.getElementById('sub-content').value = '';
-                            if (fileInput) fileInput.value = '';
-                            if (document.getElementById('selected-file-name')) document.getElementById('selected-file-name').classList.add('hidden');
+                        if (result.error) throw result.error;
 
-                            btn.innerHTML = '✓ 제출 완료';
-                            btn.classList.replace('bg-primary', 'bg-green-600');
-                            setTimeout(() => {
-                                btn.innerHTML = originalText;
-                                btn.classList.replace('bg-green-600', 'bg-primary');
-                                btn.disabled = false;
-                            }, 3000);
-                        }
+                        alert('성공적으로 제출되었습니다!');
+                        location.reload(); // 제출 후 본인 제출 내역 확인을 위해 리로드
+
                     } catch (err) {
                         console.error('[Detail] Submission Error:', err);
                         alert('제출 실패: ' + (err.message || err));
@@ -552,7 +585,8 @@
 
         // 관리자 전용 함수
         window.editThisEvent = () => {
-            alert('이벤트 수정 모달 또는 페이지로 연결될 예정입니다.');
+            const eventId = getQueryParam('id');
+            window.location.href = `event-creation-modal.html?id=${eventId}`;
         };
 
         window.deleteThisEvent = async () => {

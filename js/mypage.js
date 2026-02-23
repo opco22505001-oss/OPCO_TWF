@@ -52,7 +52,7 @@ async function loadUserProfile(userId) {
     // 화면 업데이트 (헤더 및 프로필 카드)
     const name = meta.empnm || meta.name || '사용자';
     const role = meta.role || 'employee';
-    const dept = meta.department || meta.depnm || '부서 미정';
+    const dept = meta.depnm || meta.department || '부서 미정';
     const empno = meta.empno || '';
 
     // 헤더 업데이트 (main.js의 setupUI와 별개로 마이페이지 특화 요소가 있을 수 있음)
@@ -96,7 +96,9 @@ async function loadMySubmissions(userId) {
         .from('submissions')
         .select(`
             id,
+            event_id,
             status,
+            content,
             created_at,
             events ( title, status )
         `)
@@ -118,22 +120,25 @@ async function loadMySubmissions(userId) {
         return;
     }
 
-    contentEl.innerHTML = data.map(sub => `
-        <div class="bg-surface-light dark:bg-surface-dark p-6 rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:border-primary/50 transition-colors flex justify-between items-center group cursor-pointer" 
-             onclick="window.location.href='submission-review.html?id=${sub.id}'">
-            <div>
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="text-xs px-2 py-0.5 rounded-full ${getStatusStyle(sub.status)}">${getStatusName(sub.status)}</span>
-                    <span class="text-xs text-text-muted">${new Date(sub.created_at).toLocaleDateString()}</span>
+    contentEl.innerHTML = data.map(sub => {
+        const title = (sub.content && sub.content.title) ? sub.content.title : (sub.events?.title || '제목 없음');
+        return `
+            <div class="bg-surface-light dark:bg-surface-dark p-6 rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:border-primary/50 transition-colors flex justify-between items-center group cursor-pointer" 
+                 onclick="window.location.href='event-detail.html?id=${sub.event_id}'">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs px-2 py-0.5 rounded-full ${getStatusStyle(sub.status)}">${getStatusName(sub.status)}</span>
+                        <span class="text-xs text-text-muted">${new Date(sub.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <h3 class="font-bold text-lg text-text-main dark:text-white group-hover:text-primary transition-colors">
+                        ${title}
+                    </h3>
+                    <p class="text-[11px] text-text-muted mt-1">이벤트: ${sub.events?.title || '삭제된 이벤트'} (${getEventStatusName(sub.events?.status)})</p>
                 </div>
-                <h3 class="font-bold text-lg text-text-main dark:text-white group-hover:text-primary transition-colors">
-                    ${sub.events?.title || '삭제된 이벤트'}
-                </h3>
-                <p class="text-sm text-text-muted mt-1">이벤트 상태: ${getEventStatusName(sub.events?.status)}</p>
+                <span class="material-symbols-outlined text-text-muted group-hover:text-primary">arrow_forward_ios</span>
             </div>
-            <span class="material-symbols-outlined text-text-muted group-hover:text-primary">arrow_forward_ios</span>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // 심사 배정 목록 로드
@@ -165,10 +170,12 @@ async function loadAssignedJudgments(userId) {
         .from('submissions')
         .select(`
             id,
+            event_id,
             status,
+            content,
             created_at,
             events ( title ),
-            users ( name, department )
+            submitter:users!submitter_id ( name, department )
         `)
         .in('event_id', eventIds)
         .neq('status', 'draft') // 임시저장 제외
@@ -188,24 +195,28 @@ async function loadAssignedJudgments(userId) {
         return;
     }
 
-    contentEl.innerHTML = submissions.map(sub => `
-        <div class="bg-surface-light dark:bg-surface-dark p-6 rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:border-primary/50 transition-colors flex justify-between items-center group cursor-pointer" 
-             onclick="window.location.href='submission-review.html?id=${sub.id}'">
-            <div>
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">제출자: ${sub.users?.name} (${sub.users?.department})</span>
-                    <span class="text-xs text-text-muted">${new Date(sub.created_at).toLocaleDateString()}</span>
+    contentEl.innerHTML = submissions.map(sub => {
+        const subTitle = (sub.content && sub.content.title) ? sub.content.title : '제목 없음';
+        return `
+            <div class="bg-surface-light dark:bg-surface-dark p-6 rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:border-primary/50 transition-colors flex justify-between items-center group cursor-pointer" 
+                 onclick="window.location.href='event-detail.html?id=${sub.event_id}'">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">제출자: ${sub.submitter?.name || '알 수 없음'} (${sub.submitter?.department || ''})</span>
+                        <span class="text-xs text-text-muted">${new Date(sub.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <h3 class="font-bold text-lg text-text-main dark:text-white group-hover:text-primary transition-colors">
+                        ${subTitle}
+                    </h3>
+                    <p class="text-xs text-text-muted mt-1">이벤트: ${sub.events?.title || '이벤트'}</p>
+                    <div class="flex items-center gap-2 mt-2">
+                         <span class="text-xs px-2 py-0.5 rounded-full ${getStatusStyle(sub.status)}">${getStatusName(sub.status)}</span>
+                    </div>
                 </div>
-                <h3 class="font-bold text-lg text-text-main dark:text-white group-hover:text-primary transition-colors">
-                    ${sub.events?.title || '이벤트'}
-                </h3>
-                <div class="flex items-center gap-2 mt-2">
-                     <span class="text-xs px-2 py-0.5 rounded-full ${getStatusStyle(sub.status)}">${getStatusName(sub.status)}</span>
-                </div>
+                <button class="px-4 py-2 bg-primary text-white text-sm font-bold rounded hover:bg-primary-hover transition-colors">심사하기</button>
             </div>
-            <button class="px-4 py-2 bg-primary text-white text-sm font-bold rounded hover:bg-primary-hover transition-colors">심사하기</button>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 

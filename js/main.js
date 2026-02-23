@@ -32,19 +32,6 @@ function initSupabase() {
 
 initSupabase();
 
-// --- 전역 함수 노출 (ReferenceError 방지용 - 선언 즉시 할당) ---
-window.fetchEvents = fetchEvents;
-window.createEvent = createEvent;
-window.fetchEventDetails = fetchEventDetails;
-window.fetchUsers = fetchUsers;
-window.fetchCorporateEmployees = fetchCorporateEmployees;
-window.fetchEventJudges = fetchEventJudges;
-window.assignJudge = assignJudge;
-window.removeJudge = removeJudge;
-window.navigateToEvent = navigateToEvent;
-window.createNotification = createNotification;
-window.signInWithEmployeeId = signInWithEmployeeId;
-window.setupUI = setupUI;
 window.formatDate = formatDate;
 window.getQueryParam = getQueryParam;
 window.fetchSubmissions = fetchSubmissions;

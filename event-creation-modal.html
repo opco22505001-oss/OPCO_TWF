@@ -95,8 +95,8 @@
         class="relative z-20 w-full max-w-[640px] bg-surface-light rounded-xl shadow-modal border border-border-light flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
         <div class="flex items-center justify-between px-8 py-6 border-b border-border-light bg-white rounded-t-xl">
             <div>
-                <h2 class="text-xl font-semibold tracking-tight text-text-main">새 이벤트 생성</h2>
-                <p class="text-sm text-text-muted mt-1">챌린지 설정 및 제약 조건을 구성합니다.</p>
+                <h2 id="modal-title" class="text-xl font-semibold tracking-tight text-text-main">새 이벤트 생성</h2>
+                <p id="modal-desc" class="text-sm text-text-muted mt-1">챌린지 설정 및 제약 조건을 구성합니다.</p>
             </div>
             <button class="text-text-muted hover:text-text-main transition-colors p-2 rounded hover:bg-gray-100">
                 <span class="material-symbols-outlined text-[20px]">close</span>
@@ -165,8 +165,9 @@
                 <div class="relative">
                     <input
                         class="w-full rounded border-border-light bg-white px-4 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                        id="guide-file" type="file" />
-                    <p class="text-[10px] text-text-muted mt-1">* 이벤트 상세 페이지에서 참가자들이 다운로드할 수 있는 가이드 파일입니다.</p>
+                        id="guide-file" type="file" multiple />
+                    <p class="text-[10px] text-text-muted mt-1">* 이벤트 상세 페이지에서 참가자들이 다운로드할 수 있는 가이드 파일입니다. (다중 선택 가능)
+                    </p>
                 </div>
             </div>
 
@@ -277,7 +278,7 @@
                 </button>
                 <button id="btn-continue"
                     class="px-5 py-2.5 rounded text-sm font-bold text-primary-text bg-primary hover:bg-primary-hover shadow-sm transition-all flex items-center gap-2">
-                    <span>이벤트 등록 및 대시보드 이동</span>
+                    <span id="btn-continue-text">이벤트 등록 및 대시보드 이동</span>
                     <span class="material-symbols-outlined text-[16px] font-bold">arrow_forward</span>
                 </button>
             </div>
@@ -287,13 +288,25 @@
     <script src="js/main.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            const eventId = getQueryParam('id');
+            const isEditMode = !!eventId;
+
             const btnSaveDraft = document.getElementById('btn-save-draft');
             const btnContinue = document.getElementById('btn-continue');
+            const btnContinueText = document.getElementById('btn-continue-text');
             const judgesList = document.getElementById('judges-list');
             const judgeCountEl = document.getElementById('judge-count');
             const judgeSearch = document.getElementById('judge-search');
             const criteriaList = document.getElementById('criteria-list');
             const btnAddCriteria = document.getElementById('btn-add-criteria');
+
+            // 수정 모드일 때 UI 변경
+            if (isEditMode) {
+                document.getElementById('modal-title').textContent = '이벤트 수정';
+                document.getElementById('modal-desc').textContent = '기존 이벤트의 정보를 수정합니다.';
+                btnContinueText.textContent = '이벤트 수정 완료';
+                if (btnSaveDraft) btnSaveDraft.style.display = 'none'; // 수정 모드에선 초안 저장 숨김
+            }
 
             // ========== 심사 기준 동적 관리 ==========
             function addCriteriaItem(name = '') {
@@ -330,12 +343,16 @@
 
             // ========== 심사자 후보 목록 (corporate_employees 125명) ==========
             let allEmployees = [];
+            let existingJudges = [];
             try {
                 if (typeof window.fetchCorporateEmployees === 'function') {
                     allEmployees = await window.fetchCorporateEmployees();
                 }
+                if (isEditMode) {
+                    existingJudges = await window.fetchEventJudges(eventId);
+                }
             } catch (e) {
-                console.error('[EventCreate] 임직원 목록 로드 실패:', e);
+                console.error('[EventCreate] 초기 데이터 로드 실패:', e);
             }
 
             function renderJudges(filter = '') {
@@ -348,8 +365,16 @@
                     ? allEmployees.filter(e => (e.empnm || '').toLowerCase().includes(keyword) || (e.depnm || '').toLowerCase().includes(keyword))
                     : allEmployees;
 
-                // 기존 체크 상태 보존
-                const checkedSet = new Set(Array.from(judgesList.querySelectorAll('.judge-checkbox:checked')).map(cb => cb.value));
+                // 기존 체크 상태 보존 (수정 모드일 때 초기값 포함)
+                const currentChecked = Array.from(judgesList.querySelectorAll('.judge-checkbox:checked')).map(cb => cb.value);
+                const existingChecked = existingJudges.map(j => {
+                    // email에서 사번 추출
+                    const { data: userData } = j; // j는 event_judges 행
+                    // 실제로는 fetchEventJudges가 users 정보를 조인해서 가져오므로 structure 확인 필요
+                    return j.users?.email?.split('@')[0];
+                }).filter(Boolean);
+
+                const checkedSet = new Set([...currentChecked, ...existingChecked]);
 
                 judgesList.innerHTML = filtered.map(e => `
                     <label class="flex items-center gap-3 p-1.5 rounded hover:bg-white cursor-pointer transition-colors">
@@ -437,7 +462,11 @@
                 }
 
                 if (failCount > 0) {
-                    console.log(`[EventCreate] 배정 완료: 성공 ${successCount}명, 실패 ${failCount}명 (미가입자 포함)`);
+                    const failedNames = selected.filter(j => !userMap[j.empno]).map(j => j.name).join(', ');
+                    console.log(`[EventCreate] 배정 완료: 성공 ${successCount}명, 실패 ${failCount}명 (미가입자: ${failedNames})`);
+                    if (failedNames) {
+                        alert(`일부 심사자(${failedNames})는 아직 시스템에 가입(로그인)하지 않아 배정되지 않았습니다.\n해당 인원이 로그인한 후 관리자 메뉴에서 다시 배정해 주세요.`);
+                    }
                 }
             }
 
@@ -458,65 +487,114 @@
                 // 기획안내 파일 업로드 처리
                 const guideFileInput = document.getElementById('guide-file');
                 if (guideFileInput && guideFileInput.files.length > 0) {
-                    const file = guideFileInput.files[0];
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-                    const filePath = `event-guides/${fileName}`;
+                    const files = Array.from(guideFileInput.files);
+                    const uploadedUrls = [];
 
-                    try {
-                        const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                            .from('files') // 'files' 버킷 사용 (없을 경우 대비하여 일반적인 이름)
-                            .upload(filePath, file);
+                    for (const file of files) {
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                        const filePath = `event-guides/${fileName}`;
 
-                        if (uploadError) throw uploadError;
+                        try {
+                            const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                                .from('event-attachments') // 'event-attachments' 버킷 사용
+                                .upload(filePath, file);
 
-                        const { data: { publicUrl } } = supabaseClient.storage
-                            .from('files')
-                            .getPublicUrl(filePath);
+                            if (uploadError) throw uploadError;
 
-                        data.attachments = [publicUrl];
-                    } catch (err) {
-                        console.error('[EventCreate] 파일 업로드 실패:', err);
-                        // 파일 업로드 실패 시 경고만 하고 진행하거나 중단 가능
-                        if (!confirm('기획안내 파일 업로드에 실패했습니다. 파일 없이 계속하시겠습니까?')) {
-                            throw new Error('파일 업로드 중단');
+                            const { data: { publicUrl } } = supabaseClient.storage
+                                .from('event-attachments')
+                                .getPublicUrl(filePath);
+
+                            uploadedUrls.push(publicUrl);
+                        } catch (err) {
+                            console.error(`[EventCreate] 파일 업로드 실패 (${file.name}):`, err);
+                            if (!confirm(`'${file.name}' 파일 업로드에 실패했습니다. 이 파일을 제외하고 계속하시겠습니까?`)) {
+                                throw new Error('파일 업로드 중단');
+                            }
                         }
                     }
+                    data.attachments = uploadedUrls;
                 }
 
                 return data;
+            }
+
+            // ========== 수정 모드 시 기존 데이터 채우기 ==========
+            if (isEditMode) {
+                try {
+                    const event = await window.fetchEventDetails(eventId);
+                    if (event) {
+                        document.getElementById('event-title').value = event.title || '';
+                        document.getElementById('event-desc').value = event.description || '';
+                        document.getElementById('start-date').value = event.start_date || '';
+                        document.getElementById('end-date').value = event.end_date || '';
+
+                        // 설정값
+                        const allowFile = document.getElementById('allow-file');
+                        const isBlind = document.getElementById('is-blind');
+                        const toggleAllowFile = document.getElementById('toggle-allow-file');
+                        const toggleIsBlind = document.getElementById('toggle-is-blind');
+
+                        if (event.allow_file_upload !== allowFile.checked) {
+                            toggleAllowFile.click();
+                        }
+                        if (event.is_blind_judging !== isBlind.checked) {
+                            toggleIsBlind.click();
+                        }
+
+                        // 심사 기준
+                        if (event.pass_criteria && event.pass_criteria.length > 0) {
+                            criteriaList.innerHTML = '';
+                            event.pass_criteria.forEach(c => addCriteriaItem(c.name));
+                        }
+                    }
+                } catch (err) {
+                    console.error('[EventEdit] 기존 데이터 로드 오류:', err);
+                }
             }
 
             // ========== 이벤트 등록 공통 함수 ==========
             async function submitEvent(status, btn, originalText) {
                 if (!document.getElementById('event-title').value) { alert('이벤트 제목을 입력해주세요.'); return; }
 
-                btn.textContent = status === 'draft' ? '저장 중...' : '등록 중...';
+                btn.textContent = status === 'draft' ? '저장 중...' : (isEditMode ? '수정 중...' : '등록 중...');
                 btn.disabled = true;
 
                 try {
                     const data = await collectEventData(status);
 
-                    if (typeof window.createEvent !== 'function') {
+                    if (typeof window.createEvent !== 'function' || typeof window.updateEvent !== 'function') {
                         throw new Error('시스템 초기화 중입니다. 잠시 후 다시 시도해 주세요.');
                     }
-                    const result = await window.createEvent(data);
+
+                    let result;
+                    if (isEditMode) {
+                        result = await window.updateEvent(eventId, data);
+                    } else {
+                        result = await window.createEvent(data);
+                    }
 
                     if (result.error) {
-                        alert((status === 'draft' ? '저장' : '등록') + ' 실패: ' + (result.error.message || result.error));
+                        alert((isEditMode ? '수정' : (status === 'draft' ? '저장' : '등록')) + ' 실패: ' + (result.error.message || result.error));
                         btn.textContent = originalText;
                         btn.disabled = false;
                     } else {
-                        if (result.data && result.data.id) {
-                            await assignAndNotifyJudges(result.data.id, data.title);
+                        const targetId = isEditMode ? eventId : (result.data ? result.data.id : null);
+                        if (targetId) {
+                            if (isEditMode) {
+                                // 기존 심사자 초기화 후 다시 배정
+                                await window.clearEventJudges(targetId);
+                            }
+                            await assignAndNotifyJudges(targetId, data.title);
                         }
-                        alert(status === 'draft' ? '초안이 저장되었습니다.' : '이벤트가 성공적으로 생성되었습니다!');
-                        window.location.href = 'dashboard.html';
+                        alert(isEditMode ? '이벤트가 성공적으로 수정되었습니다.' : (status === 'draft' ? '초안이 저장되었습니다.' : '이벤트가 성공적으로 생성되었습니다!'));
+                        window.location.href = isEditMode ? `event-detail.html?id=${eventId}` : 'dashboard.html';
                     }
                 } catch (err) {
                     if (err.message !== '파일 업로드 중단') {
-                        console.error('[EventCreate] Error:', err);
-                        alert('이벤트 ' + (status === 'draft' ? '저장' : '등록') + ' 중 오류: ' + err.message);
+                        console.error('[EventSubmit] Error:', err);
+                        alert('이벤트 처리 중 오류: ' + err.message);
                     }
                     btn.textContent = originalText;
                     btn.disabled = false;
