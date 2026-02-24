@@ -605,9 +605,13 @@
                                 .map(([name, value]) => `<div class="text-xs"><span class="font-semibold">${name}</span>: ${value}</div>`)
                                 .join('');
                             const canRevise = event.status !== 'closed' && Number(myJudgment.revision_count || 0) < 1;
+                            const canCancel = event.status !== 'closed' && !event.result_finalized;
                             const reviseButton = canRevise
                                 ? `<button class="btn-update-judgment w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm font-bold transition-colors" data-sub="${sub.id}" data-judgment-id="${myJudgment.id}">평가 1회 수정 제출</button>`
                                 : '<button class="w-full py-2 bg-emerald-600 text-white rounded text-sm font-bold cursor-not-allowed opacity-80" disabled>이미 평가한 항목입니다</button>';
+                            const cancelButton = canCancel
+                                ? `<button class="btn-cancel-judgment w-full py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded text-sm font-bold transition-colors" data-judgment-id="${myJudgment.id}">평가 취소</button>`
+                                : '<button class="w-full py-2 border border-red-200 text-red-600 rounded text-sm font-bold cursor-not-allowed opacity-60" disabled>평가 취소 불가</button>';
                             judgeBlock = `
                                 <div class="border-t border-border pt-3 mt-3 space-y-2">
                                     <p class="text-xs font-bold text-emerald-700 uppercase tracking-wider">이미 평가한 항목</p>
@@ -627,6 +631,7 @@
                                         <textarea class="judge-comment w-full rounded border-border text-xs p-2 resize-none" rows="2" placeholder="심사 코멘트 (선택)" data-sub="${sub.id}">${myJudgment.comments || ''}</textarea>
                                     </div>` : ''}
                                     ${reviseButton}
+                                    ${cancelButton}
                                 </div>
                             `;
                         } else if (criteria.length > 0) {
@@ -751,6 +756,28 @@
                             location.reload();
                         });
                     });
+
+                    document.querySelectorAll('.btn-cancel-judgment').forEach((btn) => {
+                        btn.addEventListener('click', async () => {
+                            const judgmentId = btn.dataset.judgmentId;
+                            if (!judgmentId) return;
+                            if (!confirm('해당 제출물의 내 평가를 취소하시겠습니까?')) return;
+
+                            btn.textContent = '취소 처리 중...';
+                            btn.disabled = true;
+
+                            const result = await window.deleteJudgment(judgmentId);
+                            if (result?.error) {
+                                alert('평가 취소 실패: ' + (result.error.message || result.error));
+                                btn.textContent = '평가 취소';
+                                btn.disabled = false;
+                                return;
+                            }
+
+                            alert('평가가 취소되었습니다.');
+                            location.reload();
+                        });
+                    });
                 }
             }
 
@@ -770,10 +797,16 @@
                                 <span class="material-symbols-outlined text-green-600">check_circle</span>
                                 나의 제출 내역
                             </h3>
-                            <button id="btn-edit-submission" class="px-3 py-1 text-xs bg-white border border-border rounded hover:bg-gray-50 flex items-center gap-1 font-bold transition-colors">
-                                <span class="material-symbols-outlined text-[14px]">edit</span>
-                                수정하기
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button id="btn-delete-submission" class="px-3 py-1 text-xs bg-white border border-red-200 text-red-600 rounded hover:bg-red-50 flex items-center gap-1 font-bold transition-colors">
+                                    <span class="material-symbols-outlined text-[14px]">delete</span>
+                                    삭제
+                                </button>
+                                <button id="btn-edit-submission" class="px-3 py-1 text-xs bg-white border border-border rounded hover:bg-gray-50 flex items-center gap-1 font-bold transition-colors">
+                                    <span class="material-symbols-outlined text-[14px]">edit</span>
+                                    수정하기
+                                </button>
+                            </div>
                         </div>
                         <div class="space-y-3">
                             <div>
@@ -792,6 +825,17 @@
 
                 document.getElementById('btn-edit-submission').addEventListener('click', () => {
                     initSubmissionForm(sub);
+                });
+                document.getElementById('btn-delete-submission').addEventListener('click', async () => {
+                    const ok = confirm('제출 내역을 삭제하시겠습니까?\n삭제 시 연결된 심사 평가도 함께 삭제됩니다.');
+                    if (!ok) return;
+                    const result = await window.deleteSubmission(sub.id);
+                    if (result?.error) {
+                        alert('제출물 삭제 실패: ' + (result.error.message || result.error));
+                        return;
+                    }
+                    alert('제출물이 삭제되었습니다.');
+                    location.reload();
                 });
             }
 
@@ -997,42 +1041,41 @@
         }
 
         async function invokeAdminEventAction(action, eventId) {
-            const callFunction = async (token) => {
-                const fnUrl = `${(supabaseClient?.supabaseUrl || 'https://fuevhcdfgmdjhpdiwtzr.supabase.co').replace(/\/$/, '')}/functions/v1/admin-event-action`;
-                const anonKey = supabaseClient?.supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
-                const res = await fetch(fnUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        apikey: anonKey,
-                        Authorization: `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        action,
-                        eventId,
-                        accessToken: token
-                    })
+            const callWithToken = async (token) => {
+                const payloadBody = { action, eventId, accessToken: token };
+                const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
+                    body: payloadBody,
+                    headers: { Authorization: `Bearer ${token}` },
                 });
 
-                let payload = null;
-                try {
-                    payload = await res.json();
-                } catch (_e) {
-                    payload = null;
+                if (error) {
+                    const wrapped = new Error(error.message || '처리 실패');
+                    wrapped.status = error.context?.status || 0;
+                    wrapped.context = error.context || null;
+                    throw wrapped;
                 }
-                return { ok: res.ok, status: res.status, data: payload };
+
+                if (data?.error) {
+                    const wrapped = new Error(data.error || '처리 실패');
+                    wrapped.code = data.code;
+                    wrapped.detail = data.detail;
+                    wrapped.request_id = data.request_id;
+                    wrapped.status = 0;
+                    throw wrapped;
+                }
+
+                return data;
             };
 
-            const accessToken = await getFreshAccessToken(false);
-            let result = await callFunction(accessToken);
-            if (!result.ok && result.status === 401) {
+            try {
+                const accessToken = await getFreshAccessToken(false);
+                return await callWithToken(accessToken);
+            } catch (err) {
+                const status = Number(err?.status || err?.context?.status || 0);
+                if (status !== 401) throw err;
                 const refreshedToken = await getFreshAccessToken(true);
-                result = await callFunction(refreshedToken);
+                return await callWithToken(refreshedToken);
             }
-            if (!result.ok || result.data?.error) {
-                throw new Error(result.data?.error || '처리 실패');
-            }
-            return result.data;
         }
 
         window.deleteThisEvent = async () => {

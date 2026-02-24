@@ -41,10 +41,12 @@ window.updateJudgment = updateJudgment;
 window.deleteEvent = deleteEvent;
 window.updateEvent = updateEvent;
 window.updateSubmission = updateSubmission;
+window.deleteSubmission = deleteSubmission;
 window.getCurrentUser = getCurrentUser;
 window.fetchEventJudges = fetchEventJudges;
 window.assignJudge = assignJudge;
 window.clearEventJudges = clearEventJudges;
+window.deleteJudgment = deleteJudgment;
 
 // 진단 함수: 연결 테스트
 async function testConnection() {
@@ -259,6 +261,16 @@ async function updateSubmission(submissionId, submissionData) {
     return { data, error: null };
 }
 
+// 제출물 삭제
+async function deleteSubmission(submissionId) {
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
+    const { error } = await supabaseClient
+        .from('submissions')
+        .delete()
+        .eq('id', submissionId);
+    return { error };
+}
+
 // 심사 점수 생성
 async function createJudgment(judgmentData) {
     if (!supabaseClient) return { error: "클라이언트가 없습니다." };
@@ -281,6 +293,16 @@ async function updateJudgment(judgmentId, judgmentData) {
         .single();
     if (error) return { error };
     return { data, error: null };
+}
+
+// 심사 평가 취소(삭제)
+async function deleteJudgment(judgmentId) {
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
+    const { error } = await supabaseClient
+        .from('judgments')
+        .delete()
+        .eq('id', judgmentId);
+    return { error };
 }
 
 // 이벤트 삭제
