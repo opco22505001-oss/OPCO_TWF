@@ -179,6 +179,7 @@
                     <p class="text-[10px] text-text-muted mt-1">* 이벤트 상세 페이지에서 참가자들이 다운로드할 수 있는 첨부파일입니다. (다중 선택 가능)
                     </p>
                 </div>
+                <div id="existing-guide-files" class="hidden mt-2 space-y-1 rounded border border-border-light bg-gray-50 p-3"></div>
             </div>
 
             <hr class="border-border-light my-1" />
@@ -323,6 +324,33 @@
             const eventDescInput = document.getElementById('event-desc');
             const btnInsertDescImage = document.getElementById('btn-insert-desc-image');
             const descImageFileInput = document.getElementById('desc-image-file');
+            const existingGuideFilesEl = document.getElementById('existing-guide-files');
+            let existingGuideFiles = [];
+
+            function normalizeDateValue(value) {
+                if (!value) return '';
+                return String(value).slice(0, 10);
+            }
+
+            function renderExistingGuideFiles() {
+                if (!existingGuideFilesEl) return;
+                if (!existingGuideFiles.length) {
+                    existingGuideFilesEl.classList.add('hidden');
+                    existingGuideFilesEl.innerHTML = '';
+                    return;
+                }
+
+                existingGuideFilesEl.classList.remove('hidden');
+                existingGuideFilesEl.innerHTML = `
+                    <p class="text-[11px] text-text-muted mb-1">현재 저장된 첨부파일</p>
+                    ${existingGuideFiles.map((url, index) => `
+                        <div class="flex items-center justify-between gap-2">
+                            <a href="${url}" target="_blank" class="text-xs text-primary hover:underline truncate">${(window.getDisplayNameFromUrl?.(url) || '첨부파일')}</a>
+                            <button type="button" data-index="${index}" class="btn-remove-guide-file text-[11px] px-2 py-0.5 border border-red-200 text-red-600 rounded hover:bg-red-50">삭제</button>
+                        </div>
+                    `).join('')}
+                `;
+            }
 
             async function uploadInlineDescriptionImage(file) {
                 if (!file.type.startsWith('image/')) {
@@ -469,9 +497,8 @@
                 // 기존 체크 상태 보존 (수정 모드 초기값 포함)
                 const currentChecked = Array.from(judgesList.querySelectorAll('.judge-checkbox:checked')).map(cb => cb.value);
                 const existingChecked = existingJudges.map(j => {
-                    // email에서 사번 추출
-                    const { data: userData } = j;
-                    return j.users?.email?.split('@')[0];
+                    const email = j?.judge?.email || '';
+                    return email.includes('@') ? email.split('@')[0] : '';
                 }).filter(Boolean);
 
                 const checkedSet = new Set([...currentChecked, ...existingChecked]);
@@ -605,7 +632,7 @@
                     is_blind_judging: document.getElementById('is-blind').checked,
                     pass_criteria: collectCriteria(),
                     status: status,
-                    attachments: []
+                    attachments: [...existingGuideFiles]
                 };
 
                 // 첨부파일 업로드 처리
@@ -642,7 +669,7 @@
                             }
                         }
                     }
-                    data.attachments = uploadedUrls;
+                    data.attachments = [...existingGuideFiles, ...uploadedUrls];
                 }
 
                 return data;
@@ -655,8 +682,10 @@
                     if (event) {
                         document.getElementById('event-title').value = event.title || '';
                         document.getElementById('event-desc').value = event.description || '';
-                        document.getElementById('start-date').value = event.start_date || '';
-                        document.getElementById('end-date').value = event.end_date || '';
+                        document.getElementById('start-date').value = normalizeDateValue(event.start_date);
+                        document.getElementById('end-date').value = normalizeDateValue(event.end_date);
+                        existingGuideFiles = Array.isArray(event.attachments) ? [...event.attachments] : [];
+                        renderExistingGuideFiles();
 
                         // 토글 상태 반영
                         const allowFile = document.getElementById('allow-file');
@@ -680,6 +709,17 @@
                 } catch (err) {
                     console.error('[EventEdit] 기존 데이터 로드 오류:', err);
                 }
+            }
+
+            if (existingGuideFilesEl) {
+                existingGuideFilesEl.addEventListener('click', (e) => {
+                    const target = e.target.closest('.btn-remove-guide-file');
+                    if (!target) return;
+                    const index = Number(target.dataset.index);
+                    if (Number.isNaN(index)) return;
+                    existingGuideFiles.splice(index, 1);
+                    renderExistingGuideFiles();
+                });
             }
 
             // ========== 이벤트 등록/수정 공통 함수 ==========
