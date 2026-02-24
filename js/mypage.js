@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!user) return;
 
     await loadUserProfile(user.id);
-    await loadMySubmissions(user.id);
+    await loadMySubmissions(user);
 
     if (window.setupUI) window.setupUI();
 
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     tabSub?.addEventListener('click', () => {
         setActiveTab(tabSub, tabJudge);
-        loadMySubmissions(user.id);
+        loadMySubmissions(user);
     });
 
     tabJudge?.addEventListener('click', () => {
@@ -78,10 +78,15 @@ async function loadUserProfile(userId) {
     setText('header-avatar', avatarText);
     setText('profile-avatar', avatarText);
 
-    const { count: subCount } = await supabaseClient
-        .from('submissions')
-        .select('*', { count: 'exact', head: true })
-        .eq('submitter_id', userId);
+    const submitterIds = await resolveUserIdsForSessionUser(user);
+    let subCount = 0;
+    if (submitterIds.length > 0) {
+        const { count } = await supabaseClient
+            .from('submissions')
+            .select('*', { count: 'exact', head: true })
+            .in('submitter_id', submitterIds);
+        subCount = count || 0;
+    }
 
     const judgeIds = await resolveUserIdsForSessionUser(user);
     let judgeCount = 0;
@@ -93,14 +98,27 @@ async function loadUserProfile(userId) {
         judgeCount = count || 0;
     }
 
-    setText('stat-submissions', String(subCount || 0));
+    setText('stat-submissions', String(subCount));
     setText('stat-judgments', String(judgeCount));
 }
 
-async function loadMySubmissions(userId) {
+async function loadMySubmissions(userOrId) {
     const contentEl = document.getElementById('content-area');
     if (!contentEl) return;
     contentEl.innerHTML = '<div class="animate-pulse space-y-4"><div class="h-24 bg-slate-100 rounded-lg"></div></div>';
+
+    const sessionUser = (typeof userOrId === 'object' && userOrId)
+        ? userOrId
+        : (await supabaseClient.auth.getUser()).data?.user;
+    const submitterIds = await resolveUserIdsForSessionUser(sessionUser);
+    if (!submitterIds.length) {
+        contentEl.innerHTML = `
+            <div class="text-center py-12 bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light">
+                <p class="text-text-muted mb-2">제출한 제안이 없습니다.</p>
+                <button onclick="window.location.href='dashboard.html'" class="text-primary hover:underline text-sm">이벤트 목록 보기</button>
+            </div>`;
+        return;
+    }
 
     const { data, error } = await supabaseClient
         .from('submissions')
@@ -112,7 +130,7 @@ async function loadMySubmissions(userId) {
             created_at,
             events ( title, status )
         `)
-        .eq('submitter_id', userId)
+        .in('submitter_id', submitterIds)
         .order('created_at', { ascending: false });
 
     if (error) {

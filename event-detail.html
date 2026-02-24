@@ -343,6 +343,25 @@
                 return null;
             }
 
+            async function resolveUserIdsForSessionUser(user) {
+                if (!user || !supabaseClient) return [];
+                const ids = new Set();
+                if (user.id) ids.add(user.id);
+                const email = (user.email || '').toLowerCase();
+                if (!email) return Array.from(ids);
+
+                const { data: rows } = await supabaseClient
+                    .from('users')
+                    .select('id')
+                    .eq('email', email);
+
+                (rows || []).forEach((row) => {
+                    if (row?.id) ids.add(row.id);
+                });
+
+                return Array.from(ids);
+            }
+
             const event = await fetchEventDetails(eventId);
             if (!event) {
                 alert('이벤트 정보를 불러올 수 없습니다.');
@@ -358,9 +377,11 @@
                     localStorage.removeItem('MOCK_USER');
                 }
             }
+            const currentUserIds = await resolveUserIdsForSessionUser(currentUser);
+            const actorUserId = currentUserIds[0] || currentUser?.id || null;
 
             const judges = await fetchEventJudges(eventId);
-            const isJudge = !!(currentUser && judges.some(j => j.judge_id === currentUser.id));
+            const isJudge = !!(currentUser && judges.some((j) => currentUserIds.includes(j.judge_id)));
 
             document.getElementById('loading-state').classList.add('hidden');
             document.getElementById('event-content').classList.remove('hidden');
@@ -454,14 +475,14 @@
 
             const submissions = await fetchSubmissions(eventId);
             const submissionIds = submissions.map(s => s.id);
-            const mySubmission = currentUser ? submissions.find(s => s.submitter_id === currentUser.id) : null;
+            const mySubmission = currentUser ? submissions.find((s) => currentUserIds.includes(s.submitter_id)) : null;
             const myJudgmentMap = new Map();
 
-            if (isJudge && submissionIds.length > 0) {
+            if (isJudge && submissionIds.length > 0 && currentUserIds.length > 0) {
                 const { data: mine, error: mineError } = await supabaseClient
                     .from('judgments')
                     .select('id, submission_id, score, comments, created_at, updated_at, revision_count')
-                    .eq('judge_id', currentUser.id)
+                    .in('judge_id', currentUserIds)
                     .in('submission_id', submissionIds);
                 if (!mineError && Array.isArray(mine)) {
                     mine.forEach((row) => myJudgmentMap.set(row.submission_id, row));
@@ -668,9 +689,16 @@
                             btn.textContent = '제출 중...';
                             btn.disabled = true;
 
+                            if (!actorUserId) {
+                                alert('사용자 식별 정보가 없어 심사를 저장할 수 없습니다. 다시 로그인해 주세요.');
+                                btn.textContent = '점수 제출';
+                                btn.disabled = false;
+                                return;
+                            }
+
                             const result = await createJudgment({
                                 submission_id: subId,
-                                judge_id: currentUser.id,
+                                judge_id: actorUserId,
                                 score,
                                 comments: comment
                             });
@@ -908,9 +936,12 @@
                                 updated_at: new Date().toISOString()
                             });
                         } else {
+                            if (!actorUserId) {
+                                throw new Error('사용자 식별 정보가 없어 제출할 수 없습니다. 다시 로그인해 주세요.');
+                            }
                             result = await window.createSubmission({
                                 event_id: eventId,
-                                submitter_id: currentUser ? currentUser.id : null,
+                                submitter_id: actorUserId,
                                 content: { title, body },
                                 files: uploadedFiles,
                                 status: 'submitted'
