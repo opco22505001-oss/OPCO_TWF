@@ -1,4 +1,4 @@
-let allEmployees = [];
+﻿let allEmployees = [];
 
 async function requireAdminSession() {
     if (!window.supabaseClient) return null;
@@ -58,30 +58,45 @@ async function getFreshAccessToken(forceRefresh = false) {
 async function invokeAdminFunction(functionName, body = {}) {
     const accessToken = await getFreshAccessToken(false);
 
-    const callFunction = (token) => supabaseClient.functions.invoke(functionName, {
-        body: {
-            ...body,
-            accessToken: token
-        },
-        headers: {
-            Authorization: `Bearer ${token}`
+    const callFunction = async (token) => {
+        const fnUrl = `${(supabaseClient?.supabaseUrl || 'https://fuevhcdfgmdjhpdiwtzr.supabase.co').replace(/\/$/, '')}/functions/v1/${functionName}`;
+        const anonKey = supabaseClient?.supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
+
+        const res = await fetch(fnUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                apikey: anonKey,
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                ...body,
+                accessToken: token
+            })
+        });
+
+        let payload = null;
+        try {
+            payload = await res.json();
+        } catch (_e) {
+            payload = null;
         }
-    });
+
+        return { status: res.status, ok: res.ok, data: payload };
+    };
 
     let result = await callFunction(accessToken);
-    let status = result.error?.context?.status || result.error?.status || null;
-    if ((result.error || result.data?.error) && status === 401) {
+    if (!result.ok && result.status === 401) {
         const refreshedToken = await getFreshAccessToken(true);
         result = await callFunction(refreshedToken);
-        status = result.error?.context?.status || result.error?.status || status;
     }
 
-    if (result.error || result.data?.error) {
-        const wrapped = new Error(result.data?.error || result.error?.message || '요청 실패');
+    if (!result.ok || result.data?.error) {
+        const wrapped = new Error(result.data?.error || '요청 실패');
         wrapped.code = result.data?.code;
         wrapped.detail = result.data?.detail;
         wrapped.request_id = result.data?.request_id;
-        wrapped.status = status;
+        wrapped.status = result.status;
         throw wrapped;
     }
 
@@ -110,7 +125,7 @@ function renderDelayedEvents(rows = []) {
     if (!tbody) return;
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-text-muted">현재 지연/임박 이벤트가 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-text-muted">현재 지연 위험 이벤트가 없습니다.</td></tr>';
         return;
     }
 
@@ -150,7 +165,6 @@ async function loadDashboardMetrics() {
         renderDashboardMetrics(data?.metrics || {});
         renderDelayedEvents(Array.isArray(data?.delayedEvents) ? data.delayedEvents : []);
     } catch (err) {
-        const msg = err?.message || '대시보드 지표 조회 실패';
         console.error('[Admin] 대시보드 지표 조회 실패:', err);
         renderDashboardMetrics({});
         renderDelayedEvents([]);
@@ -167,7 +181,6 @@ async function loadEmployees() {
         const code = err?.code ? ` [${err.code}]` : '';
         console.error('[Admin] 직원 목록 조회 실패:', err);
         alert(`직원 목록 조회 실패${code}: ${msg}`);
-        return;
     }
 }
 
