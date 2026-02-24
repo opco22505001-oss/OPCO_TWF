@@ -1,4 +1,4 @@
-﻿let allEmployees = [];
+let allEmployees = [];
 
 async function requireAdminSession() {
     if (!window.supabaseClient) return null;
@@ -25,6 +25,66 @@ async function requireAdminSession() {
     }
 
     return session.user;
+}
+
+function renderDashboardMetrics(metrics = {}) {
+    const activeEl = document.getElementById('metric-active-events');
+    const submissionEl = document.getElementById('metric-submission-rate');
+    const reviewEl = document.getElementById('metric-review-rate');
+
+    if (activeEl) activeEl.textContent = metrics.activeCount ?? 0;
+    if (submissionEl) submissionEl.textContent = `${Number(metrics.avgSubmissionRate ?? 0).toFixed(1)}%`;
+    if (reviewEl) reviewEl.textContent = `${Number(metrics.avgReviewRate ?? 0).toFixed(1)}%`;
+}
+
+function formatDaysLeft(daysLeft) {
+    if (daysLeft === null || daysLeft === undefined) return '-';
+    if (daysLeft < 0) return `${Math.abs(daysLeft)}일 지남`;
+    if (daysLeft === 0) return '오늘 마감';
+    return `${daysLeft}일 남음`;
+}
+
+function renderDelayedEvents(rows = []) {
+    const tbody = document.getElementById('delayed-events-table');
+    if (!tbody) return;
+
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-text-muted">현재 지연/임박 이벤트가 없습니다.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rows.map((row) => {
+        const statusText = row.status === 'closed' ? '마감' : (row.status === 'active' ? '진행중' : '대기');
+        const dayClass = row.daysLeft < 0 ? 'text-red-600' : 'text-amber-600';
+        return `
+            <tr>
+                <td class="px-4 py-3">
+                    <a href="event-detail.html?id=${row.eventId}" class="font-medium text-primary hover:underline">${row.title || '-'}</a>
+                </td>
+                <td class="px-4 py-3 text-text-muted">${statusText}</td>
+                <td class="px-4 py-3 text-right font-mono">${Number(row.submissionRate ?? 0).toFixed(1)}%</td>
+                <td class="px-4 py-3 text-right font-mono">${Number(row.reviewRate ?? 0).toFixed(1)}%</td>
+                <td class="px-4 py-3 text-right font-mono ${dayClass}">${formatDaysLeft(row.daysLeft)}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function loadDashboardMetrics() {
+    const { data, error } = await supabaseClient.functions.invoke('admin-dashboard-metrics', {
+        body: {}
+    });
+
+    if (error || data?.error) {
+        const msg = data?.error || error?.message || '대시보드 지표 조회 실패';
+        console.error('[Admin] 대시보드 지표 조회 실패:', msg);
+        renderDashboardMetrics({});
+        renderDelayedEvents([]);
+        return;
+    }
+
+    renderDashboardMetrics(data?.metrics || {});
+    renderDelayedEvents(Array.isArray(data?.delayedEvents) ? data.delayedEvents : []);
 }
 
 async function loadEmployees() {
@@ -60,9 +120,9 @@ function getRoleBadge(role) {
 
 function renderEmployees() {
     const keyword = (document.getElementById('employee-search')?.value || '').trim().toLowerCase();
-    const filtered = allEmployees.filter((e) => {
-        const hay = `${e.empno || ''} ${e.empnm || ''} ${e.depnm || ''}`.toLowerCase();
-        return hay.includes(keyword);
+    const filtered = allEmployees.filter((employee) => {
+        const haystack = `${employee.empno || ''} ${employee.empnm || ''} ${employee.depnm || ''}`.toLowerCase();
+        return haystack.includes(keyword);
     });
 
     updateStats(filtered);
@@ -73,23 +133,23 @@ function renderEmployees() {
         return;
     }
 
-    tbody.innerHTML = filtered.map((e) => {
-        const toRole = e.role === 'admin' ? 'submitter' : 'admin';
-        const buttonLabel = e.role === 'admin' ? '관리자 해제' : '관리자로 변경';
-        const buttonClass = e.role === 'admin'
+    tbody.innerHTML = filtered.map((employee) => {
+        const toRole = employee.role === 'admin' ? 'submitter' : 'admin';
+        const buttonLabel = employee.role === 'admin' ? '관리자 해제' : '관리자로 변경';
+        const buttonClass = employee.role === 'admin'
             ? 'border-slate-300 text-slate-700 hover:bg-slate-100'
             : 'border-primary text-primary hover:bg-primary-light';
 
         return `
             <tr>
-                <td class="px-4 py-3 font-mono">${e.empno || '-'}</td>
-                <td class="px-4 py-3 font-medium">${e.empnm || '-'}</td>
-                <td class="px-4 py-3 text-text-muted">${e.depnm || '-'}</td>
-                <td class="px-4 py-3">${getRoleBadge(e.role)}</td>
+                <td class="px-4 py-3 font-mono">${employee.empno || '-'}</td>
+                <td class="px-4 py-3 font-medium">${employee.empnm || '-'}</td>
+                <td class="px-4 py-3 text-text-muted">${employee.depnm || '-'}</td>
+                <td class="px-4 py-3">${getRoleBadge(employee.role)}</td>
                 <td class="px-4 py-3 text-right">
                     <button
                         class="inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${buttonClass}"
-                        onclick="changeEmployeeRole('${e.empno}', '${toRole}')">
+                        onclick="changeEmployeeRole('${employee.empno}', '${toRole}')">
                         ${buttonLabel}
                     </button>
                 </td>
@@ -175,5 +235,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadEmployees();
+    await loadDashboardMetrics();
     await loadJudgeStats();
 });

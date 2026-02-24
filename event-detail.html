@@ -141,6 +141,7 @@
                             ?ъ궗 ?쒖쐞
                         </h3>
                         <p class="text-xs text-text-muted mb-4">留덇컧???대깽?몄쓽 ?ъ궗 ?먯닔瑜?湲곗??쇰줈 ?먮룞 吏묎퀎?⑸땲??</p>
+                        <div id="result-finalized-badge" class="hidden mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"></div>
                         <div id="ranking-list" class="space-y-2"></div>
                     </div>
 
@@ -271,6 +272,11 @@
                                 <span class="material-symbols-outlined text-[18px]">task_alt</span>
                                 ?대깽??利됱떆 留덇컧
                             </button>
+                            <button id="btn-finalize-results" onclick="finalizeEventResults()"
+                                class="hidden w-full flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-50 transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                                결과 확정
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -359,6 +365,10 @@
 
             if (window.__isAdmin) {
                 document.getElementById('admin-actions').classList.remove('hidden');
+                const finalizeBtn = document.getElementById('btn-finalize-results');
+                if (finalizeBtn && event.status === 'closed' && !event.result_finalized) {
+                    finalizeBtn.classList.remove('hidden');
+                }
             }
 
             document.getElementById('event-title').textContent = event.title;
@@ -478,6 +488,17 @@
                             `;
                         }).join('');
                         document.getElementById('ranking-list').innerHTML += '<p class="text-[11px] text-text-muted pt-2">동점 규칙: 평균점수 > 최고점수 > 제출시각(빠른 순)</p>';
+
+                        const finalizedBadge = document.getElementById('result-finalized-badge');
+                        if (finalizedBadge && event.result_finalized) {
+                            const finalizedAt = event.results_finalized_at ? new Date(event.results_finalized_at).toLocaleString() : '';
+                            finalizedBadge.textContent = finalizedAt
+                                ? `결과 확정 완료 (${finalizedAt})`
+                                : '결과 확정 완료';
+                            finalizedBadge.classList.remove('hidden');
+                            const finalizeBtn = document.getElementById('btn-finalize-results');
+                            if (finalizeBtn) finalizeBtn.classList.add('hidden');
+                        }
                     }
                 }
             }
@@ -894,6 +915,25 @@
                 return;
             }
             alert('이벤트가 마감되었습니다. 심사 순위를 확인하세요.');
+            location.reload();
+        };
+
+        window.finalizeEventResults = async () => {
+            const eventId = getQueryParam('id');
+            if (!confirm('현재 순위를 최종 결과로 확정하시겠습니까?\n확정 후에는 심사 점수 수정이 불가능합니다.')) return;
+
+            const adminCode = prompt('관리자 인증 코드를 입력하세요.');
+            if (!adminCode) return;
+
+            const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
+                body: { action: 'finalize_results', eventId, adminCode }
+            });
+            if (error || data?.error) {
+                const msg = data?.error || error?.message || '결과 확정 실패';
+                alert('결과 확정 실패: ' + msg);
+                return;
+            }
+            alert('결과가 확정되었습니다.');
             location.reload();
         };
     </script>

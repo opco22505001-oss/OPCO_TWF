@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
@@ -59,16 +59,12 @@ serve(async (req) => {
 
     const { data: eventRow, error: eventError } = await adminClient
       .from("events")
-      .select("id, title, status")
+      .select("id, title, status, result_finalized")
       .eq("id", eventId)
       .maybeSingle();
 
-    if (eventError) {
-      return jsonResponse({ error: eventError.message }, 500);
-    }
-    if (!eventRow) {
-      return jsonResponse({ error: "대상 이벤트를 찾을 수 없습니다." }, 404);
-    }
+    if (eventError) return jsonResponse({ error: eventError.message }, 500);
+    if (!eventRow) return jsonResponse({ error: "대상 이벤트를 찾을 수 없습니다." }, 404);
 
     if (action === "close_event") {
       const { error: updateError } = await adminClient
@@ -91,6 +87,38 @@ serve(async (req) => {
           title: eventRow.title,
           prevStatus: eventRow.status,
           nextStatus: "closed",
+        },
+      });
+
+      return jsonResponse({ ok: true, action, eventId });
+    }
+
+    if (action === "finalize_results") {
+      if (eventRow.status !== "closed") {
+        return jsonResponse({ error: "결과 확정은 마감된 이벤트에서만 가능합니다." }, 400);
+      }
+      if (eventRow.result_finalized) {
+        return jsonResponse({ error: "이미 결과 확정된 이벤트입니다." }, 400);
+      }
+
+      const { error: finalizeError } = await adminClient
+        .from("events")
+        .update({
+          result_finalized: true,
+          results_finalized_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", eventId);
+
+      if (finalizeError) return jsonResponse({ error: finalizeError.message }, 500);
+
+      await adminClient.from("admin_audit_logs").insert({
+        actor_user_id: requesterId,
+        action: "finalize_results",
+        target_type: "event",
+        target_id: eventId,
+        metadata: {
+          title: eventRow.title,
         },
       });
 
