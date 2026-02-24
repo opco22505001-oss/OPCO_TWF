@@ -516,7 +516,7 @@
 
             const submissions = await fetchSubmissions(eventId);
             const submissionIds = submissions.map(s => s.id);
-            const mySubmission = currentUser ? submissions.find((s) => currentUserIds.includes(s.submitter_id)) : null;
+            const mySubmissions = currentUser ? submissions.filter((s) => currentUserIds.includes(s.submitter_id)) : [];
             const myJudgmentMap = new Map();
 
             if (isJudge && submissionIds.length > 0 && currentUserIds.length > 0) {
@@ -825,68 +825,62 @@
             const submissionSection = document.getElementById('submission-section');
             submissionSection.classList.remove('hidden');
 
-            function renderMySubmission(sub) {
-                const subContent = sub.content || {};
-                const fileLinks = (sub.files && sub.files.length > 0)
-                    ? `<div class="mt-4 pt-4 border-t border-dashed border-border flex flex-wrap gap-2">${sub.files.map(f => `<a href="${f}" target="_blank" class="px-3 py-1.5 bg-gray-50 border border-border rounded text-xs text-primary hover:bg-gray-100 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">description</span>${getDisplayNameFromUrl(f)}</a>`).join('')}</div>`
-                    : '';
-
-                submissionSection.innerHTML = `
-                    <div class="bg-primary/5 border border-primary/20 rounded-xl p-6">
+            function renderMySubmissionList(list) {
+                if (!Array.isArray(list) || list.length === 0) return '';
+                return `
+                    <div class="bg-primary/5 border border-primary/20 rounded-xl p-6 mb-4">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-bold flex items-center gap-2">
                                 <span class="material-symbols-outlined text-green-600">check_circle</span>
-                                나의 제출 내역
+                                나의 제출 내역 (${list.length}건)
                             </h3>
-                            <div class="flex items-center gap-2">
-                                <button id="btn-delete-submission" class="px-3 py-1 text-xs bg-white border border-red-200 text-red-600 rounded hover:bg-red-50 flex items-center gap-1 font-bold transition-colors">
-                                    <span class="material-symbols-outlined text-[14px]">delete</span>
-                                    삭제
-                                </button>
-                                <button id="btn-edit-submission" class="px-3 py-1 text-xs bg-white border border-border rounded hover:bg-gray-50 flex items-center gap-1 font-bold transition-colors">
-                                    <span class="material-symbols-outlined text-[14px]">edit</span>
-                                    수정하기
-                                </button>
-                            </div>
                         </div>
-                        <div class="space-y-3">
-                            <div>
-                                <p class="text-xs text-text-muted font-bold mb-1">제출 제목</p>
-                                <p class="text-sm font-medium">${subContent.title || '제목 없음'}</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-text-muted font-bold mb-1">상세 내용</p>
-                                <div class="text-sm text-gray-700">${renderRichContentHtml(subContent.body)}</div>
-                            </div>
-                            ${fileLinks}
+                        <div class="space-y-4">
+                            ${list.map((sub) => {
+                                const subContent = sub.content || {};
+                                const fileLinks = (sub.files && sub.files.length > 0)
+                                    ? `<div class="mt-3 pt-3 border-t border-dashed border-border flex flex-wrap gap-2">${sub.files.map(f => `<a href="${f}" target="_blank" class="px-3 py-1.5 bg-gray-50 border border-border rounded text-xs text-primary hover:bg-gray-100 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">description</span>${getDisplayNameFromUrl(f)}</a>`).join('')}</div>`
+                                    : '';
+                                return `
+                                    <div class="rounded-lg border border-border bg-white p-4" data-my-sub-id="${sub.id}">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <p class="text-xs text-text-muted">${new Date(sub.created_at).toLocaleString()}</p>
+                                            <div class="flex items-center gap-2">
+                                                <button class="btn-delete-submission px-3 py-1 text-xs bg-white border border-red-200 text-red-600 rounded hover:bg-red-50 flex items-center gap-1 font-bold transition-colors" data-sub-id="${sub.id}">
+                                                    <span class="material-symbols-outlined text-[14px]">delete</span>삭제
+                                                </button>
+                                                <button class="btn-edit-submission px-3 py-1 text-xs bg-white border border-border rounded hover:bg-gray-50 flex items-center gap-1 font-bold transition-colors" data-sub-id="${sub.id}">
+                                                    <span class="material-symbols-outlined text-[14px]">edit</span>수정
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-text-muted font-bold mb-1">제출 제목</p>
+                                            <p class="text-sm font-medium">${subContent.title || '제목 없음'}</p>
+                                        </div>
+                                        <div class="mt-2">
+                                            <p class="text-xs text-text-muted font-bold mb-1">상세 내용</p>
+                                            <div class="text-sm text-gray-700">${renderRichContentHtml(subContent.body)}</div>
+                                        </div>
+                                        ${fileLinks}
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
-                        <p class="text-[11px] text-text-muted mt-4">* 이벤트 마감 전까지 제출 내용을 수정할 수 있습니다.</p>
+                        <p class="text-[11px] text-text-muted mt-4">* 이벤트 마감 전까지 제출 내용을 수정/삭제할 수 있습니다.</p>
                     </div>
                 `;
-
-                document.getElementById('btn-edit-submission').addEventListener('click', () => {
-                    initSubmissionForm(sub);
-                });
-                document.getElementById('btn-delete-submission').addEventListener('click', async () => {
-                    const ok = confirm('제출 내역을 삭제하시겠습니까?\n삭제 시 연결된 심사 평가도 함께 삭제됩니다.');
-                    if (!ok) return;
-                    const result = await window.deleteSubmission(sub.id);
-                    if (result?.error) {
-                        alert('제출물 삭제 실패: ' + (result.error.message || result.error));
-                        return;
-                    }
-                    alert('제출물이 삭제되었습니다.');
-                    location.reload();
-                });
             }
 
             function initSubmissionForm(existingSub = null) {
                 let keptExistingFiles = existingSub?.files ? [...existingSub.files] : [];
+                const myListHtml = renderMySubmissionList(mySubmissions);
 
                 submissionSection.innerHTML = `
+                    ${myListHtml}
                     <div class="bg-white dark:bg-surface-dark rounded-xl border border-border-light dark:border-gray-700 p-8 shadow-sm">
                         <div class="mb-6">
-                            <h3 class="text-xl font-bold text-text-main dark:text-white mb-1">${existingSub ? '이벤트 제출 수정' : '이벤트 제출'}</h3>
+                            <h3 class="text-xl font-bold text-text-main dark:text-white mb-1">${existingSub ? '이벤트 제출 수정' : '이벤트 추가 제출'}</h3>
                             <p class="text-sm text-text-muted">이벤트 제목, 배경, 목적, 기대효과를 자유롭게 작성해 주세요.</p>
                         </div>
                         <div class="space-y-5">
@@ -933,8 +927,31 @@
                     </div>
                 `;
 
+                submissionSection.querySelectorAll('.btn-edit-submission').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const subId = btn.dataset.subId;
+                        const target = mySubmissions.find((s) => s.id === subId);
+                        if (target) initSubmissionForm(target);
+                    });
+                });
+                submissionSection.querySelectorAll('.btn-delete-submission').forEach((btn) => {
+                    btn.addEventListener('click', async () => {
+                        const subId = btn.dataset.subId;
+                        if (!subId) return;
+                        const ok = confirm('제출 내역을 삭제하시겠습니까?\n삭제 시 연결된 심사 평가도 함께 삭제됩니다.');
+                        if (!ok) return;
+                        const result = await window.deleteSubmission(subId);
+                        if (result?.error) {
+                            alert('제출물 삭제 실패: ' + (result.error.message || result.error));
+                            return;
+                        }
+                        alert('제출물이 삭제되었습니다.');
+                        location.reload();
+                    });
+                });
+
                 if (existingSub) {
-                    document.getElementById('btn-cancel-edit').addEventListener('click', () => renderMySubmission(existingSub));
+                    document.getElementById('btn-cancel-edit').addEventListener('click', () => initSubmissionForm());
                 }
 
                 const subContentEditor = document.getElementById('sub-content-editor');
@@ -1120,8 +1137,7 @@
                 });
             }
 
-            if (mySubmission) renderMySubmission(mySubmission);
-            else initSubmissionForm();
+            initSubmissionForm();
         });
 
         // 관리자 액션
