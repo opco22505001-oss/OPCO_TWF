@@ -59,6 +59,19 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
+        [contenteditable][data-placeholder]:empty::before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        #event-desc-editor img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 8px 0;
+        }
     </style>
 </head>
 
@@ -133,9 +146,12 @@
             </div>
             <div class="flex flex-col gap-2">
                 <label class="text-sm font-medium text-text-main" for="event-desc">상세 설명 및 목표</label>
-                <textarea
-                    class="w-full rounded border-border-light bg-white px-4 py-3 text-text-main placeholder:text-text-muted/60 focus:border-primary focus:ring-1 focus:ring-primary transition-all font-display shadow-sm resize-none"
-                    id="event-desc" placeholder="이 이벤트의 목적과 목표를 입력하세요." rows="4"></textarea>
+                <div
+                    id="event-desc-editor"
+                    contenteditable="true"
+                    class="w-full min-h-[140px] rounded border border-border-light bg-white px-4 py-3 text-text-main placeholder:text-text-muted/60 focus:border-primary focus:ring-1 focus:ring-primary transition-all font-display shadow-sm overflow-auto"
+                    data-placeholder="이 이벤트의 목적과 목표를 입력하세요."></div>
+                <textarea id="event-desc" class="hidden"></textarea>
                 <p class="text-[11px] text-text-muted">클립보드 이미지 붙여넣기(Ctrl+V)를 지원합니다.</p>
                 <div class="flex items-center gap-2">
                     <button id="btn-insert-desc-image" type="button"
@@ -322,6 +338,7 @@
             const criteriaList = document.getElementById('criteria-list');
             const btnAddCriteria = document.getElementById('btn-add-criteria');
             const eventDescInput = document.getElementById('event-desc');
+            const eventDescEditor = document.getElementById('event-desc-editor');
             const btnInsertDescImage = document.getElementById('btn-insert-desc-image');
             const descImageFileInput = document.getElementById('desc-image-file');
             const existingGuideFilesEl = document.getElementById('existing-guide-files');
@@ -377,20 +394,43 @@
                 return publicUrl;
             }
 
-            function insertDescriptionImageTag(url, alt = 'description-image') {
-                if (!eventDescInput) return;
-                const start = eventDescInput.selectionStart || 0;
-                const end = eventDescInput.selectionEnd || 0;
-                const imageTag = `\n<img src="${url}" alt="${alt}" style="max-width:100%;" />\n`;
-                const prev = eventDescInput.value || '';
-                eventDescInput.value = prev.slice(0, start) + imageTag + prev.slice(end);
-                const cursor = start + imageTag.length;
-                eventDescInput.focus();
-                eventDescInput.setSelectionRange(cursor, cursor);
+            function setDescriptionEditorValue(rawValue) {
+                if (!eventDescEditor) return;
+                const text = String(rawValue || '');
+                const hasHtml = /<[^>]+>/.test(text);
+                if (hasHtml) {
+                    eventDescEditor.innerHTML = text;
+                } else {
+                    eventDescEditor.textContent = text;
+                }
             }
 
-            if (eventDescInput) {
-                eventDescInput.addEventListener('paste', async (e) => {
+            function getDescriptionEditorValue() {
+                if (!eventDescEditor) return '';
+                return eventDescEditor.innerHTML.trim();
+            }
+
+            function insertDescriptionImageTag(url, alt = 'description-image') {
+                if (!eventDescEditor) return;
+                eventDescEditor.focus();
+                const safeAlt = String(alt || 'description-image').replace(/"/g, '&quot;');
+                const html = `<img src="${url}" alt="${safeAlt}" style="max-width:100%;" />`;
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents();
+                    const fragment = range.createContextualFragment(html);
+                    range.insertNode(fragment);
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    eventDescEditor.innerHTML += html;
+                }
+            }
+
+            if (eventDescEditor) {
+                eventDescEditor.addEventListener('paste', async (e) => {
                     const clipboard = e.clipboardData;
                     if (!clipboard?.items?.length) return;
 
@@ -625,7 +665,7 @@
 
                 const data = {
                     title: document.getElementById('event-title').value,
-                    description: document.getElementById('event-desc').value,
+                    description: getDescriptionEditorValue(),
                     start_date: document.getElementById('start-date').value,
                     end_date: document.getElementById('end-date').value,
                     allow_file_upload: document.getElementById('allow-file').checked,
@@ -681,7 +721,7 @@
                     const event = await window.fetchEventDetails(eventId);
                     if (event) {
                         document.getElementById('event-title').value = event.title || '';
-                        document.getElementById('event-desc').value = event.description || '';
+                        setDescriptionEditorValue(event.description || '');
                         document.getElementById('start-date').value = normalizeDateValue(event.start_date);
                         document.getElementById('end-date').value = normalizeDateValue(event.end_date);
                         existingGuideFiles = Array.isArray(event.attachments) ? [...event.attachments] : [];

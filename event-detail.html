@@ -35,6 +35,8 @@
     </script>
     <style type="text/tailwindcss">
         body { font-family: 'Noto Sans KR', 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        [contenteditable][data-placeholder]:empty::before { content: attr(data-placeholder); color: #94a3b8; pointer-events: none; }
+        #sub-content-editor img, #event-desc img { max-width: 100%; height: auto; display: block; margin: 8px 0; }
     </style>
 </head>
 
@@ -341,6 +343,45 @@
                     return `50MB를 초과한 파일입니다: ${file.name}`;
                 }
                 return null;
+            }
+
+            function renderRichContentHtml(raw) {
+                const text = String(raw || '');
+                if (!text) return '<p class="text-sm text-gray-700">내용 없음</p>';
+                const hasHtml = /<[^>]+>/.test(text);
+                if (hasHtml) return text;
+                const escaped = text
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;')
+                    .replace(/\n/g, '<br>');
+                return `<p class="text-sm text-gray-700 whitespace-pre-wrap">${escaped}</p>`;
+            }
+
+            async function uploadInlineSubmissionImage(file, currentEventId) {
+                if (!file.type.startsWith('image/')) {
+                    throw new Error('이미지 파일만 삽입할 수 있습니다.');
+                }
+                if (file.size > 20 * 1024 * 1024) {
+                    throw new Error('이미지 파일은 20MB 이하만 허용됩니다.');
+                }
+
+                const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+                const fileName = `inline_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                const filePath = `submission-inline/${currentEventId}/${fileName}`;
+
+                const { error: uploadError } = await supabaseClient.storage
+                    .from('submission-files')
+                    .upload(filePath, file, { upsert: false });
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabaseClient.storage
+                    .from('submission-files')
+                    .getPublicUrl(filePath);
+
+                return publicUrl;
             }
 
             async function resolveUserIdsForSessionUser(user) {
@@ -665,7 +706,7 @@
                                     </div>
                                     <span class="text-xs px-2 py-0.5 rounded-full ${myJudgment ? 'bg-emerald-50 text-emerald-700' : 'bg-green-50 text-green-700'}">${myJudgment ? '내 평가 완료' : '평가 전'}</span>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-2 whitespace-pre-wrap">${body}</p>
+                                <div class="text-sm text-gray-700 mb-2">${renderRichContentHtml(body)}</div>
                                 ${fileLinks}
                                 ${judgeBlock}
                             </div>
@@ -815,7 +856,7 @@
                             </div>
                             <div>
                                 <p class="text-xs text-text-muted font-bold mb-1">상세 내용</p>
-                                <p class="text-sm text-gray-700 whitespace-pre-wrap">${subContent.body || '내용 없음'}</p>
+                                <div class="text-sm text-gray-700">${renderRichContentHtml(subContent.body)}</div>
                             </div>
                             ${fileLinks}
                         </div>
@@ -855,7 +896,15 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">상세 내용</label>
-                                <textarea id="sub-content" rows="6" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="이벤트 제목, 이벤트의 배경, 목적, 기대효과 등을 자유롭게 기술하세요">${existingSub ? (existingSub.content?.body || '') : ''}</textarea>
+                                <div id="sub-content-editor" contenteditable="true" class="w-full min-h-[180px] rounded-lg border border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary overflow-auto" data-placeholder="이벤트 제목, 이벤트의 배경, 목적, 기대효과 등을 자유롭게 기술하세요"></div>
+                                <div class="mt-2 flex items-center gap-2">
+                                    <button id="btn-insert-sub-image" type="button" class="inline-flex items-center gap-1 rounded-md border border-border-light bg-white px-3 py-1.5 text-xs font-semibold text-text-main hover:bg-gray-50">
+                                        <span class="material-symbols-outlined text-[16px]">image</span>
+                                        내용 이미지 삽입
+                                    </button>
+                                    <span class="text-[11px] text-text-muted">붙여넣기(Ctrl+V) 또는 로컬 파일 삽입 가능</span>
+                                </div>
+                                <input id="sub-content-image-file" type="file" accept="image/*" class="hidden">
                             </div>
                             <div id="sub-file-container" class="${event.allow_file_upload ? '' : 'hidden'}">
                                 <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">첨부 파일 (선택)</label>
@@ -886,6 +935,71 @@
 
                 if (existingSub) {
                     document.getElementById('btn-cancel-edit').addEventListener('click', () => renderMySubmission(existingSub));
+                }
+
+                const subContentEditor = document.getElementById('sub-content-editor');
+                const subImageFileInput = document.getElementById('sub-content-image-file');
+                const btnInsertSubImage = document.getElementById('btn-insert-sub-image');
+                const initialBody = existingSub ? (existingSub.content?.body || '') : '';
+                if (subContentEditor) {
+                    if (/<[^>]+>/.test(initialBody)) {
+                        subContentEditor.innerHTML = initialBody;
+                    } else {
+                        subContentEditor.textContent = initialBody;
+                    }
+
+                    const insertImageAtCursor = (url, alt = 'submission-image') => {
+                        subContentEditor.focus();
+                        const safeAlt = String(alt || 'submission-image').replace(/"/g, '&quot;');
+                        const html = `<img src="${url}" alt="${safeAlt}" style="max-width:100%;" />`;
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0) {
+                            const range = selection.getRangeAt(0);
+                            range.deleteContents();
+                            const fragment = range.createContextualFragment(html);
+                            range.insertNode(fragment);
+                            range.collapse(false);
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        } else {
+                            subContentEditor.innerHTML += html;
+                        }
+                    };
+
+                    subContentEditor.addEventListener('paste', async (e) => {
+                        const clipboard = e.clipboardData;
+                        if (!clipboard?.items?.length) return;
+                        const imageItem = Array.from(clipboard.items).find((item) => item.type.startsWith('image/'));
+                        if (!imageItem) return;
+                        const file = imageItem.getAsFile();
+                        if (!file) return;
+
+                        e.preventDefault();
+                        try {
+                            const url = await uploadInlineSubmissionImage(file, eventId);
+                            insertImageAtCursor(url, 'pasted-image');
+                        } catch (pasteErr) {
+                            console.error('[Submission] 이미지 붙여넣기 업로드 실패:', pasteErr);
+                            alert(pasteErr?.message || '이미지 붙여넣기 업로드에 실패했습니다.');
+                        }
+                    });
+
+                    if (btnInsertSubImage && subImageFileInput) {
+                        btnInsertSubImage.addEventListener('click', () => subImageFileInput.click());
+                        subImageFileInput.addEventListener('change', async () => {
+                            const file = subImageFileInput.files?.[0];
+                            if (!file) return;
+                            try {
+                                const url = await uploadInlineSubmissionImage(file, eventId);
+                                insertImageAtCursor(url, file.name || 'submission-image');
+                            } catch (err) {
+                                console.error('[Submission] 내용 이미지 삽입 실패:', err);
+                                alert(err?.message || '내용 이미지 삽입에 실패했습니다.');
+                            } finally {
+                                subImageFileInput.value = '';
+                            }
+                        });
+                    }
                 }
 
                 if (event.allow_file_upload) {
@@ -947,10 +1061,12 @@
 
                 document.getElementById('btn-submit').addEventListener('click', async () => {
                     const title = document.getElementById('sub-title').value.trim();
-                    const body = document.getElementById('sub-content').value.trim();
+                    const subContentEditor = document.getElementById('sub-content-editor');
+                    const bodyHtml = (subContentEditor?.innerHTML || '').trim();
+                    const bodyText = (subContentEditor?.textContent || '').trim();
                     const fileInput = document.getElementById('sub-file');
                     if (!title) { alert('제목을 입력해주세요.'); return; }
-                    if (!body) { alert('내용을 입력해주세요.'); return; }
+                    if (!bodyText && !/<img[\s\S]*?>/i.test(bodyHtml)) { alert('내용을 입력해주세요.'); return; }
 
                     const btn = document.getElementById('btn-submit');
                     const originalText = btn.textContent;
@@ -975,7 +1091,7 @@
                         let result;
                         if (existingSub) {
                             result = await window.updateSubmission(existingSub.id, {
-                                content: { title, body },
+                                content: { title, body: bodyHtml },
                                 files: uploadedFiles,
                                 updated_at: new Date().toISOString()
                             });
@@ -986,7 +1102,7 @@
                             result = await window.createSubmission({
                                 event_id: eventId,
                                 submitter_id: actorUserId,
-                                content: { title, body },
+                                content: { title, body: bodyHtml },
                                 files: uploadedFiles,
                                 status: 'submitted'
                             });
