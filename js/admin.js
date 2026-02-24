@@ -13,13 +13,36 @@ async function requireAdminSession() {
     const roleFromMeta = currentUser.user_metadata?.role;
     if (roleFromMeta === 'admin') return currentUser;
 
-    const { data: me } = await supabaseClient
+    const { data: meById } = await supabaseClient
         .from('users')
         .select('role')
         .eq('id', currentUser.id)
         .maybeSingle();
 
-    if (me?.role !== 'admin') {
+    const currentEmail = (currentUser.email || '').toLowerCase();
+    let roleByEmail = '';
+    if (currentEmail) {
+        const { data: meByEmail } = await supabaseClient
+            .from('users')
+            .select('role')
+            .eq('email', currentEmail)
+            .maybeSingle();
+        roleByEmail = meByEmail?.role || '';
+    }
+
+    let corpRole = '';
+    const empno = currentEmail.includes('@') ? currentEmail.split('@')[0] : '';
+    if (empno) {
+        const { data: corp } = await supabaseClient
+            .from('corporate_employees')
+            .select('role')
+            .eq('empno', empno)
+            .maybeSingle();
+        corpRole = corp?.role || '';
+    }
+
+    const isAdmin = meById?.role === 'admin' || roleByEmail === 'admin' || corpRole === 'admin';
+    if (!isAdmin) {
         alert('관리자만 접근할 수 있습니다.');
         window.location.href = 'dashboard.html';
         return null;

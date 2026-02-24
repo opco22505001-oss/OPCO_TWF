@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     tabJudge?.addEventListener('click', () => {
         setActiveTab(tabJudge, tabSub);
-        loadAssignedJudgments(user.id);
+        loadAssignedJudgments(user);
     });
 
     document.getElementById('logout-btn')?.addEventListener('click', async () => {
@@ -83,13 +83,18 @@ async function loadUserProfile(userId) {
         .select('*', { count: 'exact', head: true })
         .eq('submitter_id', userId);
 
-    const { count: judgeCount } = await supabaseClient
-        .from('event_judges')
-        .select('*', { count: 'exact', head: true })
-        .eq('judge_id', userId);
+    const judgeIds = await resolveUserIdsForSessionUser(user);
+    let judgeCount = 0;
+    if (judgeIds.length > 0) {
+        const { count } = await supabaseClient
+            .from('event_judges')
+            .select('*', { count: 'exact', head: true })
+            .in('judge_id', judgeIds);
+        judgeCount = count || 0;
+    }
 
     setText('stat-submissions', String(subCount || 0));
-    setText('stat-judgments', String(judgeCount || 0));
+    setText('stat-judgments', String(judgeCount));
 }
 
 async function loadMySubmissions(userId) {
@@ -144,10 +149,22 @@ async function loadMySubmissions(userId) {
     }).join('');
 }
 
-async function loadAssignedJudgments(userId) {
+async function loadAssignedJudgments(userOrId) {
     const contentEl = document.getElementById('content-area');
     if (!contentEl) return;
     contentEl.innerHTML = '<div class="animate-pulse space-y-4"><div class="h-24 bg-slate-100 rounded-lg"></div></div>';
+
+    const sessionUser = (typeof userOrId === 'object' && userOrId)
+        ? userOrId
+        : (await supabaseClient.auth.getUser()).data?.user;
+    const judgeIds = await resolveUserIdsForSessionUser(sessionUser);
+    if (!judgeIds.length) {
+        contentEl.innerHTML = `
+            <div class="text-center py-12 bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light">
+                <p class="text-text-muted">배정된 심사 이벤트가 없습니다.</p>
+            </div>`;
+        return;
+    }
 
     const { data: assignedEvents, error } = await supabaseClient
         .from('event_judges')
@@ -161,7 +178,7 @@ async function loadAssignedJudgments(userId) {
                 end_date
             )
         `)
-        .eq('judge_id', userId)
+        .in('judge_id', judgeIds)
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -208,6 +225,26 @@ async function loadAssignedJudgments(userId) {
             </div>
         `;
     }).join('');
+}
+
+async function resolveUserIdsForSessionUser(user) {
+    if (!user) return [];
+    const ids = new Set();
+    if (user.id) ids.add(user.id);
+
+    const email = (user.email || '').toLowerCase();
+    if (!email) return Array.from(ids);
+
+    const { data: rows } = await supabaseClient
+        .from('users')
+        .select('id')
+        .eq('email', email);
+
+    (rows || []).forEach((row) => {
+        if (row?.id) ids.add(row.id);
+    });
+
+    return Array.from(ids);
 }
 
 function setActiveTab(active, inactive) {

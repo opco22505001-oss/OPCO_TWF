@@ -75,10 +75,14 @@ serve(async (req) => {
     const email = `${empno}@opco.internal`;
     let userId: string;
 
-    const {
-      data: { users },
-    } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = users.find((u) => u.email === email);
+    const { data: listedUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (listError) throw listError;
+    const existingUser = (listedUsers.users || []).find(
+      (u) => (u.email || "").toLowerCase() === email.toLowerCase(),
+    );
 
     if (existingUser) {
       userId = existingUser.id;

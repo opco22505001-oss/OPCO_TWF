@@ -37,11 +37,20 @@ serve(async (req) => {
     const requesterEmail = authData.user.email ?? "";
     const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
     const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
-    const { data: me, error: meError } = await adminClient
+    const { data: meById, error: meError } = await adminClient
       .from("users")
       .select("role")
       .eq("id", requesterId)
       .maybeSingle();
+    let roleByEmail = "";
+    if (requesterEmail) {
+      const { data: meByEmail } = await adminClient
+        .from("users")
+        .select("role")
+        .eq("email", requesterEmail)
+        .maybeSingle();
+      roleByEmail = String(meByEmail?.role ?? "");
+    }
     let corpRole = "";
     if (requesterEmpno) {
       const { data: corpMe } = await adminClient
@@ -51,10 +60,10 @@ serve(async (req) => {
         .maybeSingle();
       corpRole = String(corpMe?.role ?? "");
     }
-    const isAdmin = me?.role === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
+    const isAdmin = meById?.role === "admin" || roleByEmail === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
     if (meError || !isAdmin) return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
 
-    if (!me && isAdmin && requesterId && requesterEmail) {
+    if (!meById && isAdmin && requesterId && requesterEmail) {
       await adminClient.from("users").upsert({
         id: requesterId,
         email: requesterEmail,
