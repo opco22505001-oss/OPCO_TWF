@@ -36,33 +36,44 @@ serve(async (req) => {
   try {
     const requestId = crypto.randomUUID();
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const body = await req.json().catch(() => ({}));
-    const accessToken = typeof body?.accessToken === "string" ? body.accessToken : "";
 
-    const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? (accessToken ? `Bearer ${accessToken}` : "") } },
-    });
+    // 토큰 추출 로직 강화
+    const authHeader = req.headers.get("Authorization");
+    let token = "";
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    } else if (typeof body?.accessToken === "string") {
+      token = body.accessToken;
+    }
+
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: authData, error: authError } = accessToken
-      ? await adminClient.auth.getUser(accessToken)
-      : await authClient.auth.getUser();
+    if (!token) {
+      console.error("[admin-manage-user-role] no_token_provided", { requestId });
+      return errorResponse(401, "인증 토큰이 누락되었습니다.", "AUTH_REQUIRED", undefined, requestId);
+    }
+
+    // service_role 클라이언트를 통한 사용자 정보 조회 (토큰 검증 포함)
+    const { data: authData, error: authError } = await adminClient.auth.getUser(token);
+
     if (authError || !authData?.user) {
-      console.error("[admin-manage-user-role] auth_failed", { requestId, authError });
-      return errorResponse(401, "로그인이 필요합니다.", "AUTH_REQUIRED", authError?.message, requestId);
+      console.error("[admin-manage-user-role] auth_failed", { requestId, authError, token_exists: !!token });
+      return errorResponse(401, "유효하지 않은 세션입니다. 다시 로그인해 주세요.", "AUTH_FAILED", authError?.message, requestId);
     }
 
     const requesterId = authData.user.id;
     const requesterEmail = authData.user.email ?? "";
     const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
     const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
+
     const { data: meById, error: meError } = await adminClient
       .from("users")
       .select("role")
       .eq("id", requesterId)
       .maybeSingle();
+
     let roleByEmail = "";
     if (requesterEmail) {
       const { data: meByEmail } = await adminClient
@@ -85,7 +96,7 @@ serve(async (req) => {
 
     const isAdmin = meById?.role === "admin" || roleByEmail === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
     if (meError || !isAdmin) {
-      console.error("[admin-manage-user-role] forbidden", { requestId, meError, requesterId });
+      console.error("[admin-manage-user-role] forbidden", { requestId, meError, requesterId, requesterEmail });
       return errorResponse(403, "관리자 권한이 없습니다.", "ADMIN_REQUIRED", meError?.message, requestId);
     }
 

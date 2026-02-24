@@ -17,31 +17,45 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const requestId = crypto.randomUUID();
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const body = await req.json().catch(() => ({}));
-    const accessToken = typeof body?.accessToken === "string" ? body.accessToken : "";
 
-    const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? (accessToken ? `Bearer ${accessToken}` : "") } },
-    });
+    // 토큰 추출 로직 강화
+    const authHeader = req.headers.get("Authorization");
+    let token = "";
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    } else if (typeof body?.accessToken === "string") {
+      token = body.accessToken;
+    }
+
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: authData, error: authError } = accessToken
-      ? await adminClient.auth.getUser(accessToken)
-      : await authClient.auth.getUser();
-    if (authError || !authData?.user) return jsonResponse({ error: "로그인이 필요합니다." }, 401);
+    if (!token) {
+      return jsonResponse({ error: "인증 토큰이 누락되었습니다.", code: "AUTH_REQUIRED" }, 401);
+    }
+
+    // service_role 클라이언트를 통한 사용자 정보 조회 (토큰 검증 포함)
+    const { data: authData, error: authError } = await adminClient.auth.getUser(token);
+
+    if (authError || !authData?.user) {
+      console.error("[admin-dashboard-metrics] auth_failed", { requestId, authError, token_exists: !!token });
+      return jsonResponse({ error: "유효하지 않은 세션입니다. 다시 로그인해 주세요.", code: "AUTH_FAILED", detail: authError?.message }, 401);
+    }
 
     const requesterId = authData.user.id;
     const requesterEmail = authData.user.email ?? "";
     const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
     const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
+
     const { data: meById, error: meError } = await adminClient
       .from("users")
       .select("role")
       .eq("id", requesterId)
       .maybeSingle();
+
     let roleByEmail = "";
     if (requesterEmail) {
       const { data: meByEmail } = await adminClient
@@ -51,6 +65,7 @@ serve(async (req) => {
         .maybeSingle();
       roleByEmail = String(meByEmail?.role ?? "");
     }
+
     let corpRole = "";
     if (requesterEmpno) {
       const { data: corpMe } = await adminClient
@@ -60,8 +75,12 @@ serve(async (req) => {
         .maybeSingle();
       corpRole = String(corpMe?.role ?? "");
     }
+
     const isAdmin = meById?.role === "admin" || roleByEmail === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
-    if (meError || !isAdmin) return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
+    if (meError || !isAdmin) {
+      console.error("[admin-dashboard-metrics] forbidden", { requestId, meError, requesterId });
+      return jsonResponse({ error: "관리자 권한이 없습니다.", code: "ADMIN_REQUIRED" }, 403);
+    }
 
     if (!meById && isAdmin && requesterId && requesterEmail) {
       await adminClient.from("users").upsert({
@@ -169,6 +188,7 @@ serve(async (req) => {
       metrics: { activeCount, avgSubmissionRate, avgReviewRate },
       delayedEvents,
       filters: { nearDays, reviewThreshold, statusFilter },
+      request_id: requestId,
     });
   } catch (error) {
     return jsonResponse({ error: (error as Error).message }, 500);
