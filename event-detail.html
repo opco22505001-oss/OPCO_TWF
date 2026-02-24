@@ -939,21 +939,69 @@
             window.location.href = `event-creation-modal.html?id=${eventId}`;
         };
 
+        async function getFreshAccessToken(forceRefresh = false) {
+            const { error: userError } = await supabaseClient.auth.getUser();
+            if (userError) {
+                throw new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
+            }
+
+            let { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+            if (sessionError || !session?.access_token) {
+                throw new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
+            }
+
+            const expiresAtMs = (session.expires_at || 0) * 1000;
+            const shouldRefresh = forceRefresh || (expiresAtMs && expiresAtMs < Date.now() + 60 * 1000);
+            if (shouldRefresh) {
+                const { data: refreshed, error: refreshError } = await supabaseClient.auth.refreshSession();
+                if (!refreshError && refreshed?.session?.access_token) {
+                    session = refreshed.session;
+                }
+            }
+
+            if (!session?.access_token) {
+                throw new Error('유효한 인증 토큰을 가져오지 못했습니다. 다시 로그인해 주세요.');
+            }
+            return session.access_token;
+        }
+
         async function invokeAdminEventAction(action, eventId) {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            const accessToken = session?.access_token;
-            if (!accessToken) {
-                throw new Error('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');
+            const callFunction = async (token) => {
+                const fnUrl = `${(supabaseClient?.supabaseUrl || 'https://fuevhcdfgmdjhpdiwtzr.supabase.co').replace(/\/$/, '')}/functions/v1/admin-event-action`;
+                const anonKey = supabaseClient?.supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
+                const res = await fetch(fnUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        apikey: anonKey,
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        action,
+                        eventId,
+                        accessToken: token
+                    })
+                });
+
+                let payload = null;
+                try {
+                    payload = await res.json();
+                } catch (_e) {
+                    payload = null;
+                }
+                return { ok: res.ok, status: res.status, data: payload };
+            };
+
+            const accessToken = await getFreshAccessToken(false);
+            let result = await callFunction(accessToken);
+            if (!result.ok && result.status === 401) {
+                const refreshedToken = await getFreshAccessToken(true);
+                result = await callFunction(refreshedToken);
             }
-            const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
-                headers: { Authorization: `Bearer ${accessToken}` },
-                body: { action, eventId }
-            });
-            if (error || data?.error) {
-                const msg = data?.error || error?.message || '처리 실패';
-                throw new Error(msg);
+            if (!result.ok || result.data?.error) {
+                throw new Error(result.data?.error || '처리 실패');
             }
-            return data;
+            return result.data;
         }
 
         window.deleteThisEvent = async () => {
