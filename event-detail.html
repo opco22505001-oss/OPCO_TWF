@@ -1,11 +1,11 @@
-﻿<!-- ?대깽???곸꽭 ?섏씠吏 (?쒖텧 + ?ъ궗 ?듯빀) -->
+﻿<!-- 이벤트 상세 페이지 (제출 + 심사 통합) -->
 <!DOCTYPE html>
 <html lang="ko">
 
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>?대깽???곸꽭 - OPCO : TWF</title>
+    <title>이벤트 상세 - OPCO : TWF</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link
@@ -52,11 +52,11 @@
                 </div>
                 <div class="flex items-center gap-4">
                     <button class="text-sm font-medium text-text-muted hover:text-text-main"
-                        onclick="window.location.href='dashboard.html'">?대깽??紐⑸줉</button>
+                        onclick="window.location.href='dashboard.html'">이벤트 목록</button>
                     <button class="text-sm font-medium text-text-muted hover:text-text-main"
-                        onclick="window.location.href='mypage.html'">?섏쓽 ?쒖븞</button>
+                        onclick="window.location.href='mypage.html'">나의 제안</button>
                     <button class="admin-only-tab hidden text-sm font-medium text-text-muted hover:text-text-main"
-                        onclick="window.location.href='admin.html'">愿由ъ옄</button>
+                        onclick="window.location.href='admin.html'">관리자</button>
                     <div class="h-6 w-px bg-border"></div>
                     <button
                         class="p-2 rounded-full text-text-muted hover:bg-background-light transition-colors relative">
@@ -67,8 +67,8 @@
                     <div class="h-6 w-px bg-border"></div>
                     <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='mypage.html'">
                         <div class="text-right hidden sm:block">
-                            <p id="header-user-name" class="text-xs font-medium leading-none">遺덈윭?ㅻ뒗 以?..</p>
-                            <p id="header-user-role" class="text-[10px] text-text-muted mt-1">濡쒓렇???꾩슂</p>
+                            <p id="header-user-name" class="text-xs font-medium leading-none">불러오는 중...</p>
+                            <p id="header-user-role" class="text-[10px] text-text-muted mt-1">로그인 필요</p>
                         </div>
                         <div id="header-avatar"
                             class="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-text-muted border border-border">
@@ -80,23 +80,23 @@
     </header>
 
     <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- ?ㅻ줈媛湲?-->
+        <!-- 뒤로가기 -->
         <div class="mb-4">
             <a class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors cursor-pointer"
                 onclick="window.location.href='dashboard.html'">
                 <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                ?대깽??紐⑸줉?쇰줈 ?뚯븘媛湲?
+                이벤트 목록으로 돌아가기
             </a>
         </div>
 
-        <!-- 濡쒕뵫 ?곹깭 -->
+        <!-- 로딩 상태 -->
         <div id="loading-state" class="text-center py-20">
             <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4">
             </div>
-            <p class="text-text-muted">?대깽???뺣낫瑜?遺덈윭?ㅻ뒗 以?..</p>
+            <p class="text-text-muted">이벤트 정보를 불러오는 중...</p>
         </div>
 
-        <!-- ?ㅼ젣 肄섑뀗痢?(JS濡?梨꾩?) -->
+        <!-- 실제 콘텐츠 (JS로 채움) -->
         <div id="event-content" class="hidden">
             <!-- 諛곕꼫 -->
             <div class="bg-white rounded-xl border border-border shadow-sm overflow-hidden mb-6">
@@ -105,69 +105,69 @@
                     <div class="absolute bottom-0 left-0 p-8 w-full bg-gradient-to-t from-black/80 to-transparent">
                         <div class="flex items-center gap-3 text-white/90 text-sm font-medium mb-2">
                             <span id="event-status-badge"
-                                class="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded border border-white/30">吏꾪뻾以?/span>
+                                class="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded border border-white/30">진행중</span>
                             <span class="flex items-center gap-1" id="event-period">
                                 <span class="material-symbols-outlined text-[16px]">calendar_today</span>
-                                湲곌컙 ?뺣낫 濡쒕뵫 以?..
+                                기간 정보 로딩 중...
                             </span>
                         </div>
-                        <h1 class="text-3xl font-bold text-white" id="event-title">?대깽???쒕ぉ</h1>
+                        <h1 class="text-3xl font-bold text-white" id="event-title">이벤트 제목</h1>
                     </div>
                 </div>
             </div>
 
-            <!-- 蹂몃Ц 2???덉씠?꾩썐 -->
+            <!-- 본문 2단 레이아웃 -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- ?쇱そ: ?ㅻ챸 + ?ъ궗湲곗? + ?쒖텧臾??ъ궗 -->
+                <!-- 왼쪽: 설명 + 심사기준 + 제출물심사 -->
                 <div class="lg:col-span-2 space-y-6">
-                    <!-- ?대깽???ㅻ챸 -->
+                    <!-- 이벤트 설명 -->
                     <div class="bg-white rounded-xl border border-border p-6">
-                        <h3 class="text-lg font-bold mb-3">?대깽??媛쒖슂</h3>
-                        <p id="event-desc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-line">?ㅻ챸 濡쒕뵫 以?..
+                        <h3 class="text-lg font-bold mb-3">이벤트 개요</h3>
+                        <p id="event-desc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-line">설명 로딩 중...
                         </p>
                     </div>
 
-                    <!-- ?ъ궗 湲곗? -->
+                    <!-- 심사 기준 -->
                     <div id="criteria-section" class="bg-white rounded-xl border border-border p-6 hidden">
-                        <h3 class="text-lg font-bold mb-4">?ъ궗 湲곗? <span class="text-xs text-text-muted font-normal">(媛?湲곗?
+                        <h3 class="text-lg font-bold mb-4">심사 기준 <span class="text-xs text-text-muted font-normal">(각 기준 1~10점)</span></h3>
                                 1~10??</span></h3>
                         <div id="criteria-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
                     </div>
 
-                    <!-- 留덇컧 ???쒖쐞 -->
+                    <!-- 마감 후 순위 -->
                     <div id="ranking-section" class="bg-white rounded-xl border border-border p-6 hidden">
                         <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
                             <span class="material-symbols-outlined text-amber-600">leaderboard</span>
-                            ?ъ궗 ?쒖쐞
+                            심사 순위
                         </h3>
-                        <p class="text-xs text-text-muted mb-4">留덇컧???대깽?몄쓽 ?ъ궗 ?먯닔瑜?湲곗??쇰줈 ?먮룞 吏묎퀎?⑸땲??</p>
+                        <p class="text-xs text-text-muted mb-4">마감된 이벤트의 심사 점수를 기준으로 자동 집계합니다.</p>
                         <div id="result-finalized-badge" class="hidden mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"></div>
                         <div id="ranking-list" class="space-y-2"></div>
                     </div>
 
-                    <!-- ?쒖텧臾??묒꽦 ?뱀뀡 (?쇰컲 ?ъ슜?먯슜) -->
+                    <!-- 제출물 작성 섹션 (일반 사용자용) -->
                     <div id="submission-section" class="bg-white rounded-xl border border-border p-6 hidden">
                         <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary">edit_document</span>
-                            ?대깽???쒖텧
+                            이벤트 제출
                         </h3>
                         <div class="space-y-4">
                             <div>
-                                <label class="text-sm font-medium text-text-main mb-1 block">?쒕ぉ</label>
+                                <label class="text-sm font-medium text-text-main mb-1 block">제목</label>
                                 <input type="text" id="sub-title"
                                     class="w-full rounded border-border bg-white px-4 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                                    placeholder="?곸꽭 ?쒕ぉ???낅젰?섏꽭??>
+                                    placeholder="상세 제목을 입력하세요">
                             </div>
                             <div>
-                                <label class="text-sm font-medium text-text-main mb-1 block">?댁슜</label>
+                                <label class="text-sm font-medium text-text-main mb-1 block">내용</label>
                                 <textarea id="sub-content" rows="6"
                                     class="w-full rounded border-border bg-white px-4 py-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                                    placeholder="?곸꽭 ?댁슜???낅젰?섏꽭??.."></textarea>
+                                    placeholder="상세 내용을 입력하세요..."></textarea>
                             </div>
 
-                            <!-- ?뚯씪 ?낅줈???뱀뀡 -->
+                            <!-- 파일 업로드 섹션 -->
                             <div id="sub-file-container" class="hidden">
-                                <label class="text-sm font-medium text-text-main mb-1 block">?뚯씪 泥⑤?</label>
+                                <label class="text-sm font-medium text-text-main mb-1 block">파일 첨부</label>
                                 <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-border border-dashed rounded-lg hover:border-primary/50 transition-colors cursor-pointer bg-gray-50/50"
                                     onclick="document.getElementById('sub-file').click()">
                                     <div class="space-y-1 text-center">
@@ -176,10 +176,10 @@
                                         <div class="flex text-sm text-text-muted">
                                             <span
                                                 class="relative cursor-pointer rounded-md font-medium text-primary hover:text-primary-hover focus-within:outline-none">
-                                                <span>?뚯씪 ?낅줈??/span>
+                                                <span>파일 업로드</span>
                                                 <input id="sub-file" type="file" class="sr-only" multiple>
                                             </span>
-                                            <p class="pl-1">?먮뒗 ?ш린濡??뚯씪???뚯뼱蹂댁꽭??/p>
+                                            <p class="pl-1">또는 여기에 파일을 끌어다 놓으세요</p>
                                         </div>
                                         <p class="text-xs text-text-muted">PDF, PNG, JPG, CAD (理쒕? 50MB)</p>
                                         <p id="selected-file-name" class="text-xs text-primary font-medium mt-2 hidden">
@@ -191,38 +191,38 @@
                             <button id="btn-submit"
                                 class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
                                 <span class="material-symbols-outlined text-[20px]">send</span>
-                                ?대깽???쒖텧?섍린
+                                이벤트 제출하기
                             </button>
                         </div>
                     </div>
 
-                    <!-- ?ъ궗 ?⑤꼸 (?ъ궗?먯슜) -->
+                    <!-- 심사 화면 (심사자용) -->
                     <div id="judge-panel" class="hidden space-y-4">
                         <div class="bg-white rounded-xl border border-border p-6">
                             <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
                                 <span class="material-symbols-outlined text-purple-600">gavel</span>
-                                ?쒖텧臾??ъ궗
+                                제출물 심사
                             </h3>
-                            <p class="text-xs text-text-muted mb-4">諛곗젙???ъ궗?먮줈???쒖텧???쒖븞?쒕? ?됯??????덉뒿?덈떎.</p>
+                            <p class="text-xs text-text-muted mb-4">배정된 심사자로서 제출된 제안을 평가할 수 있습니다.</p>
                             <div id="submissions-list" class="space-y-3">
-                                <p class="text-sm text-text-muted text-center py-4">?쒖텧臾쇱쓣 遺덈윭?ㅻ뒗 以?..</p>
+                                <p class="text-sm text-text-muted text-center py-4">제출물을 불러오는 중...</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- ?ㅻⅨ履? ?뺣낫 ?ъ씠?쒕컮 -->
+                <!-- 오른쪽 정보 사이드바 -->
                 <div class="space-y-6">
                     <div class="bg-white rounded-xl border border-border p-6 sticky top-24">
-                        <h3 class="text-lg font-bold mb-4">李멸? ?뺣낫</h3>
+                        <h3 class="text-lg font-bold mb-4">참가 정보</h3>
                         <div class="space-y-4 mb-6">
                             <div class="flex items-start gap-3">
                                 <div class="p-2 bg-background-light rounded border border-border text-primary">
                                     <span class="material-symbols-outlined">schedule</span>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-semibold">?묒닔 留덇컧</p>
-                                    <p class="text-sm text-text-muted" id="sidebar-deadline">濡쒕뵫 以?..</p>
+                                    <p class="text-sm font-semibold">접수 마감</p>
+                                    <p class="text-sm text-text-muted" id="sidebar-deadline">로딩 중...</p>
                                     <p class="text-xs text-red-500 font-medium mt-0.5" id="sidebar-dday"></p>
                                 </div>
                             </div>
@@ -231,46 +231,46 @@
                                     <span class="material-symbols-outlined">group</span>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-semibold">李멸? ???/p>
-                                    <p class="text-sm text-text-muted">???꾩쭅??/p>
+                                    <p class="text-sm font-semibold">참가 대상</p>
+                                    <p class="text-sm text-text-muted">전 직원</p>
                                 </div>
                             </div>
                         </div>
                         <hr class="border-border mb-6">
 
-                        <!-- ?ъ궗??紐⑸줉 -->
+                        <!-- 심사자 목록 -->
                         <div id="sidebar-judges" class="mb-6 hidden">
-                            <h4 class="text-sm font-semibold mb-2">諛곗젙???ъ궗??/h4>
+                            <h4 class="text-sm font-semibold mb-2">배정된 심사자</h4>
                             <div id="judges-names" class="space-y-1"></div>
                         </div>
 
-                        <!-- 湲고쉷?덈궡 ?뚯씪 -->
+                        <!-- 기획안내 파일 -->
                         <div id="sidebar-attachments" class="mb-6 hidden">
-                            <h4 class="text-sm font-semibold mb-2">?대깽??湲고쉷?덈궡</h4>
+                            <h4 class="text-sm font-semibold mb-2">이벤트 기획안내</h4>
                             <div id="guide-links" class="space-y-2"></div>
                         </div>
 
-                        <!-- ?ㅼ젙 ?뺣낫 -->
+                        <!-- 설정 정보 -->
                         <div id="sidebar-settings" class="space-y-2 text-xs text-text-muted mb-6">
                         </div>
 
-                        <!-- 愿由ъ옄 ?≪뀡 -->
+                        <!-- 관리자 액션 -->
                         <div id="admin-actions" class="hidden space-y-2 pt-4 border-t border-border">
-                            <p class="text-[10px] uppercase tracking-wider text-text-muted font-bold mb-2">愿由ъ옄 湲곕뒫</p>
+                            <p class="text-[10px] uppercase tracking-wider text-text-muted font-bold mb-2">관리자 기능</p>
                             <button onclick="editThisEvent()"
                                 class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
-                                ?대깽???섏젙
+                                이벤트 수정
                             </button>
                             <button onclick="deleteThisEvent()"
                                 class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors">
                                 <span class="material-symbols-outlined text-[18px]">delete</span>
-                                ?대깽????젣
+                                이벤트 삭제
                             </button>
                             <button onclick="closeThisEvent()"
                                 class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-amber-200 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-50 transition-colors">
                                 <span class="material-symbols-outlined text-[18px]">task_alt</span>
-                                ?대깽??利됱떆 留덇컧
+                                이벤트 즉시 마감
                             </button>
                             <button id="btn-finalize-results" onclick="finalizeEventResults()"
                                 class="hidden w-full flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-50 transition-colors">
@@ -286,7 +286,7 @@
 
     <footer class="border-t border-border bg-white mt-12 py-8">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-sm text-text-muted">짤 2024 Oriental Precision & Engineering. All rights reserved.</p>
+            <p class="text-sm text-text-muted">© 2024 Oriental Precision & Engineering. All rights reserved.</p>
         </div>
     </footer>
 
