@@ -42,6 +42,9 @@ window.deleteEvent = deleteEvent;
 window.updateEvent = updateEvent;
 window.updateSubmission = updateSubmission;
 window.getCurrentUser = getCurrentUser;
+window.fetchEventJudges = fetchEventJudges;
+window.assignJudge = assignJudge;
+window.clearEventJudges = clearEventJudges;
 
 // 진단 함수: 연결 테스트
 async function testConnection() {
@@ -84,10 +87,6 @@ async function fetchEvents(statusFilter = 'all') {
     console.log(`[fetchEvents] Fetching events with statusFilter: ${statusFilter}`);
     let query = supabaseClient.from('events').select('*').order('created_at', { ascending: false });
 
-    if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-    }
-
     const { data, error } = await query;
 
     if (error) {
@@ -95,8 +94,22 @@ async function fetchEvents(statusFilter = 'all') {
         return [];
     }
 
-    console.log(`[fetchEvents] Successfully fetched ${data ? data.length : 0} events`);
-    return data || [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const normalized = (data || []).map((event) => {
+        const end = event.end_date ? new Date(event.end_date) : null;
+        if (end) end.setHours(0, 0, 0, 0);
+        const isPastEnd = !!(end && end.getTime() < today.getTime());
+        const effectiveStatus = (event.status === 'closed' || isPastEnd) ? 'closed' : (event.status || 'draft');
+        return { ...event, effective_status: effectiveStatus };
+    });
+
+    const filtered = statusFilter === 'all'
+        ? normalized
+        : normalized.filter((event) => event.effective_status === statusFilter);
+
+    console.log(`[fetchEvents] Successfully fetched ${filtered.length} events`);
+    return filtered;
 }
 
 // 단일 이벤트 상세 조회
@@ -331,6 +344,16 @@ async function removeJudge(eventId, judgeId) {
         .eq('event_id', eventId)
         .eq('judge_id', judgeId);
 
+    return { error };
+}
+
+// 이벤트에서 기존 심사위원 전체 제거
+async function clearEventJudges(eventId) {
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
+    const { error } = await supabaseClient
+        .from('event_judges')
+        .delete()
+        .eq('event_id', eventId);
     return { error };
 }
 

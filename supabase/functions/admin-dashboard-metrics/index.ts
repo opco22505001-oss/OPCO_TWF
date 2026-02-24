@@ -89,6 +89,7 @@ serve(async (req) => {
     });
 
     const now = new Date();
+    now.setHours(0, 0, 0, 0);
     const perEvent = (events || []).map((event) => {
       const submissionCount = submissionByEvent.get(event.id) || 0;
       const judgeCount = judgeByEvent.get(event.id) || 0;
@@ -97,7 +98,9 @@ serve(async (req) => {
       const submissionRate = submissionCount > 0 ? 100 : 0;
       const reviewRate = expectedJudgmentCount > 0 ? (judgmentCount / expectedJudgmentCount) * 100 : 0;
       const endDate = event.end_date ? new Date(event.end_date) : null;
+      if (endDate) endDate.setHours(0, 0, 0, 0);
       const daysLeft = endDate ? Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+      const effectiveStatus = (event.status === "closed" || (daysLeft !== null && daysLeft < 0)) ? "closed" : event.status;
 
       const delayedByOverdue = (daysLeft !== null && daysLeft < 0 && reviewRate < 100);
       const delayedByNearDeadline = (daysLeft !== null && daysLeft <= nearDays && reviewRate < reviewThreshold);
@@ -106,7 +109,7 @@ serve(async (req) => {
       return {
         eventId: event.id,
         title: event.title,
-        status: event.status,
+        status: effectiveStatus,
         endDate: event.end_date,
         submissionRate: Number(submissionRate.toFixed(2)),
         reviewRate: Number(reviewRate.toFixed(2)),

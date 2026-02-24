@@ -129,8 +129,19 @@ function renderDelayedEvents(rows = []) {
         return;
     }
 
-    tbody.innerHTML = rows.map((row) => {
-        const statusText = row.status === 'closed' ? '마감' : (row.status === 'active' ? '진행중' : '초안');
+    const sortedRows = [...rows].sort((a, b) => {
+        const aDate = a?.endDate ? new Date(a.endDate).getTime() : 0;
+        const bDate = b?.endDate ? new Date(b.endDate).getTime() : 0;
+        return bDate - aDate;
+    });
+
+    tbody.innerHTML = sortedRows.map((row) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endDate = row.endDate ? new Date(row.endDate) : null;
+        if (endDate) endDate.setHours(0, 0, 0, 0);
+        const effectiveStatus = (row.status === 'closed' || (endDate && endDate < today)) ? 'closed' : row.status;
+        const statusText = effectiveStatus === 'closed' ? '마감' : (effectiveStatus === 'active' ? '진행중' : '초안');
         const dayClass = Number(row.daysLeft) < 0 ? 'text-red-600' : 'text-amber-600';
         return `
             <tr>
@@ -354,7 +365,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
         loadEmployees(),
         loadDashboardMetrics(),
-        loadJudgeStats(),
         loadAuditLogs(),
     ]);
 });
+    // 관리자 감사 로그를 권한 관리 섹션 위로 이동
+    const auditSection = document.getElementById('audit-log-table')?.closest('.mt-8');
+    const roleHeaderSection = document.getElementById('stat-total')?.closest('.flex.flex-col');
+    if (auditSection && roleHeaderSection && roleHeaderSection.parentNode) {
+        roleHeaderSection.parentNode.insertBefore(auditSection, roleHeaderSection);
+        auditSection.classList.remove('mt-8');
+        auditSection.classList.add('mb-6');
+    }
+
+    // 심사 통계 섹션 제거
+    const judgeStatsSection = document.getElementById('judge-stats-table')?.closest('.mt-8');
+    if (judgeStatsSection) {
+        judgeStatsSection.remove();
+    }
+
+    // 권한 관리 테이블 자체 스크롤
+    const roleTableWrap = document.getElementById('admin-user-table')?.closest('.overflow-x-auto');
+    if (roleTableWrap) {
+        roleTableWrap.classList.add('overflow-y-auto');
+        roleTableWrap.style.maxHeight = '380px';
+    }

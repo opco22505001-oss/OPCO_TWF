@@ -246,9 +246,9 @@
                             <div id="judges-names" class="space-y-1"></div>
                         </div>
 
-                        <!-- 기획안내 파일 -->
+                        <!-- 첨부파일 -->
                         <div id="sidebar-attachments" class="mb-6 hidden">
-                            <h4 class="text-sm font-semibold mb-2">이벤트 기획안내</h4>
+                            <h4 class="text-sm font-semibold mb-2">첨부파일</h4>
                             <div id="guide-links" class="space-y-2"></div>
                         </div>
 
@@ -410,7 +410,7 @@
             if (event.attachments && event.attachments.length > 0) {
                 document.getElementById('sidebar-attachments').classList.remove('hidden');
                 document.getElementById('guide-links').innerHTML = event.attachments.map((url) => {
-                    const fileName = getDisplayNameFromUrl(url) || '기획안내.pdf';
+                    const fileName = getDisplayNameFromUrl(url) || '첨부파일';
                     return `
                         <a href="${url}" target="_blank" class="flex items-center gap-2 text-xs text-primary hover:underline bg-primary/5 p-2 rounded">
                             <span class="material-symbols-outlined text-[16px]">description</span>
