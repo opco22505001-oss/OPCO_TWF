@@ -79,51 +79,42 @@ async function getFreshAccessToken(forceRefresh = false) {
 }
 
 async function invokeAdminFunction(functionName, body = {}) {
-    const accessToken = await getFreshAccessToken(false);
-
-    const callFunction = async (token) => {
-        const fnUrl = `${(supabaseClient?.supabaseUrl || 'https://fuevhcdfgmdjhpdiwtzr.supabase.co').replace(/\/$/, '')}/functions/v1/${functionName}`;
-        const anonKey = supabaseClient?.supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
-
-        const res = await fetch(fnUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                apikey: anonKey,
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                ...body,
-                accessToken: token
-            })
+    const callWithToken = async (token) => {
+        const payloadBody = { ...body, accessToken: token };
+        const { data, error } = await supabaseClient.functions.invoke(functionName, {
+            body: payloadBody,
+            headers: { Authorization: `Bearer ${token}` },
         });
 
-        let payload = null;
-        try {
-            payload = await res.json();
-        } catch (_e) {
-            payload = null;
+        if (error) {
+            const wrapped = new Error(error.message || '요청 실패');
+            wrapped.status = error.context?.status || 0;
+            wrapped.context = error.context || null;
+            throw wrapped;
         }
 
-        return { status: res.status, ok: res.ok, data: payload };
+        if (data?.error) {
+            const wrapped = new Error(data.error || '요청 실패');
+            wrapped.code = data.code;
+            wrapped.detail = data.detail;
+            wrapped.request_id = data.request_id;
+            wrapped.status = 0;
+            throw wrapped;
+        }
+
+        return data;
     };
 
-    let result = await callFunction(accessToken);
-    if (!result.ok && result.status === 401) {
+    try {
+        const accessToken = await getFreshAccessToken(false);
+        return await callWithToken(accessToken);
+    } catch (err) {
+        const status = Number(err?.status || err?.context?.status || 0);
+        if (status !== 401) throw err;
+
         const refreshedToken = await getFreshAccessToken(true);
-        result = await callFunction(refreshedToken);
+        return await callWithToken(refreshedToken);
     }
-
-    if (!result.ok || result.data?.error) {
-        const wrapped = new Error(result.data?.error || '요청 실패');
-        wrapped.code = result.data?.code;
-        wrapped.detail = result.data?.detail;
-        wrapped.request_id = result.data?.request_id;
-        wrapped.status = result.status;
-        throw wrapped;
-    }
-
-    return result.data;
 }
 
 function renderDashboardMetrics(metrics = {}) {
