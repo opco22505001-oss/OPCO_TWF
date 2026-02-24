@@ -107,8 +107,9 @@ async function loadEmployees() {
 
     if (error || data?.error) {
         const msg = data?.error || error?.message || '목록 조회 실패';
+        const code = data?.code ? ` [${data.code}]` : '';
         console.error('[Admin] 직원 목록 조회 실패:', msg);
-        alert(`직원 목록 조회 실패: ${msg}`);
+        alert(`직원 목록 조회 실패${code}: ${msg}`);
         return;
     }
 
@@ -253,8 +254,11 @@ window.changeEmployeeRole = async (empno, nextRole) => {
 
     if (error || data?.error) {
         const msg = data?.error || error?.message || '권한 변경 실패';
-        console.error('[Admin] 권한 변경 실패:', msg);
-        alert(`권한 변경 실패: ${msg}`);
+        const code = data?.code ? ` (${data.code})` : '';
+        const detail = data?.detail ? `\n상세: ${data.detail}` : '';
+        const requestId = data?.request_id ? `\n요청 ID: ${data.request_id}` : '';
+        console.error('[Admin] 권한 변경 실패:', { msg, code: data?.code, detail: data?.detail, requestId: data?.request_id });
+        alert(`권한 변경 실패${code}: ${msg}${detail}${requestId}`);
         return;
     }
 

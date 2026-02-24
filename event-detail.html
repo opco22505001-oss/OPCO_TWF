@@ -98,7 +98,7 @@
 
         <!-- 실제 콘텐츠 (JS로 채움) -->
         <div id="event-content" class="hidden">
-            <!-- 諛곕꼫 -->
+            <!-- 배너 -->
             <div class="bg-white rounded-xl border border-border shadow-sm overflow-hidden mb-6">
                 <div class="relative h-48 bg-gradient-to-r from-blue-600 to-indigo-700">
                     <div class="absolute inset-0 bg-black/20"></div>
@@ -130,7 +130,6 @@
                     <!-- 심사 기준 -->
                     <div id="criteria-section" class="bg-white rounded-xl border border-border p-6 hidden">
                         <h3 class="text-lg font-bold mb-4">심사 기준 <span class="text-xs text-text-muted font-normal">(각 기준 1~10점)</span></h3>
-                                1~10??</span></h3>
                         <div id="criteria-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
                     </div>
 
@@ -143,6 +142,9 @@
                         <p class="text-xs text-text-muted mb-4">마감된 이벤트의 심사 점수를 기준으로 자동 집계합니다.</p>
                         <div id="result-finalized-badge" class="hidden mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"></div>
                         <div id="ranking-list" class="space-y-2"></div>
+                    </div>
+                    <div id="ranking-pending-notice" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                        순위는 관리자 최종 확정 후 공개됩니다.
                     </div>
 
                     <!-- 제출물 작성 섹션 (일반 사용자용) -->
@@ -181,7 +183,7 @@
                                             </span>
                                             <p class="pl-1">또는 여기에 파일을 끌어다 놓으세요</p>
                                         </div>
-                                        <p class="text-xs text-text-muted">PDF, PNG, JPG, CAD (理쒕? 50MB)</p>
+                                        <p class="text-xs text-text-muted">PDF, PNG, JPG, CAD (최대 50MB)</p>
                                         <p id="selected-file-name" class="text-xs text-primary font-medium mt-2 hidden">
                                         </p>
                                     </div>
@@ -390,6 +392,11 @@
             const settings = [];
             if (event.allow_file_upload) settings.push('<span class="material-symbols-outlined text-[14px] align-middle">attach_file</span> 파일 첨부 허용');
             if (event.is_blind_judging) settings.push('<span class="material-symbols-outlined text-[14px] align-middle">visibility_off</span> 블라인드 심사');
+            if (event.status === 'closed' && event.result_finalized) {
+                settings.push('<span class="material-symbols-outlined text-[14px] align-middle">verified</span> 결과 최종 확정 완료');
+            } else if (event.status === 'closed') {
+                settings.push('<span class="material-symbols-outlined text-[14px] align-middle">hourglass_top</span> 결과 확정 대기');
+            }
             document.getElementById('sidebar-settings').innerHTML = settings.map(s => `<div class="flex items-center gap-1">${s}</div>`).join('');
 
             if (judges.length > 0) {
@@ -493,9 +500,10 @@
                         const finalizedBadge = document.getElementById('result-finalized-badge');
                         if (finalizedBadge && event.result_finalized) {
                             const finalizedAt = event.results_finalized_at ? new Date(event.results_finalized_at).toLocaleString() : '';
+                            const prefix = window.__isAdmin ? '결과 확정 완료' : '최종 확정된 결과';
                             finalizedBadge.textContent = finalizedAt
-                                ? `결과 확정 완료 (${finalizedAt})`
-                                : '결과 확정 완료';
+                                ? `${prefix} (${finalizedAt})`
+                                : prefix;
                             finalizedBadge.classList.remove('hidden');
                             const finalizeBtn = document.getElementById('btn-finalize-results');
                             if (finalizeBtn) finalizeBtn.classList.add('hidden');
@@ -505,6 +513,9 @@
                         }
                     }
                 }
+            }
+            if (event.status === 'closed' && !window.__isAdmin && !event.result_finalized) {
+                document.getElementById('ranking-pending-notice')?.classList.remove('hidden');
             }
 
             if (isJudge) {
