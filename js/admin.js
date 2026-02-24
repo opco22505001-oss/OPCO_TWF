@@ -3,19 +3,20 @@ let allEmployees = [];
 async function requireAdminSession() {
     if (!window.supabaseClient) return null;
 
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session?.user) {
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !userData?.user) {
         window.location.href = 'login.html';
         return null;
     }
+    const currentUser = userData.user;
 
-    const roleFromMeta = session.user.user_metadata?.role;
-    if (roleFromMeta === 'admin') return session.user;
+    const roleFromMeta = currentUser.user_metadata?.role;
+    if (roleFromMeta === 'admin') return currentUser;
 
     const { data: me } = await supabaseClient
         .from('users')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', currentUser.id)
         .maybeSingle();
 
     if (me?.role !== 'admin') {
@@ -24,7 +25,31 @@ async function requireAdminSession() {
         return null;
     }
 
-    return session.user;
+    return currentUser;
+}
+
+async function invokeAdminFunction(functionName, body = {}) {
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError || !session?.access_token) {
+        throw new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
+    }
+
+    const { data, error } = await supabaseClient.functions.invoke(functionName, {
+        body,
+        headers: {
+            Authorization: `Bearer ${session.access_token}`
+        }
+    });
+
+    if (error || data?.error) {
+        const wrapped = new Error(data?.error || error?.message || '요청 실패');
+        wrapped.code = data?.code;
+        wrapped.detail = data?.detail;
+        wrapped.request_id = data?.request_id;
+        throw wrapped;
+    }
+
+    return data;
 }
 
 function renderDashboardMetrics(metrics = {}) {
@@ -84,37 +109,30 @@ function getMetricFilters() {
 
 async function loadDashboardMetrics() {
     const filters = getMetricFilters();
-    const { data, error } = await supabaseClient.functions.invoke('admin-dashboard-metrics', {
-        body: filters
-    });
-
-    if (error || data?.error) {
-        const msg = data?.error || error?.message || '대시보드 지표 조회 실패';
-        console.error('[Admin] 대시보드 지표 조회 실패:', msg);
+    try {
+        const data = await invokeAdminFunction('admin-dashboard-metrics', filters);
+        renderDashboardMetrics(data?.metrics || {});
+        renderDelayedEvents(Array.isArray(data?.delayedEvents) ? data.delayedEvents : []);
+    } catch (err) {
+        const msg = err?.message || '대시보드 지표 조회 실패';
+        console.error('[Admin] 대시보드 지표 조회 실패:', err);
         renderDashboardMetrics({});
         renderDelayedEvents([]);
-        return;
     }
-
-    renderDashboardMetrics(data?.metrics || {});
-    renderDelayedEvents(Array.isArray(data?.delayedEvents) ? data.delayedEvents : []);
 }
 
 async function loadEmployees() {
-    const { data, error } = await supabaseClient.functions.invoke('admin-manage-user-role', {
-        body: { action: 'list' }
-    });
-
-    if (error || data?.error) {
-        const msg = data?.error || error?.message || '목록 조회 실패';
-        const code = data?.code ? ` [${data.code}]` : '';
-        console.error('[Admin] 직원 목록 조회 실패:', msg);
+    try {
+        const data = await invokeAdminFunction('admin-manage-user-role', { action: 'list' });
+        allEmployees = Array.isArray(data?.employees) ? data.employees : [];
+        renderEmployees();
+    } catch (err) {
+        const msg = err?.message || '목록 조회 실패';
+        const code = err?.code ? ` [${err.code}]` : '';
+        console.error('[Admin] 직원 목록 조회 실패:', err);
         alert(`직원 목록 조회 실패${code}: ${msg}`);
         return;
     }
-
-    allEmployees = Array.isArray(data?.employees) ? data.employees : [];
-    renderEmployees();
 }
 
 function updateStats(rows) {
@@ -172,13 +190,12 @@ async function loadJudgeStats() {
     const tbody = document.getElementById('judge-stats-table');
     if (!tbody) return;
 
-    const { data, error } = await supabaseClient.functions.invoke('admin-judgment-analytics', {
-        body: {}
-    });
-
-    if (error || data?.error) {
-        const msg = data?.error || error?.message || '심사 통계 조회 실패';
-        console.error('[Admin] 심사 통계 조회 실패:', msg);
+    let data;
+    try {
+        data = await invokeAdminFunction('admin-judgment-analytics', {});
+    } catch (err) {
+        const msg = err?.message || '심사 통계 조회 실패';
+        console.error('[Admin] 심사 통계 조회 실패:', err);
         tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-red-500">${msg}</td></tr>`;
         return;
     }
@@ -211,13 +228,12 @@ async function loadAuditLogs() {
     const tbody = document.getElementById('audit-log-table');
     if (!tbody) return;
 
-    const { data, error } = await supabaseClient.functions.invoke('admin-audit-logs', {
-        body: { limit: 50 }
-    });
-
-    if (error || data?.error) {
-        const msg = data?.error || error?.message || '감사 로그 조회 실패';
-        console.error('[Admin] 감사 로그 조회 실패:', msg);
+    let data;
+    try {
+        data = await invokeAdminFunction('admin-audit-logs', { limit: 50 });
+    } catch (err) {
+        const msg = err?.message || '감사 로그 조회 실패';
+        console.error('[Admin] 감사 로그 조회 실패:', err);
         tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-red-500">${msg}</td></tr>`;
         return;
     }
@@ -248,16 +264,14 @@ window.changeEmployeeRole = async (empno, nextRole) => {
     const adminCode = prompt('관리자 인증 코드를 입력하세요.');
     if (!adminCode) return;
 
-    const { data, error } = await supabaseClient.functions.invoke('admin-manage-user-role', {
-        body: { action: 'update_role', empno, nextRole, adminCode }
-    });
-
-    if (error || data?.error) {
-        const msg = data?.error || error?.message || '권한 변경 실패';
-        const code = data?.code ? ` (${data.code})` : '';
-        const detail = data?.detail ? `\n상세: ${data.detail}` : '';
-        const requestId = data?.request_id ? `\n요청 ID: ${data.request_id}` : '';
-        console.error('[Admin] 권한 변경 실패:', { msg, code: data?.code, detail: data?.detail, requestId: data?.request_id });
+    try {
+        await invokeAdminFunction('admin-manage-user-role', { action: 'update_role', empno, nextRole, adminCode });
+    } catch (err) {
+        const msg = err?.message || '권한 변경 실패';
+        const code = err?.code ? ` (${err.code})` : '';
+        const detail = err?.detail ? `\n상세: ${err.detail}` : '';
+        const requestId = err?.request_id ? `\n요청 ID: ${err.request_id}` : '';
+        console.error('[Admin] 권한 변경 실패:', err);
         alert(`권한 변경 실패${code}: ${msg}${detail}${requestId}`);
         return;
     }
