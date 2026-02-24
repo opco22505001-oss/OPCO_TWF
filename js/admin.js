@@ -28,8 +28,7 @@ async function requireAdminSession() {
     return currentUser;
 }
 
-async function invokeAdminFunction(functionName, body = {}) {
-    // 먼저 getUser()를 호출해 세션 갱신(토큰 리프레시)을 유도한다.
+async function getFreshAccessToken(forceRefresh = false) {
     const { error: userError } = await supabaseClient.auth.getUser();
     if (userError) {
         throw new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
@@ -40,34 +39,53 @@ async function invokeAdminFunction(functionName, body = {}) {
         throw new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
     }
 
-    // 만료 임박 토큰이면 한 번 더 명시적으로 갱신한다.
     const expiresAtMs = (session.expires_at || 0) * 1000;
-    if (expiresAtMs && expiresAtMs < Date.now() + 30 * 1000) {
+    const shouldRefresh = forceRefresh || (expiresAtMs && expiresAtMs < Date.now() + 60 * 1000);
+    if (shouldRefresh) {
         const { data: refreshed, error: refreshError } = await supabaseClient.auth.refreshSession();
         if (!refreshError && refreshed?.session?.access_token) {
             session = refreshed.session;
         }
     }
 
-    const { data, error } = await supabaseClient.functions.invoke(functionName, {
+    if (!session?.access_token) {
+        throw new Error('유효한 인증 토큰을 가져오지 못했습니다. 다시 로그인해 주세요.');
+    }
+
+    return session.access_token;
+}
+
+async function invokeAdminFunction(functionName, body = {}) {
+    const accessToken = await getFreshAccessToken(false);
+
+    const callFunction = (token) => supabaseClient.functions.invoke(functionName, {
         body: {
             ...body,
-            accessToken: session.access_token
+            accessToken: token
         },
         headers: {
-            Authorization: `Bearer ${session.access_token}`
+            Authorization: `Bearer ${token}`
         }
     });
 
-    if (error || data?.error) {
-        const wrapped = new Error(data?.error || error?.message || '요청 실패');
-        wrapped.code = data?.code;
-        wrapped.detail = data?.detail;
-        wrapped.request_id = data?.request_id;
+    let result = await callFunction(accessToken);
+    let status = result.error?.context?.status || result.error?.status || null;
+    if ((result.error || result.data?.error) && status === 401) {
+        const refreshedToken = await getFreshAccessToken(true);
+        result = await callFunction(refreshedToken);
+        status = result.error?.context?.status || result.error?.status || status;
+    }
+
+    if (result.error || result.data?.error) {
+        const wrapped = new Error(result.data?.error || result.error?.message || '요청 실패');
+        wrapped.code = result.data?.code;
+        wrapped.detail = result.data?.detail;
+        wrapped.request_id = result.data?.request_id;
+        wrapped.status = status;
         throw wrapped;
     }
 
-    return data;
+    return result.data;
 }
 
 function renderDashboardMetrics(metrics = {}) {
