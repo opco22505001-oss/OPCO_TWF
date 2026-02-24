@@ -43,6 +43,13 @@ serve(async (req) => {
       return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
     }
 
+    const body = await req.json().catch(() => ({}));
+    const nearDays = Number.isFinite(Number(body?.nearDays)) ? Math.max(0, Number(body.nearDays)) : 2;
+    const reviewThreshold = Number.isFinite(Number(body?.reviewThreshold))
+      ? Math.min(100, Math.max(1, Number(body.reviewThreshold)))
+      : 70;
+    const statusFilter = typeof body?.statusFilter === "string" ? body.statusFilter : "all";
+
     const { data: events, error: eventsError } = await adminClient
       .from("events")
       .select("id, title, status, end_date, created_at")
@@ -94,11 +101,12 @@ serve(async (req) => {
       const judgmentCount = judgmentByEvent.get(event.id) || 0;
       const submissionRate = submissionCount > 0 ? 100 : 0;
       const reviewRate = expectedJudgmentCount > 0 ? (judgmentCount / expectedJudgmentCount) * 100 : 0;
-
       const endDate = event.end_date ? new Date(event.end_date) : null;
       const daysLeft = endDate ? Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
-      const delayed = (daysLeft !== null && daysLeft < 0 && reviewRate < 100) ||
-        (daysLeft !== null && daysLeft <= 2 && reviewRate < 70);
+
+      const delayedByOverdue = (daysLeft !== null && daysLeft < 0 && reviewRate < 100);
+      const delayedByNearDeadline = (daysLeft !== null && daysLeft <= nearDays && reviewRate < reviewThreshold);
+      const delayed = delayedByOverdue || delayedByNearDeadline;
 
       return {
         eventId: event.id,
@@ -123,6 +131,7 @@ serve(async (req) => {
 
     const delayedEvents = perEvent
       .filter((event) => event.delayed)
+      .filter((event) => statusFilter === "all" ? true : event.status === statusFilter)
       .sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
 
     return jsonResponse({
@@ -132,6 +141,11 @@ serve(async (req) => {
         avgReviewRate,
       },
       delayedEvents,
+      filters: {
+        nearDays,
+        reviewThreshold,
+        statusFilter,
+      },
     });
   } catch (error) {
     return jsonResponse({ error: (error as Error).message }, 500);

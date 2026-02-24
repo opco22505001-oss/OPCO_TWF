@@ -54,8 +54,8 @@ function renderDelayedEvents(rows = []) {
     }
 
     tbody.innerHTML = rows.map((row) => {
-        const statusText = row.status === 'closed' ? '마감' : (row.status === 'active' ? '진행중' : '대기');
-        const dayClass = row.daysLeft < 0 ? 'text-red-600' : 'text-amber-600';
+        const statusText = row.status === 'closed' ? '마감' : (row.status === 'active' ? '진행중' : '초안');
+        const dayClass = Number(row.daysLeft) < 0 ? 'text-red-600' : 'text-amber-600';
         return `
             <tr>
                 <td class="px-4 py-3">
@@ -70,9 +70,22 @@ function renderDelayedEvents(rows = []) {
     }).join('');
 }
 
+function getMetricFilters() {
+    const nearDays = Number(document.getElementById('filter-near-days')?.value ?? 2);
+    const reviewThreshold = Number(document.getElementById('filter-review-threshold')?.value ?? 70);
+    const statusFilter = document.getElementById('filter-status')?.value || 'all';
+
+    return {
+        nearDays: Number.isFinite(nearDays) ? Math.max(0, nearDays) : 2,
+        reviewThreshold: Number.isFinite(reviewThreshold) ? Math.min(100, Math.max(1, reviewThreshold)) : 70,
+        statusFilter,
+    };
+}
+
 async function loadDashboardMetrics() {
+    const filters = getMetricFilters();
     const { data, error } = await supabaseClient.functions.invoke('admin-dashboard-metrics', {
-        body: {}
+        body: filters
     });
 
     if (error || data?.error) {
@@ -105,16 +118,12 @@ async function loadEmployees() {
 
 function updateStats(rows) {
     document.getElementById('stat-total').textContent = rows.length;
-    document.getElementById('stat-admin').textContent = rows.filter((r) => r.role === 'admin').length;
+    document.getElementById('stat-admin').textContent = rows.filter((row) => row.role === 'admin').length;
 }
 
 function getRoleBadge(role) {
-    if (role === 'admin') {
-        return '<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-light text-primary">관리자</span>';
-    }
-    if (role === 'judge') {
-        return '<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">심사위원</span>';
-    }
+    if (role === 'admin') return '<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-light text-primary">관리자</span>';
+    if (role === 'judge') return '<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">심사위원</span>';
     return '<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">일반</span>';
 }
 
@@ -174,7 +183,7 @@ async function loadJudgeStats() {
     }
 
     const stats = Array.isArray(data?.stats) ? data.stats : [];
-    if (stats.length === 0) {
+    if (!stats.length) {
         tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-text-muted">심사 데이터가 없습니다.</td></tr>';
         return;
     }
@@ -186,6 +195,45 @@ async function loadJudgeStats() {
             <td class="px-4 py-3 text-right font-mono">${row.count ?? 0}</td>
             <td class="px-4 py-3 text-right font-mono">${row.avgScore ?? 0}</td>
             <td class="px-4 py-3 text-right font-mono">${row.stddevScore ?? 0}</td>
+        </tr>
+    `).join('');
+}
+
+function formatAuditMeta(meta) {
+    if (!meta || typeof meta !== 'object') return '-';
+    const entries = Object.entries(meta).slice(0, 3);
+    if (!entries.length) return '-';
+    return entries.map(([k, v]) => `${k}: ${String(v)}`).join(' / ');
+}
+
+async function loadAuditLogs() {
+    const tbody = document.getElementById('audit-log-table');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient.functions.invoke('admin-audit-logs', {
+        body: { limit: 50 }
+    });
+
+    if (error || data?.error) {
+        const msg = data?.error || error?.message || '감사 로그 조회 실패';
+        console.error('[Admin] 감사 로그 조회 실패:', msg);
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-red-500">${msg}</td></tr>`;
+        return;
+    }
+
+    const rows = Array.isArray(data?.logs) ? data.logs : [];
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-text-muted">감사 로그가 없습니다.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rows.map((row) => `
+        <tr>
+            <td class="px-4 py-3 font-mono text-xs">${new Date(row.created_at).toLocaleString()}</td>
+            <td class="px-4 py-3 text-xs">${row.actor_name || '-'} (${row.actor_empno || '-'})</td>
+            <td class="px-4 py-3 text-xs font-semibold">${row.action || '-'}</td>
+            <td class="px-4 py-3 text-xs">${row.target_type || '-'} / ${row.target_id || '-'}</td>
+            <td class="px-4 py-3 text-xs text-text-muted">${formatAuditMeta(row.metadata)}</td>
         </tr>
     `).join('');
 }
@@ -211,7 +259,7 @@ window.changeEmployeeRole = async (empno, nextRole) => {
     }
 
     alert('권한이 변경되었습니다.');
-    await loadEmployees();
+    await Promise.all([loadEmployees(), loadAuditLogs()]);
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -229,12 +277,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    const searchInput = document.getElementById('employee-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', renderEmployees);
-    }
+    document.getElementById('employee-search')?.addEventListener('input', renderEmployees);
+    document.getElementById('btn-refresh-metrics')?.addEventListener('click', loadDashboardMetrics);
+    document.getElementById('btn-refresh-audit')?.addEventListener('click', loadAuditLogs);
+    document.getElementById('filter-near-days')?.addEventListener('change', loadDashboardMetrics);
+    document.getElementById('filter-review-threshold')?.addEventListener('change', loadDashboardMetrics);
+    document.getElementById('filter-status')?.addEventListener('change', loadDashboardMetrics);
 
-    await loadEmployees();
-    await loadDashboardMetrics();
-    await loadJudgeStats();
+    await Promise.all([
+        loadEmployees(),
+        loadDashboardMetrics(),
+        loadJudgeStats(),
+        loadAuditLogs(),
+    ]);
 });

@@ -441,7 +441,8 @@
                 }
             }
 
-            if (window.__isAdmin && event.status === 'closed' && submissionIds.length > 0) {
+            const canViewRanking = event.status === 'closed' && (window.__isAdmin || event.result_finalized);
+            if (canViewRanking && submissionIds.length > 0) {
                 const { data: allJudgments, error: rankError } = await supabaseClient
                     .from('judgments')
                     .select('submission_id, score')
@@ -472,7 +473,7 @@
                         document.getElementById('ranking-section').classList.remove('hidden');
                         document.getElementById('ranking-list').innerHTML = ranked.map((item, idx) => {
                             const title = item.sub?.content?.title || `제출물 #${idx + 1}`;
-                            const submitter = item.sub?.submitter?.name || '익명';
+                            const submitter = event.is_blind_judging ? `익명 제출자 #${idx + 1}` : (item.sub?.submitter?.name || '익명');
                             const rankStyle = idx === 0 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-border';
                             return `
                                 <div class="flex items-center justify-between rounded-lg border px-4 py-3 ${rankStyle}">
@@ -498,6 +499,9 @@
                             finalizedBadge.classList.remove('hidden');
                             const finalizeBtn = document.getElementById('btn-finalize-results');
                             if (finalizeBtn) finalizeBtn.classList.add('hidden');
+                        } else if (finalizedBadge && window.__isAdmin) {
+                            finalizedBadge.textContent = '현재는 임시 순위입니다. 결과 확정을 눌러 최종 순위를 잠그세요.';
+                            finalizedBadge.classList.remove('hidden');
                         }
                     }
                 }
