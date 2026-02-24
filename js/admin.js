@@ -52,39 +52,62 @@ async function requireAdminSession() {
 }
 
 async function getFreshAccessToken(forceRefresh = false) {
-    const { error: userError } = await supabaseClient.auth.getUser();
-    if (userError) {
-        throw new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
-    }
+    try {
+        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
-    let { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-    if (sessionError || !session?.access_token) {
-        throw new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
-    }
-
-    const expiresAtMs = (session.expires_at || 0) * 1000;
-    const shouldRefresh = forceRefresh || (expiresAtMs && expiresAtMs < Date.now() + 60 * 1000);
-    if (shouldRefresh) {
-        const { data: refreshed, error: refreshError } = await supabaseClient.auth.refreshSession();
-        if (!refreshError && refreshed?.session?.access_token) {
-            session = refreshed.session;
+        if (sessionError) {
+            console.error('[Admin Auth] Get session error:', sessionError);
+            throw new Error('인증 세션을 가져오는 중 오류가 발생했습니다.');
         }
-    }
 
-    if (!session?.access_token) {
-        throw new Error('유효한 인증 토큰을 가져오지 못했습니다. 다시 로그인해 주세요.');
-    }
+        if (!session) {
+            console.warn('[Admin Auth] No active session found');
+            throw new Error('로그인 세션이 없습니다. 다시 로그인해 주세요.');
+        }
 
-    return session.access_token;
+        let currentSession = session;
+        const expiresAtMs = (currentSession.expires_at || 0) * 1000;
+        const now = Date.now();
+
+        // 1분 이내 만료 예정이거나 강제 리프레시 요청 시
+        const shouldRefresh = forceRefresh || (expiresAtMs && expiresAtMs < now + 60 * 1000);
+
+        if (shouldRefresh) {
+            console.log('[Admin Auth] Attempting to refresh session...');
+            const { data: refreshed, error: refreshError } = await supabaseClient.auth.refreshSession();
+            if (refreshError) {
+                console.error('[Admin Auth] Session refresh failed:', refreshError);
+                throw new Error('세션 갱신에 실패했습니다. 다시 로그인해 주세요.');
+            }
+            if (refreshed?.session) {
+                console.log('[Admin Auth] Session refreshed successfully');
+                currentSession = refreshed.session;
+            }
+        }
+
+        if (!currentSession.access_token) {
+            throw new Error('유효한 인증 토큰이 없습니다.');
+        }
+
+        return currentSession.access_token;
+    } catch (e) {
+        console.error('[Admin Auth] Token acquisition failed:', e);
+        throw e;
+    }
 }
 
 async function invokeAdminFunction(functionName, body = {}) {
     const call = async (token) => {
+        console.log(`[Admin API] Invoking ${functionName}...`);
         const { data, error } = await supabaseClient.functions.invoke(functionName, {
             body: { ...body, accessToken: token },
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         });
 
         if (error) {
+            console.error(`[Admin API] ${functionName} Network Error:`, error);
             const wrapped = new Error(error.message || '요청 실패');
             wrapped.status = error.context?.status || 0;
             wrapped.context = error.context || null;
@@ -92,23 +115,35 @@ async function invokeAdminFunction(functionName, body = {}) {
         }
 
         if (data?.error) {
+            console.error(`[Admin API] ${functionName} Business Error:`, data.error);
             const wrapped = new Error(data.error || '요청 실패');
             wrapped.code = data.code;
             wrapped.detail = data.detail;
             wrapped.request_id = data.request_id;
-            wrapped.status = 0;
+            wrapped.status = data.status || 0;
             throw wrapped;
         }
 
         return data;
     };
 
-    const accessToken = await getFreshAccessToken(false);
-    try { return await call(accessToken); } catch (err) {
+    try {
+        const accessToken = await getFreshAccessToken(false);
+        return await call(accessToken);
+    } catch (err) {
         const status = Number(err?.status || err?.context?.status || 0);
-        if (status !== 401) throw err;
-        const refreshedToken = await getFreshAccessToken(true);
-        return await call(refreshedToken);
+        // 401 (Unauthorized) 발생 시 1회에 한해 세션 강제 갱신 후 재시도
+        if (status === 401) {
+            console.warn(`[Admin API] 401 detected for ${functionName}. Retrying after session refresh...`);
+            try {
+                const refreshedToken = await getFreshAccessToken(true);
+                return await call(refreshedToken);
+            } catch (retryErr) {
+                console.error(`[Admin API] Retry failed for ${functionName}:`, retryErr);
+                throw retryErr;
+            }
+        }
+        throw err;
     }
 }
 
@@ -377,24 +412,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadAuditLogs(),
     ]);
 });
-    // 관리자 감사 로그를 권한 관리 섹션 위로 이동
-    const auditSection = document.getElementById('audit-log-table')?.closest('.mt-8');
-    const roleHeaderSection = document.getElementById('stat-total')?.closest('.flex.flex-col');
-    if (auditSection && roleHeaderSection && roleHeaderSection.parentNode) {
-        roleHeaderSection.parentNode.insertBefore(auditSection, roleHeaderSection);
-        auditSection.classList.remove('mt-8');
-        auditSection.classList.add('mb-6');
-    }
+// 관리자 감사 로그를 권한 관리 섹션 위로 이동
+const auditSection = document.getElementById('audit-log-table')?.closest('.mt-8');
+const roleHeaderSection = document.getElementById('stat-total')?.closest('.flex.flex-col');
+if (auditSection && roleHeaderSection && roleHeaderSection.parentNode) {
+    roleHeaderSection.parentNode.insertBefore(auditSection, roleHeaderSection);
+    auditSection.classList.remove('mt-8');
+    auditSection.classList.add('mb-6');
+}
 
-    // 심사 통계 섹션 제거
-    const judgeStatsSection = document.getElementById('judge-stats-table')?.closest('.mt-8');
-    if (judgeStatsSection) {
-        judgeStatsSection.remove();
-    }
+// 심사 통계 섹션 제거
+const judgeStatsSection = document.getElementById('judge-stats-table')?.closest('.mt-8');
+if (judgeStatsSection) {
+    judgeStatsSection.remove();
+}
 
-    // 권한 관리 테이블 자체 스크롤
-    const roleTableWrap = document.getElementById('admin-user-table')?.closest('.overflow-x-auto');
-    if (roleTableWrap) {
-        roleTableWrap.classList.add('overflow-y-auto');
-        roleTableWrap.style.maxHeight = '380px';
-    }
+// 권한 관리 테이블 자체 스크롤
+const roleTableWrap = document.getElementById('admin-user-table')?.closest('.overflow-x-auto');
+if (roleTableWrap) {
+    roleTableWrap.classList.add('overflow-y-auto');
+    roleTableWrap.style.maxHeight = '380px';
+}
