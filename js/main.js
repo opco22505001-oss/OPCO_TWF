@@ -1,19 +1,19 @@
-/**
- * OPCO TWF 시스템 - 메인 로직
- * Supabase 초기화 및 공통 기능 처리 핸들러
+﻿/**
+ * OPCO TWF - 메인 로직
+ * Supabase 초기화 및 공통 기능 처리
  */
 
 // Supabase 클라이언트 설정
 const SUPABASE_URL = 'https://fuevhcdfgmdjhpdiwtzr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
 
-// Supabase 클라이언트 초기화 (중복 선언 방지를 위해 전역 변수명 유지)
+// Supabase 클라이언트 초기화 (중복 선언 방지)
 var supabaseClient = window.supabaseClient || null;
 console.log('[Init] Supabase initialization started');
 
 function initSupabase() {
     try {
-        // supabase-js CDN이 window.supabase 전역 객체를 생성함
+        // supabase-js CDN??window.supabase ?꾩뿭 媛앹껜瑜??앹꽦??
         const _supabase = window.supabase;
         if (_supabase && _supabase.createClient) {
             supabaseClient = _supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -43,7 +43,7 @@ window.updateEvent = updateEvent;
 window.updateSubmission = updateSubmission;
 window.getCurrentUser = getCurrentUser;
 
-// 진단용 함수: 연결 테스트
+// 진단 함수: 연결 테스트
 async function testConnection() {
     if (!supabaseClient) {
         console.error('[Test] Supabase not initialized');
@@ -58,16 +58,16 @@ async function testConnection() {
     }
 }
 
-// 초기 로드 시 연결 테스트 수행 (콘솔 확인용)
+// 초기 로드 시 연결 테스트 수행
 if (supabaseClient) testConnection();
 
-// URL 파라미터 추출 유틸리티
+// URL 파라미터 유틸
 function getQueryParam(param) {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get(param);
 }
 
-// 날짜 포맷터
+// 날짜 포맷
 function formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -99,7 +99,7 @@ async function fetchEvents(statusFilter = 'all') {
     return data || [];
 }
 
-// 단일 이벤트 상세 정보 조회
+// 단일 이벤트 상세 조회
 async function fetchEventDetails(eventId) {
     if (!supabaseClient) return null;
 
@@ -110,15 +110,15 @@ async function fetchEventDetails(eventId) {
         .single();
 
     if (error) {
-        console.error('이벤트 상세 정보 조회 오류:', error);
+        console.error("이벤트 상세 정보 조회 오류:", error);
         return null;
     }
     return data;
 }
 
-// 인증: 사번 로그인 (하이브리드)
+// 인증: 사번 로그인(하이브리드)
 async function signInWithEmployeeId(empno, empnm, adminCode) {
-    if (!supabaseClient) return { error: 'Supabase가 초기화되지 않았습니다.' };
+    if (!supabaseClient) return { error: "Supabase가 초기화되지 않았습니다." };
 
     try {
         const { data, error } = await supabaseClient.functions.invoke('auth-login', {
@@ -128,8 +128,8 @@ async function signInWithEmployeeId(empno, empnm, adminCode) {
         if (error) throw error;
         if (data.error) throw new Error(data.error);
 
-        // 필요한 경우 세션 수동 저장
-        // Edge Function이 signInWithPassword 결과와 유사한 { session: ... } 구조를 반환함
+        // 필요한 경우 세션을 수동으로 설정
+        // Edge Function은 { session: ... } 구조를 반환
         if (data.session) {
             const { error: setSessionError } = await supabaseClient.auth.setSession(data.session);
             if (setSessionError) throw setSessionError;
@@ -137,17 +137,17 @@ async function signInWithEmployeeId(empno, empnm, adminCode) {
 
         return { data: data.user, error: null };
     } catch (err) {
-        console.error('로그인 실패:', err);
+        console.error("로그인 실패:", err);
         return { data: null, error: err.message };
     }
 }
 
-// 새 이벤트 생성
+// 이벤트 생성
 async function createEvent(eventData) {
     console.log('[createEvent] Starting insertion with data:', eventData);
     if (!supabaseClient) {
         console.error('[createEvent] Supabase not initialized');
-        return { error: 'Supabase가 초기화되지 않았습니다.' };
+        return { error: "Supabase가 초기화되지 않았습니다." };
     }
 
     try {
@@ -158,36 +158,36 @@ async function createEvent(eventData) {
 
         if (error) {
             console.error('[createEvent] DB Insert Error:', error);
-            alert('이벤트 생성 실패: ' + error.message);
+            alert("이벤트 생성 실패: " + error.message);
             return { error };
         }
 
         console.log('[createEvent] Success! Data returned:', data);
-        // .single() 대신 배열의 첫 번째 항목 반환 (안정성 확보)
+        // .single() 대신 배열의 첫 번째 항목을 반환
         return { data: (data && data.length > 0) ? data[0] : null };
     } catch (err) {
         console.error('[createEvent] Unexpected Exception:', err);
-        alert('이벤트 생성 중 예기치 않은 오류가 발생했습니다: ' + err.message);
+        alert("이벤트 생성 중 예기치 않은 오류: " + err.message);
         return { error: err };
     }
 }
 
-// 사용자 목록 조회 (로그인한 users만)
+// 사용자 목록 조회
 async function fetchUsers() {
     if (!supabaseClient) return [];
     const { data, error } = await supabaseClient.from('users').select('*').order('name');
-    if (error) { console.error('사용자 목록 조회 오류:', error); return []; }
+    if (error) { console.error("사용자 목록 조회 오류:", error); return []; }
     return data;
 }
 
-// 전체 임직원 목록 조회 (corporate_employees - 125명 전체)
+// 전체 직원 목록 조회
 async function fetchCorporateEmployees() {
     if (!supabaseClient) return [];
     const { data, error } = await supabaseClient
         .from('corporate_employees')
         .select('empno, empnm, depnm, role')
         .order('empnm');
-    if (error) { console.error('임직원 목록 조회 오류:', error); return []; }
+    if (error) { console.error("직원 목록 조회 오류:", error); return []; }
     return data;
 }
 
@@ -200,7 +200,7 @@ async function createNotification(userId, message, link) {
         link: link || null,
         is_read: false
     }]);
-    if (error) console.error('알림 생성 실패:', error);
+    if (error) console.error("알림 생성 실패:", error);
 }
 
 // 제출물 목록 조회
@@ -211,13 +211,13 @@ async function fetchSubmissions(eventId) {
         .select('*, submitter:users!submitter_id(id, name, department)')
         .eq('event_id', eventId)
         .order('created_at', { ascending: false });
-    if (error) { console.error('제출물 조회 오류:', error); return []; }
+    if (error) { console.error("제출물 조회 오류:", error); return []; }
     return data || [];
 }
 
 // 제출물 생성
 async function createSubmission(submissionData) {
-    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
     const { data, error } = await supabaseClient
         .from('submissions')
         .insert([submissionData])
@@ -228,7 +228,7 @@ async function createSubmission(submissionData) {
 
 // 제출물 업데이트
 async function updateSubmission(submissionId, submissionData) {
-    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
     const { data, error } = await supabaseClient
         .from('submissions')
         .update(submissionData)
@@ -241,7 +241,7 @@ async function updateSubmission(submissionId, submissionData) {
 
 // 심사 점수 생성
 async function createJudgment(judgmentData) {
-    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
     const { data, error } = await supabaseClient
         .from('judgments')
         .insert([judgmentData])
@@ -252,7 +252,7 @@ async function createJudgment(judgmentData) {
 
 // 심사 점수 수정
 async function updateJudgment(judgmentId, judgmentData) {
-    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
     const { data, error } = await supabaseClient
         .from('judgments')
         .update(judgmentData)
@@ -265,20 +265,20 @@ async function updateJudgment(judgmentId, judgmentData) {
 
 // 이벤트 삭제
 async function deleteEvent(eventId) {
-    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
     const { error } = await supabaseClient.from('events').delete().eq('id', eventId);
     return { error };
 }
 
 // 이벤트 수정
 async function updateEvent(eventId, updateData) {
-    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
     const { data, error } = await supabaseClient.from('events').update(updateData).eq('id', eventId).select();
     if (error) return { error };
     return { data: data && data.length > 0 ? data[0] : null };
 }
 
-// 현재 로그인 사용자 가져오기
+// 현재 로그인 사용자 조회
 async function getCurrentUser() {
     if (!supabaseClient) return null;
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -292,7 +292,7 @@ async function getCurrentUser() {
 async function fetchEventJudges(eventId) {
     if (!supabaseClient) return [];
 
-    // 사용자 정보와 조인하여 상세 내용 조회
+    // 사용자 정보를 조인해 상세 정보를 조회
     const { data, error } = await supabaseClient
         .from('event_judges')
         .select(`
@@ -302,7 +302,7 @@ async function fetchEventJudges(eventId) {
         .eq('event_id', eventId);
 
     if (error) {
-        // 데이터가 없거나 오류 시 조용히 실패 처리
+        // ?곗씠?곌? ?녾굅???ㅻ쪟 ??議곗슜???ㅽ뙣 泥섎━
         return [];
     }
     return data;
@@ -310,7 +310,7 @@ async function fetchEventJudges(eventId) {
 
 // 이벤트에 심사위원 배정
 async function assignJudge(eventId, judgeId) {
-    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
 
     const { data, error } = await supabaseClient
         .from('event_judges')
@@ -323,7 +323,7 @@ async function assignJudge(eventId, judgeId) {
 
 // 이벤트에서 심사위원 제거
 async function removeJudge(eventId, judgeId) {
-    if (!supabaseClient) return { error: '클라이언트가 없습니다.' };
+    if (!supabaseClient) return { error: "클라이언트가 없습니다." };
 
     const { error } = await supabaseClient
         .from('event_judges')
@@ -334,7 +334,7 @@ async function removeJudge(eventId, judgeId) {
     return { error };
 }
 
-// 페이지 이동 헬퍼 (function 선언문 → 호이스팅 가능)
+// 페이지 이동 헬퍼
 function navigateToEvent(eventId) {
     window.location.href = `event-detail.html?id=${eventId}`;
 }
@@ -352,11 +352,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function initNotifications(userId) {
-    // 알림 벨 버튼 및 배지 요소 (모든 페이지 공통 구조 가정)
+    // 알림 버튼/배지 찾기
     const notiBtn = document.querySelector('button .material-symbols-outlined[text*="notifications"]')?.parentElement ||
         document.querySelector('button:has(.material-symbols-outlined:contains("notifications"))');
 
-    // 좀 더 확실한 선택자 (id가 없으므로 텍스트로 찾음)
+    // 가장 확실한 선택 방식(텍스트 기준)
     const allBtns = document.querySelectorAll('button');
     let notificationButton = null;
     allBtns.forEach(btn => {
@@ -367,10 +367,10 @@ async function initNotifications(userId) {
 
     if (!notificationButton) return;
 
-    // 배지 요소 만들기 또는 찾기
+    // 배지 요소 찾기
     let badge = notificationButton.querySelector('.bg-red-500');
     if (!badge && !notificationButton.querySelector('span:not(.material-symbols-outlined)')) {
-        // 배지가 없으면 생성 로직 (이미 h-2 w-2 등으로 있는 경우가 많음)
+        // 필요하면 여기서 배지 생성 로직을 추가
     }
 
     // 초기 알림 개수 로드
@@ -489,7 +489,7 @@ async function setupUI() {
         let user = null;
         let meta = {};
 
-        // 1) Supabase 세션 먼저 확인 (실제 로그인 우선)
+        // 1) Supabase 세션 우선 확인
         if (supabaseClient) {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session && session.user) {
@@ -504,16 +504,16 @@ async function setupUI() {
 
         if (!user) return;
 
-        // 헤더 이름/역할 업데이트
+        // 헤더 사용자 이름/역할 갱신
         const nameEl = document.getElementById('header-user-name');
         const roleEl = document.getElementById('header-user-role');
         const avatarEl = document.getElementById('header-avatar');
 
-        const displayName = meta.empnm || meta.name || '사용자';
+        const displayName = meta.empnm || meta.name || "사용자";
         if (nameEl) nameEl.textContent = displayName;
         if (roleEl) {
             const roleMap = { 'admin': '관리자', 'judge': '심사위원', 'submitter': '임직원', 'employee': '임직원' };
-            let roleText = roleMap[meta.role] || meta.role || '임직원';
+            let roleText = roleMap[meta.role] || meta.role || "임직원";
             if (meta.role === 'admin') {
                 roleText = `[${roleText}]`;
                 roleEl.classList.add('text-primary', 'font-bold');
@@ -524,11 +524,11 @@ async function setupUI() {
             avatarEl.textContent = displayName.substring(0, 1);
         }
 
-        // 관리자 플래그를 전역으로 저장 (다른 페이지에서 활용)
+        // 관리자 여부를 전역 플래그로 노출
         window.__isAdmin = (meta.role === 'admin');
         window.__currentUser = user;
 
-        // 상단 공통 관리자 탭 표시 제어
+        // 상단 관리자 탭 표시 제어
         document.querySelectorAll('.admin-only-tab').forEach((el) => {
             if (window.__isAdmin) {
                 el.classList.remove('hidden');
@@ -542,19 +542,19 @@ async function setupUI() {
     }
 }
 
-// 이미 상단에서 window 객체에 할당함
-
 // 공통 초기화 실행
+
+// 怨듯넻 珥덇린???ㅽ뻾
 document.addEventListener('DOMContentLoaded', () => {
     setupUI();
 
-    // 알림 아이콘 클릭 이벤트 연결
-    const notifBtn = document.querySelector('button .material-symbols-outlined[textContent="notifications"]')?.parentElement;
-    if (notifBtn) {
-        notifBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleNotificationDropdown(notifBtn);
-        });
-    }
+    // 알림 버튼 직접 바인딩은 initNotifications 내부에서 처리
+    // const notifBtn = ...
+    // if (notifBtn) { ... }
+    //
+    //
+    //
+    //
+    //
 });
 
