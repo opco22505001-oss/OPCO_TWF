@@ -79,9 +79,9 @@ async function getFreshAccessToken(forceRefresh = false) {
 }
 
 async function invokeAdminFunction(functionName, body = {}) {
-    const call = async () => {
+    const call = async (token) => {
         const { data, error } = await supabaseClient.functions.invoke(functionName, {
-            body: { ...body },
+            body: { ...body, accessToken: token },
         });
 
         if (error) {
@@ -103,12 +103,12 @@ async function invokeAdminFunction(functionName, body = {}) {
         return data;
     };
 
-    await getFreshAccessToken(false);
-    try { return await call(); } catch (err) {
+    const accessToken = await getFreshAccessToken(false);
+    try { return await call(accessToken); } catch (err) {
         const status = Number(err?.status || err?.context?.status || 0);
         if (status !== 401) throw err;
-        await getFreshAccessToken(true);
-        return await call();
+        const refreshedToken = await getFreshAccessToken(true);
+        return await call(refreshedToken);
     }
 }
 
