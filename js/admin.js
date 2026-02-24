@@ -29,13 +29,31 @@ async function requireAdminSession() {
 }
 
 async function invokeAdminFunction(functionName, body = {}) {
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    // 먼저 getUser()를 호출해 세션 갱신(토큰 리프레시)을 유도한다.
+    const { error: userError } = await supabaseClient.auth.getUser();
+    if (userError) {
+        throw new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
+    }
+
+    let { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
     if (sessionError || !session?.access_token) {
         throw new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
     }
 
+    // 만료 임박 토큰이면 한 번 더 명시적으로 갱신한다.
+    const expiresAtMs = (session.expires_at || 0) * 1000;
+    if (expiresAtMs && expiresAtMs < Date.now() + 30 * 1000) {
+        const { data: refreshed, error: refreshError } = await supabaseClient.auth.refreshSession();
+        if (!refreshError && refreshed?.session?.access_token) {
+            session = refreshed.session;
+        }
+    }
+
     const { data, error } = await supabaseClient.functions.invoke(functionName, {
-        body,
+        body: {
+            ...body,
+            accessToken: session.access_token
+        },
         headers: {
             Authorization: `Bearer ${session.access_token}`
         }

@@ -14,24 +14,24 @@ function jsonResponse(payload: Record<string, unknown>, status = 200) {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const body = await req.json().catch(() => ({}));
+    const accessToken = typeof body?.accessToken === "string" ? body.accessToken : "";
 
     const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+      global: { headers: { Authorization: req.headers.get("Authorization") ?? (accessToken ? `Bearer ${accessToken}` : "") } },
     });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: authData, error: authError } = await authClient.auth.getUser();
-    if (authError || !authData?.user) {
-      return jsonResponse({ error: "로그인이 필요합니다." }, 401);
-    }
+    const { data: authData, error: authError } = accessToken
+      ? await adminClient.auth.getUser(accessToken)
+      : await authClient.auth.getUser();
+    if (authError || !authData?.user) return jsonResponse({ error: "로그인이 필요합니다." }, 401);
 
     const requesterId = authData.user.id;
     const { data: me, error: meError } = await adminClient
@@ -39,11 +39,8 @@ serve(async (req) => {
       .select("role")
       .eq("id", requesterId)
       .maybeSingle();
-    if (meError || me?.role !== "admin") {
-      return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
-    }
+    if (meError || me?.role !== "admin") return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
 
-    const body = await req.json().catch(() => ({}));
     const nearDays = Number.isFinite(Number(body?.nearDays)) ? Math.max(0, Number(body.nearDays)) : 2;
     const reviewThreshold = Number.isFinite(Number(body?.reviewThreshold))
       ? Math.min(100, Math.max(1, Number(body.reviewThreshold)))
@@ -72,23 +69,21 @@ serve(async (req) => {
     if (judgmentError) return jsonResponse({ error: judgmentError.message }, 500);
 
     const submissionByEvent = new Map<string, number>();
-    (submissions || []).forEach((submission) => {
-      submissionByEvent.set(submission.event_id, (submissionByEvent.get(submission.event_id) || 0) + 1);
+    (submissions || []).forEach((s) => {
+      submissionByEvent.set(s.event_id, (submissionByEvent.get(s.event_id) || 0) + 1);
     });
 
     const judgeByEvent = new Map<string, number>();
-    (eventJudges || []).forEach((judge) => {
-      judgeByEvent.set(judge.event_id, (judgeByEvent.get(judge.event_id) || 0) + 1);
+    (eventJudges || []).forEach((j) => {
+      judgeByEvent.set(j.event_id, (judgeByEvent.get(j.event_id) || 0) + 1);
     });
 
     const submissionEventMap = new Map<string, string>();
-    (submissions || []).forEach((submission) => {
-      submissionEventMap.set(submission.id, submission.event_id);
-    });
+    (submissions || []).forEach((s) => submissionEventMap.set(s.id, s.event_id));
 
     const judgmentByEvent = new Map<string, number>();
-    (judgments || []).forEach((judgment) => {
-      const eventId = submissionEventMap.get(judgment.submission_id);
+    (judgments || []).forEach((j) => {
+      const eventId = submissionEventMap.get(j.submission_id);
       if (!eventId) return;
       judgmentByEvent.set(eventId, (judgmentByEvent.get(eventId) || 0) + 1);
     });
@@ -135,17 +130,9 @@ serve(async (req) => {
       .sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
 
     return jsonResponse({
-      metrics: {
-        activeCount,
-        avgSubmissionRate,
-        avgReviewRate,
-      },
+      metrics: { activeCount, avgSubmissionRate, avgReviewRate },
       delayedEvents,
-      filters: {
-        nearDays,
-        reviewThreshold,
-        statusFilter,
-      },
+      filters: { nearDays, reviewThreshold, statusFilter },
     });
   } catch (error) {
     return jsonResponse({ error: (error as Error).message }, 500);

@@ -26,13 +26,17 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const body = await req.json().catch(() => ({}));
+    const accessToken = typeof body?.accessToken === "string" ? body.accessToken : "";
 
     const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+      global: { headers: { Authorization: req.headers.get("Authorization") ?? (accessToken ? `Bearer ${accessToken}` : "") } },
     });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: authData, error: authError } = await authClient.auth.getUser();
+    const { data: authData, error: authError } = accessToken
+      ? await adminClient.auth.getUser(accessToken)
+      : await authClient.auth.getUser();
     if (authError || !authData?.user) {
       return jsonResponse({ error: "로그인이 필요합니다." }, 401);
     }
@@ -48,7 +52,6 @@ serve(async (req) => {
       return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
     }
 
-    const body = await req.json();
     const action = body?.action;
     const eventId = body?.eventId;
     const adminCode = body?.adminCode;

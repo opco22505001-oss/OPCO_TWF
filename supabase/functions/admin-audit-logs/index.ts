@@ -14,21 +14,23 @@ function jsonResponse(payload: Record<string, unknown>, status = 200) {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const body = await req.json().catch(() => ({}));
+    const accessToken = typeof body?.accessToken === "string" ? body.accessToken : "";
 
     const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+      global: { headers: { Authorization: req.headers.get("Authorization") ?? (accessToken ? `Bearer ${accessToken}` : "") } },
     });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: authData, error: authError } = await authClient.auth.getUser();
+    const { data: authData, error: authError } = accessToken
+      ? await adminClient.auth.getUser(accessToken)
+      : await authClient.auth.getUser();
     if (authError || !authData?.user) return jsonResponse({ error: "로그인이 필요합니다." }, 401);
 
     const requesterId = authData.user.id;
@@ -39,7 +41,6 @@ serve(async (req) => {
       .maybeSingle();
     if (meError || me?.role !== "admin") return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
 
-    const body = await req.json().catch(() => ({}));
     const limit = Number.isFinite(Number(body?.limit)) ? Math.min(200, Math.max(1, Number(body.limit))) : 50;
 
     const { data: logs, error: logsError } = await adminClient

@@ -38,13 +38,17 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const body = await req.json().catch(() => ({}));
+    const accessToken = typeof body?.accessToken === "string" ? body.accessToken : "";
 
     const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+      global: { headers: { Authorization: req.headers.get("Authorization") ?? (accessToken ? `Bearer ${accessToken}` : "") } },
     });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: authData, error: authError } = await authClient.auth.getUser();
+    const { data: authData, error: authError } = accessToken
+      ? await adminClient.auth.getUser(accessToken)
+      : await authClient.auth.getUser();
     if (authError || !authData?.user) {
       console.error("[admin-manage-user-role] auth_failed", { requestId, authError });
       return errorResponse(401, "로그인이 필요합니다.", "AUTH_REQUIRED", authError?.message, requestId);
@@ -62,7 +66,6 @@ serve(async (req) => {
       return errorResponse(403, "관리자 권한이 없습니다.", "ADMIN_REQUIRED", meError?.message, requestId);
     }
 
-    const body = await req.json();
     const action = body?.action;
 
     if (action === "list") {

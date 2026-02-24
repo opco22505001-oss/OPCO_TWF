@@ -14,24 +14,24 @@ function jsonResponse(payload: Record<string, unknown>, status = 200) {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const body = await req.json().catch(() => ({}));
+    const accessToken = typeof body?.accessToken === "string" ? body.accessToken : "";
 
     const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+      global: { headers: { Authorization: req.headers.get("Authorization") ?? (accessToken ? `Bearer ${accessToken}` : "") } },
     });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: authData, error: authError } = await authClient.auth.getUser();
-    if (authError || !authData?.user) {
-      return jsonResponse({ error: "로그인이 필요합니다." }, 401);
-    }
+    const { data: authData, error: authError } = accessToken
+      ? await adminClient.auth.getUser(accessToken)
+      : await authClient.auth.getUser();
+    if (authError || !authData?.user) return jsonResponse({ error: "로그인이 필요합니다." }, 401);
 
     const requesterId = authData.user.id;
     const { data: me, error: meError } = await adminClient
@@ -39,47 +39,37 @@ serve(async (req) => {
       .select("role")
       .eq("id", requesterId)
       .maybeSingle();
-
-    if (meError || me?.role !== "admin") {
-      return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
-    }
+    if (meError || me?.role !== "admin") return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
 
     const { data: judgments, error: judgmentsError } = await adminClient
       .from("judgments")
-      .select("judge_id, score, created_at");
-    if (judgmentsError) {
-      return jsonResponse({ error: judgmentsError.message }, 500);
-    }
+      .select("judge_id, score");
+    if (judgmentsError) return jsonResponse({ error: judgmentsError.message }, 500);
 
     const { data: users, error: usersError } = await adminClient
       .from("users")
       .select("id, name, department");
-    if (usersError) {
-      return jsonResponse({ error: usersError.message }, 500);
-    }
+    if (usersError) return jsonResponse({ error: usersError.message }, 500);
 
     const scoreOf = (scoreObj: Record<string, unknown> | null) =>
       Object.values(scoreObj || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
 
     const byJudge = new Map<string, number[]>();
     (judgments || []).forEach((j) => {
-      const key = j.judge_id;
-      if (!byJudge.has(key)) byJudge.set(key, []);
-      byJudge.get(key)!.push(scoreOf(j.score as Record<string, unknown>));
+      if (!byJudge.has(j.judge_id)) byJudge.set(j.judge_id, []);
+      byJudge.get(j.judge_id)?.push(scoreOf(j.score as Record<string, unknown>));
     });
 
     const userMap = new Map((users || []).map((u) => [u.id, u]));
     const stats = Array.from(byJudge.entries()).map(([judgeId, arr]) => {
       const count = arr.length;
       const avg = count ? arr.reduce((a, b) => a + b, 0) / count : 0;
-      const variance = count
-        ? arr.reduce((sum, x) => sum + Math.pow(x - avg, 2), 0) / count
-        : 0;
+      const variance = count ? arr.reduce((sum, x) => sum + Math.pow(x - avg, 2), 0) / count : 0;
       const stddev = Math.sqrt(variance);
       const user = userMap.get(judgeId);
       return {
         judgeId,
-        judgeName: user?.name || "알 수 없음",
+        judgeName: user?.name || "이름없음",
         department: user?.department || "",
         count,
         avgScore: Number(avg.toFixed(2)),
