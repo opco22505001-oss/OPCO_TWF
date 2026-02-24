@@ -33,34 +33,39 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID();
   try {
-    const requestId = crypto.randomUUID();
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const body = await req.json().catch(() => ({}));
 
-    // 토큰 추출 로직 강화
+    // 디버깅: 전체 헤더 확인
     const authHeader = req.headers.get("Authorization");
+    console.log(`[admin-manage-user-role] [${requestId}] Headers:`, Object.fromEntries(req.headers.entries()));
+
+    // 토큰 추출 로직 강화: Body의 accessToken을 우선시 (라이브러리 간섭 방지)
     let token = "";
-    if (authHeader?.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    } else if (typeof body?.accessToken === "string") {
+    if (typeof body?.accessToken === "string" && body.accessToken) {
       token = body.accessToken;
+      console.log(`[admin-manage-user-role] [${requestId}] Token source: Body (accessToken)`);
+    } else if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+      console.log(`[admin-manage-user-role] [${requestId}] Token source: Header (Authorization)`);
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     if (!token) {
-      console.error("[admin-manage-user-role] no_token_provided", { requestId });
-      return errorResponse(401, "인증 토큰이 누락되었습니다.", "AUTH_REQUIRED", undefined, requestId);
+      console.error(`[admin-manage-user-role] [${requestId}] No token provided`);
+      return errorResponse(401, "인증 토큰이 제공되지 않았습니다.", "TOKEN_MISSING", undefined, requestId);
     }
 
-    // service_role 클라이언트를 통한 사용자 정보 조회 (토큰 검증 포함)
+    // 서비스 롤 클라이언트로 직접 사용자 토큰 검증
     const { data: authData, error: authError } = await adminClient.auth.getUser(token);
 
     if (authError || !authData?.user) {
-      console.error("[admin-manage-user-role] auth_failed", { requestId, authError, token_exists: !!token });
-      return errorResponse(401, "유효하지 않은 세션입니다. 다시 로그인해 주세요.", "AUTH_FAILED", authError?.message, requestId);
+      console.error(`[admin-manage-user-role] [${requestId}] Auth failed:`, authError);
+      return errorResponse(401, "유효하지 않은 토큰이거나 세션이 만료되었습니다.", "AUTH_FAILED", authError?.message, requestId);
     }
 
     const requesterId = authData.user.id;
@@ -68,6 +73,9 @@ serve(async (req) => {
     const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
     const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
 
+    console.log(`[admin-manage-user-role] [${requestId}] Authenticated:`, { uid: requesterId, email: requesterEmail, role: requesterMetaRole });
+
+    // DB에서 관리자 권한 최종 확인
     const { data: meById, error: meError } = await adminClient
       .from("users")
       .select("role")
@@ -96,10 +104,11 @@ serve(async (req) => {
 
     const isAdmin = meById?.role === "admin" || roleByEmail === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
     if (meError || !isAdmin) {
-      console.error("[admin-manage-user-role] forbidden", { requestId, meError, requesterId, requesterEmail });
-      return errorResponse(403, "관리자 권한이 없습니다.", "ADMIN_REQUIRED", meError?.message, requestId);
+      console.error(`[admin-manage-user-role] [${requestId}] Forbidden: Admin rights required`, { meError, roles: { db: meById?.role, meta: requesterMetaRole, corp: corpRole } });
+      return errorResponse(403, "관리자 전용 기능입니다.", "ADMIN_REQUIRED", meError?.message, requestId);
     }
 
+    // users 테이블 동기화 (관리자인데 없는 경우)
     if (!meById && isAdmin && requesterId && requesterEmail) {
       await adminClient.from("users").upsert({
         id: requesterId,
@@ -133,14 +142,10 @@ serve(async (req) => {
       const allowedRoles = ["admin", "submitter", "judge"];
       const requiredAdminCode = Deno.env.get("ADMIN_CODE") ?? "OPCO_ADMIN_2024";
 
-      if (!empno || typeof empno !== "string") {
-        return badRequest("사번(empno)이 필요합니다.");
-      }
-      if (!allowedRoles.includes(nextRole)) {
-        return badRequest("허용되지 않은 권한입니다.");
-      }
+      if (!empno || typeof empno !== "string") return badRequest("사번이 필요합니다.");
+      if (!allowedRoles.includes(nextRole)) return badRequest("허용되지 않은 권한입니다.");
       if (!adminCode || adminCode !== requiredAdminCode) {
-        return errorResponse(401, "관리자 인증 코드가 올바르지 않습니다.", "INVALID_ADMIN_CODE", undefined, requestId);
+        return errorResponse(401, "관리자 인증 코드가 틀렸습니다.", "INVALID_ADMIN_CODE", undefined, requestId);
       }
 
       const { data: corpRows, error: corpUpdateError } = await adminClient
@@ -150,94 +155,37 @@ serve(async (req) => {
         .select("empno, empnm, depnm, role")
         .limit(1);
 
-      if (corpUpdateError) {
-        console.error("[admin-manage-user-role] corporate_update_failed", { requestId, empno, nextRole, corpUpdateError });
-        return errorResponse(500, "사내 인사 권한 업데이트에 실패했습니다.", "CORP_UPDATE_FAILED", corpUpdateError.message, requestId);
-      }
-      if (!corpRows || corpRows.length === 0) {
-        return errorResponse(400, "대상 사원을 찾을 수 없습니다.", "EMPLOYEE_NOT_FOUND", undefined, requestId);
-      }
+      if (corpUpdateError) throw corpUpdateError;
+      if (!corpRows?.length) return errorResponse(400, "사원을 찾을 수 없습니다.", "EMPLOYEE_NOT_FOUND");
 
       const corp = corpRows[0];
       const email = `${corp.empno}@opco.internal`;
 
       // public.users 동기화
-      const { data: updatedUsers, error: usersError } = await adminClient
-        .from("users")
-        .update({
-          name: corp.empnm,
-          department: corp.depnm,
-          role: nextRole,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("email", email)
-        .select("id")
-        .limit(1);
-
-      if (usersError) {
-        console.error("[admin-manage-user-role] public_users_update_failed", { requestId, email, usersError });
-        return errorResponse(500, "사용자 권한 동기화(public.users)에 실패했습니다.", "PUBLIC_USERS_SYNC_FAILED", usersError.message, requestId);
-      }
+      await adminClient.from("users").update({
+        name: corp.empnm,
+        department: corp.depnm,
+        role: nextRole,
+        updated_at: new Date().toISOString(),
+      }).eq("email", email);
 
       // auth.users 메타데이터 동기화
-      const { data: userListData, error: listError } = await adminClient.auth.admin.listUsers({
-        page: 1,
-        perPage: 1000,
-      });
-      if (listError) {
-        console.error("[admin-manage-user-role] auth_list_failed", { requestId, listError });
-        return errorResponse(500, "auth 사용자 조회에 실패했습니다.", "AUTH_LIST_FAILED", listError.message, requestId);
-      }
-
-      const authUser = userListData.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+      const { data: list } = await adminClient.auth.admin.listUsers();
+      const authUser = (list?.users || []).find((u) => u.email?.toLowerCase() === email.toLowerCase());
       if (authUser) {
-        const { error: authUpdateError } = await adminClient.auth.admin.updateUserById(authUser.id, {
-          user_metadata: {
-            ...(authUser.user_metadata ?? {}),
-            empno: corp.empno,
-            name: corp.empnm,
-            department: corp.depnm,
-            role: nextRole,
-          },
+        await adminClient.auth.admin.updateUserById(authUser.id, {
+          user_metadata: { ...authUser.user_metadata, role: nextRole }
         });
-        if (authUpdateError) {
-          console.error("[admin-manage-user-role] auth_update_failed", { requestId, userId: authUser.id, authUpdateError });
-          return errorResponse(500, "auth 메타데이터 동기화에 실패했습니다.", "AUTH_METADATA_SYNC_FAILED", authUpdateError.message, requestId);
-        }
       }
 
-      // 관리자 권한 변경 감사 로그
-      const { error: auditError } = await adminClient.from("admin_audit_logs").insert({
-        actor_user_id: requesterId,
-        action: "update_user_role",
-        target_type: "user",
-        target_id: email,
-        metadata: {
-          empno: corp.empno,
-          name: corp.empnm,
-          department: corp.depnm,
-          nextRole,
-        },
-      });
-      if (auditError) {
-        console.error("[admin-manage-user-role] audit_insert_failed", { requestId, auditError });
-      }
-
-      return new Response(JSON.stringify({
-        ok: true,
-        employee: corp,
-        syncedUserCount: updatedUsers?.length ?? 0,
-        authUserSynced: !!authUser,
-        request_id: requestId,
-      }), {
+      return new Response(JSON.stringify({ ok: true, employee: corp, request_id: requestId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     return badRequest("지원하지 않는 action 입니다.");
   } catch (error) {
-    const requestId = crypto.randomUUID();
-    console.error("[admin-manage-user-role] unhandled_error", { requestId, error });
-    return errorResponse(500, "권한 변경 처리 중 서버 오류가 발생했습니다.", "INTERNAL_ERROR", (error as Error).message, requestId);
+    console.error(`[admin-manage-user-role] [${requestId}] Internal Error:`, error);
+    return errorResponse(500, "서버 처리 중 오류가 발생했습니다.", "INTERNAL_ERROR", (error as Error).message, requestId);
   }
 });

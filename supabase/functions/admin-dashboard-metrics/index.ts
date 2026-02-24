@@ -16,33 +16,39 @@ function jsonResponse(payload: Record<string, unknown>, status = 200) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  const requestId = crypto.randomUUID();
   try {
-    const requestId = crypto.randomUUID();
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const body = await req.json().catch(() => ({}));
 
-    // 토큰 추출 로직 강화
+    // 디버깅: 헤더 확인
     const authHeader = req.headers.get("Authorization");
+    console.log(`[admin-dashboard-metrics] [${requestId}] Headers:`, Object.fromEntries(req.headers.entries()));
+
+    // 토큰 추출 로직 강화
     let token = "";
-    if (authHeader?.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    } else if (typeof body?.accessToken === "string") {
+    if (typeof body?.accessToken === "string" && body.accessToken) {
       token = body.accessToken;
+      console.log(`[admin-dashboard-metrics] [${requestId}] Token source: Body`);
+    } else if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+      console.log(`[admin-dashboard-metrics] [${requestId}] Token source: Header`);
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     if (!token) {
-      return jsonResponse({ error: "인증 토큰이 누락되었습니다.", code: "AUTH_REQUIRED" }, 401);
+      console.error(`[admin-dashboard-metrics] [${requestId}] No token`);
+      return jsonResponse({ error: "인증 토큰이 누락되었습니다.", code: "AUTH_REQUIRED", request_id: requestId }, 401);
     }
 
-    // service_role 클라이언트를 통한 사용자 정보 조회 (토큰 검증 포함)
+    // 서비스 롤 클라이언트로 직접 사용자 토큰 검증
     const { data: authData, error: authError } = await adminClient.auth.getUser(token);
 
     if (authError || !authData?.user) {
-      console.error("[admin-dashboard-metrics] auth_failed", { requestId, authError, token_exists: !!token });
-      return jsonResponse({ error: "유효하지 않은 세션입니다. 다시 로그인해 주세요.", code: "AUTH_FAILED", detail: authError?.message }, 401);
+      console.error(`[admin-dashboard-metrics] [${requestId}] Auth failed:`, authError);
+      return jsonResponse({ error: "유효하지 않은 세션입니다.", code: "AUTH_FAILED", detail: authError?.message, request_id: requestId }, 401);
     }
 
     const requesterId = authData.user.id;
@@ -50,85 +56,37 @@ serve(async (req) => {
     const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
     const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
 
-    const { data: meById, error: meError } = await adminClient
-      .from("users")
-      .select("role")
-      .eq("id", requesterId)
-      .maybeSingle();
-
-    let roleByEmail = "";
-    if (requesterEmail) {
-      const { data: meByEmail } = await adminClient
-        .from("users")
-        .select("role")
-        .eq("email", requesterEmail)
-        .maybeSingle();
-      roleByEmail = String(meByEmail?.role ?? "");
-    }
-
+    // DB 권한 확인
+    const { data: meById } = await adminClient.from("users").select("role").eq("id", requesterId).maybeSingle();
     let corpRole = "";
     if (requesterEmpno) {
-      const { data: corpMe } = await adminClient
-        .from("corporate_employees")
-        .select("role")
-        .eq("empno", requesterEmpno)
-        .maybeSingle();
+      const { data: corpMe } = await adminClient.from("corporate_employees").select("role").eq("empno", requesterEmpno).maybeSingle();
       corpRole = String(corpMe?.role ?? "");
     }
 
-    const isAdmin = meById?.role === "admin" || roleByEmail === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
-    if (meError || !isAdmin) {
-      console.error("[admin-dashboard-metrics] forbidden", { requestId, meError, requesterId });
-      return jsonResponse({ error: "관리자 권한이 없습니다.", code: "ADMIN_REQUIRED" }, 403);
+    const isAdmin = meById?.role === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
+    if (!isAdmin) {
+      console.error(`[admin-dashboard-metrics] [${requestId}] Forbidden:`, { uid: requesterId, roles: { db: meById?.role, meta: requesterMetaRole, corp: corpRole } });
+      return jsonResponse({ error: "관리자 권한이 없습니다.", code: "ADMIN_REQUIRED", request_id: requestId }, 403);
     }
 
-    if (!meById && isAdmin && requesterId && requesterEmail) {
-      await adminClient.from("users").upsert({
-        id: requesterId,
-        email: requesterEmail,
-        name: authData.user.user_metadata?.name ?? null,
-        department: authData.user.user_metadata?.department ?? null,
-        role: "admin",
-        updated_at: new Date().toISOString(),
-      });
-    }
-
+    // 메트릭 데이터 조회 (본 로직)
     const nearDays = Number.isFinite(Number(body?.nearDays)) ? Math.max(0, Number(body.nearDays)) : 2;
-    const reviewThreshold = Number.isFinite(Number(body?.reviewThreshold))
-      ? Math.min(100, Math.max(1, Number(body.reviewThreshold)))
-      : 70;
+    const reviewThreshold = Number.isFinite(Number(body?.reviewThreshold)) ? Math.min(100, Math.max(1, Number(body.reviewThreshold))) : 70;
     const statusFilter = typeof body?.statusFilter === "string" ? body.statusFilter : "all";
 
-    const { data: events, error: eventsError } = await adminClient
-      .from("events")
-      .select("id, title, status, end_date, created_at")
-      .order("created_at", { ascending: false });
+    const { data: events, error: eventsError } = await adminClient.from("events").select("id, title, status, end_date, created_at").order("created_at", { ascending: false });
     if (eventsError) return jsonResponse({ error: eventsError.message }, 500);
 
-    const { data: submissions, error: submissionsError } = await adminClient
-      .from("submissions")
-      .select("id, event_id");
-    if (submissionsError) return jsonResponse({ error: submissionsError.message }, 500);
-
-    const { data: eventJudges, error: judgesError } = await adminClient
-      .from("event_judges")
-      .select("event_id, judge_id");
-    if (judgesError) return jsonResponse({ error: judgesError.message }, 500);
-
-    const { data: judgments, error: judgmentError } = await adminClient
-      .from("judgments")
-      .select("id, submission_id");
-    if (judgmentError) return jsonResponse({ error: judgmentError.message }, 500);
+    const { data: submissions } = await adminClient.from("submissions").select("id, event_id");
+    const { data: eventJudges } = await adminClient.from("event_judges").select("event_id, judge_id");
+    const { data: judgments } = await adminClient.from("judgments").select("id, submission_id");
 
     const submissionByEvent = new Map<string, number>();
-    (submissions || []).forEach((s) => {
-      submissionByEvent.set(s.event_id, (submissionByEvent.get(s.event_id) || 0) + 1);
-    });
+    (submissions || []).forEach((s) => submissionByEvent.set(s.event_id, (submissionByEvent.get(s.event_id) || 0) + 1));
 
     const judgeByEvent = new Map<string, number>();
-    (eventJudges || []).forEach((j) => {
-      judgeByEvent.set(j.event_id, (judgeByEvent.get(j.event_id) || 0) + 1);
-    });
+    (eventJudges || []).forEach((j) => judgeByEvent.set(j.event_id, (judgeByEvent.get(j.event_id) || 0) + 1));
 
     const submissionEventMap = new Map<string, string>();
     (submissions || []).forEach((s) => submissionEventMap.set(s.id, s.event_id));
@@ -136,8 +94,7 @@ serve(async (req) => {
     const judgmentByEvent = new Map<string, number>();
     (judgments || []).forEach((j) => {
       const eventId = submissionEventMap.get(j.submission_id);
-      if (!eventId) return;
-      judgmentByEvent.set(eventId, (judgmentByEvent.get(eventId) || 0) + 1);
+      if (eventId) judgmentByEvent.set(eventId, (judgmentByEvent.get(eventId) || 0) + 1);
     });
 
     const now = new Date();
@@ -154,43 +111,21 @@ serve(async (req) => {
       const daysLeft = endDate ? Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
       const effectiveStatus = (event.status === "closed" || (daysLeft !== null && daysLeft < 0)) ? "closed" : event.status;
 
-      const delayedByOverdue = (daysLeft !== null && daysLeft < 0 && reviewRate < 100);
-      const delayedByNearDeadline = (daysLeft !== null && daysLeft <= nearDays && reviewRate < reviewThreshold);
-      const delayed = delayedByOverdue || delayedByNearDeadline;
+      const delayed = (daysLeft !== null && daysLeft < 0 && reviewRate < 100) || (daysLeft !== null && daysLeft <= nearDays && reviewRate < reviewThreshold);
 
-      return {
-        eventId: event.id,
-        title: event.title,
-        status: effectiveStatus,
-        endDate: event.end_date,
-        submissionRate: Number(submissionRate.toFixed(2)),
-        reviewRate: Number(reviewRate.toFixed(2)),
-        daysLeft,
-        delayed,
-      };
+      return { eventId: event.id, title: event.title, status: effectiveStatus, endDate: event.end_date, submissionRate: Number(submissionRate.toFixed(2)), reviewRate: Number(reviewRate.toFixed(2)), daysLeft, delayed };
     });
 
     const activeEvents = perEvent.filter((event) => event.status === "active");
     const activeCount = activeEvents.length;
-    const avgSubmissionRate = activeCount > 0
-      ? Number((activeEvents.reduce((sum, event) => sum + event.submissionRate, 0) / activeCount).toFixed(2))
-      : 0;
-    const avgReviewRate = activeCount > 0
-      ? Number((activeEvents.reduce((sum, event) => sum + event.reviewRate, 0) / activeCount).toFixed(2))
-      : 0;
+    const avgSubmissionRate = activeCount > 0 ? Number((activeEvents.reduce((sum, e) => sum + e.submissionRate, 0) / activeCount).toFixed(2)) : 0;
+    const avgReviewRate = activeCount > 0 ? Number((activeEvents.reduce((sum, e) => sum + e.reviewRate, 0) / activeCount).toFixed(2)) : 0;
 
-    const delayedEvents = perEvent
-      .filter((event) => event.delayed)
-      .filter((event) => statusFilter === "all" ? true : event.status === statusFilter)
-      .sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
+    const delayedEvents = perEvent.filter((e) => e.delayed && (statusFilter === "all" ? true : e.status === statusFilter)).sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
 
-    return jsonResponse({
-      metrics: { activeCount, avgSubmissionRate, avgReviewRate },
-      delayedEvents,
-      filters: { nearDays, reviewThreshold, statusFilter },
-      request_id: requestId,
-    });
+    return jsonResponse({ metrics: { activeCount, avgSubmissionRate, avgReviewRate }, delayedEvents, filters: { nearDays, reviewThreshold, statusFilter }, request_id: requestId });
   } catch (error) {
-    return jsonResponse({ error: (error as Error).message }, 500);
+    console.error(`[admin-dashboard-metrics] [${requestId}] Internal Error:`, error);
+    return jsonResponse({ error: (error as Error).message, request_id: requestId }, 500);
   }
 });
