@@ -63,19 +63,7 @@ serve(async (req) => {
       );
     }
 
-    // 관리자 계정은 추가 인증 코드가 필요하다.
-    if (corpUser.role === "admin") {
-      const requiredAdminCode = Deno.env.get("ADMIN_CODE") || "OPCO_ADMIN_2024";
-      if (adminCode !== requiredAdminCode) {
-        return new Response(
-          JSON.stringify({ error: "관리자 인증 코드가 올바르지 않습니다." }),
-          {
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-    }
+    // 관리자도 동일 로그인 플로우를 사용한다. (추가 인증코드 미요구)
 
     const user = {
       empnm: corpUser.empnm,

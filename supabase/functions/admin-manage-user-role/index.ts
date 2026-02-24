@@ -55,15 +55,40 @@ serve(async (req) => {
     }
 
     const requesterId = authData.user.id;
+    const requesterEmail = authData.user.email ?? "";
+    const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
+    const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
     const { data: me, error: meError } = await adminClient
       .from("users")
       .select("role")
       .eq("id", requesterId)
       .maybeSingle();
 
-    if (meError || me?.role !== "admin") {
+    let corpRole = "";
+    if (requesterEmpno) {
+      const { data: corpMe } = await adminClient
+        .from("corporate_employees")
+        .select("role")
+        .eq("empno", requesterEmpno)
+        .maybeSingle();
+      corpRole = String(corpMe?.role ?? "");
+    }
+
+    const isAdmin = me?.role === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
+    if (meError || !isAdmin) {
       console.error("[admin-manage-user-role] forbidden", { requestId, meError, requesterId });
       return errorResponse(403, "관리자 권한이 없습니다.", "ADMIN_REQUIRED", meError?.message, requestId);
+    }
+
+    if (!me && isAdmin && requesterId && requesterEmail) {
+      await adminClient.from("users").upsert({
+        id: requesterId,
+        email: requesterEmail,
+        name: authData.user.user_metadata?.name ?? null,
+        department: authData.user.user_metadata?.department ?? null,
+        role: "admin",
+        updated_at: new Date().toISOString(),
+      });
     }
 
     const action = body?.action;

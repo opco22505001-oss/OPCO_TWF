@@ -136,6 +136,16 @@
                 <textarea
                     class="w-full rounded border-border-light bg-white px-4 py-3 text-text-main placeholder:text-text-muted/60 focus:border-primary focus:ring-1 focus:ring-primary transition-all font-display shadow-sm resize-none"
                     id="event-desc" placeholder="???대깽?몄쓽 紐⑹쟻怨?紐⑺몴瑜?媛꾨왂?섍쾶 湲곗닠?섏꽭??.." rows="4"></textarea>
+                <p class="text-[11px] text-text-muted">클립보드 이미지 붙여넣기(Ctrl+V)를 지원합니다.</p>
+                <div class="flex items-center gap-2">
+                    <button id="btn-insert-desc-image" type="button"
+                        class="inline-flex items-center gap-1 rounded-md border border-border-light bg-white px-3 py-1.5 text-xs font-semibold text-text-main hover:bg-gray-50">
+                        <span class="material-symbols-outlined text-[16px]">image</span>
+                        설명에 이미지 삽입
+                    </button>
+                    <span class="text-[11px] text-text-muted">로컬 이미지를 본문에 바로 삽입합니다.</span>
+                </div>
+                <input id="desc-image-file" type="file" accept="image/*" class="hidden" />
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="flex flex-col gap-2">
@@ -312,6 +322,86 @@
             const judgeSearch = document.getElementById('judge-search');
             const criteriaList = document.getElementById('criteria-list');
             const btnAddCriteria = document.getElementById('btn-add-criteria');
+            const eventDescInput = document.getElementById('event-desc');
+            const btnInsertDescImage = document.getElementById('btn-insert-desc-image');
+            const descImageFileInput = document.getElementById('desc-image-file');
+
+            async function uploadInlineDescriptionImage(file) {
+                if (!file.type.startsWith('image/')) {
+                    throw new Error('이미지 파일만 삽입할 수 있습니다.');
+                }
+                if (file.size > 20 * 1024 * 1024) {
+                    throw new Error('이미지 파일은 20MB 이하만 허용됩니다.');
+                }
+
+                const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+                const safeExt = ext.replace(/[^a-z0-9]/g, '') || 'png';
+                const fileName = `desc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+                const filePath = `event-descriptions/${fileName}`;
+
+                const { error: uploadError } = await supabaseClient.storage
+                    .from('event-attachments')
+                    .upload(filePath, file, { upsert: false });
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabaseClient.storage
+                    .from('event-attachments')
+                    .getPublicUrl(filePath);
+
+                return publicUrl;
+            }
+
+            function insertDescriptionImageTag(url, alt = 'description-image') {
+                if (!eventDescInput) return;
+                const start = eventDescInput.selectionStart || 0;
+                const end = eventDescInput.selectionEnd || 0;
+                const imageTag = `\n<img src="${url}" alt="${alt}" style="max-width:100%;" />\n`;
+                const prev = eventDescInput.value || '';
+                eventDescInput.value = prev.slice(0, start) + imageTag + prev.slice(end);
+                const cursor = start + imageTag.length;
+                eventDescInput.focus();
+                eventDescInput.setSelectionRange(cursor, cursor);
+            }
+
+            if (eventDescInput) {
+                eventDescInput.addEventListener('paste', async (e) => {
+                    const clipboard = e.clipboardData;
+                    if (!clipboard?.items?.length) return;
+
+                    const imageItem = Array.from(clipboard.items).find((item) => item.type.startsWith('image/'));
+                    if (!imageItem) return;
+
+                    const file = imageItem.getAsFile();
+                    if (!file) return;
+
+                    e.preventDefault();
+
+                    try {
+                        const url = await uploadInlineDescriptionImage(file);
+                        insertDescriptionImageTag(url, 'pasted-image');
+                    } catch (pasteErr) {
+                        console.error('[EventCreate] 이미지 붙여넣기 업로드 실패:', pasteErr);
+                        alert(pasteErr?.message || '이미지 붙여넣기 업로드에 실패했습니다.');
+                    }
+                });
+            }
+
+            if (btnInsertDescImage && descImageFileInput) {
+                btnInsertDescImage.addEventListener('click', () => descImageFileInput.click());
+                descImageFileInput.addEventListener('change', async () => {
+                    const file = descImageFileInput.files?.[0];
+                    if (!file) return;
+                    try {
+                        const url = await uploadInlineDescriptionImage(file);
+                        insertDescriptionImageTag(url, file.name || 'description-image');
+                    } catch (err) {
+                        console.error('[EventCreate] 설명 이미지 삽입 실패:', err);
+                        alert(err?.message || '설명 이미지 삽입에 실패했습니다.');
+                    } finally {
+                        descImageFileInput.value = '';
+                    }
+                });
+            }
 
             // ?섏젙 紐⑤뱶????UI 蹂寃?
             if (isEditMode) {

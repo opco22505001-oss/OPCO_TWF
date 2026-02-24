@@ -381,7 +381,23 @@
 
             const statusMap = { active: '진행중', draft: '초안', completed: '완료', closed: '마감' };
             document.getElementById('event-status-badge').textContent = statusMap[event.status] || event.status;
-            document.getElementById('event-desc').textContent = event.description || '상세 설명이 없습니다.';
+            const descEl = document.getElementById('event-desc');
+            const rawDesc = event.description || '상세 설명이 없습니다.';
+            const hasHtml = /<[^>]+>/.test(rawDesc);
+            if (descEl) {
+                if (hasHtml) {
+                    descEl.innerHTML = rawDesc;
+                } else {
+                    const escaped = rawDesc
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/\"/g, '&quot;')
+                        .replace(/'/g, '&#39;')
+                        .replace(/\n/g, '<br>');
+                    descEl.innerHTML = escaped;
+                }
+            }
             document.getElementById('sidebar-deadline').textContent = end || '미정';
 
             if (event.end_date) {

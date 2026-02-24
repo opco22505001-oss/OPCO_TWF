@@ -220,7 +220,6 @@
             const roleEmployee = document.getElementById('role-employee').checked;
             const loginId = document.getElementById('loginId').value;
             const secondInput = document.getElementById('secondInput').value; // 이름
-            const adminCode = document.getElementById('admin_code').value; // 관리자 인증 코드
 
             const button = event.target.querySelector('button');
             const originalText = button.textContent;
@@ -235,8 +234,7 @@
                 const { data, error } = await supabaseClient.functions.invoke('auth-login', {
                     body: {
                         empno: loginId,
-                        empnm: secondInput,
-                        adminCode: roleEmployee ? undefined : adminCode
+                        empnm: secondInput
                     }
                 });
 
