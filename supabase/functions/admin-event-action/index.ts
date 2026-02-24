@@ -211,10 +211,12 @@ serve(async (req) => {
     }
 
     if (action === "delete_event") {
-      const { error: deleteError } = await adminClient
-        .from("events")
-        .delete()
-        .eq("id", eventId);
+      const { data: deletePayload, error: deleteError } = await adminClient
+        .rpc("admin_delete_event_with_backup", {
+          p_event_id: eventId,
+          p_actor_user_id: requesterId,
+          p_reason: "admin_event_action.delete_event",
+        });
 
       if (deleteError) return jsonResponse({ error: deleteError.message }, 500);
 
@@ -226,10 +228,11 @@ serve(async (req) => {
         metadata: {
           title: eventRow.title,
           prevStatus: eventRow.status,
+          backup: deletePayload ?? null,
         },
       });
 
-      return jsonResponse({ ok: true, action, eventId });
+      return jsonResponse({ ok: true, action, eventId, backup: deletePayload ?? null });
     }
 
     return jsonResponse({ error: "지원하지 않는 action 입니다." }, 400);
