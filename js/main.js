@@ -100,7 +100,7 @@ async function fetchEvents(statusFilter = 'all') {
         const end = event.end_date ? new Date(event.end_date) : null;
         if (end) end.setHours(0, 0, 0, 0);
         const isPastEnd = !!(end && end.getTime() < today.getTime());
-        const effectiveStatus = (event.status === 'closed' || isPastEnd) ? 'closed' : (event.status || 'draft');
+        const effectiveStatus = (event.status === 'closed' || isPastEnd) ? 'closed' : 'active';
         return { ...event, effective_status: effectiveStatus };
     });
 

@@ -1,447 +1,222 @@
-<!-- 대시보드 (이벤트 목록) -->
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
-
 <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>오리엔탈정공 | OPCO : TWF 이벤트 심사 시스템</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap"
-        rel="stylesheet" />
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#00897B",
-                        "primary-hover": "#00695C",
-                        "primary-light": "#E0F2F1",
-                        "background-light": "#F8FAFC",
-                        "background-dark": "#0F172A",
-                        "surface-light": "#FFFFFF",
-                        "surface-dark": "#1E293B",
-                        "text-main": "#0F172A",
-                        "text-muted": "#64748B",
-                        "border-light": "#E2E8F0",
-                        "success": "#10B981",
-                        "warning": "#F59E0B",
-                    },
-                    fontFamily: {
-                        "sans": ["Noto Sans KR", "Inter", "sans-serif"],
-                        "display": ["Inter", "Noto Sans KR", "sans-serif"],
-                        "mono": ["JetBrains Mono", "monospace"],
-                    },
-                    boxShadow: {
-                        "sm": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-                        "card": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-                    },
-                },
-            },
-        }
-    </script>
-    <style type="text/tailwindcss">
-        body {
-            font-family: 'Noto Sans KR', 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-        }
-        .font-mono-data {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OPCO : TWF 이벤트 심사 시스템</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#00897B",
+            "primary-hover": "#00695C",
+            "primary-light": "#E0F2F1",
+            "background-light": "#F8FAFC",
+            "background-dark": "#0F172A",
+            "surface-light": "#FFFFFF",
+            "surface-dark": "#1E293B",
+            "text-main": "#0F172A",
+            "text-muted": "#64748B",
+            "border-light": "#E2E8F0",
+          },
+          fontFamily: {
+            sans: ["Noto Sans KR", "Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"],
+          },
+        },
+      },
+    };
+  </script>
 </head>
-
 <body class="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen flex flex-col">
-    <header
-        class="bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-gray-700 sticky top-0 z-30">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center gap-4">
-                    <div class="flex-shrink-0 flex items-center gap-2">
-                        <div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
-                            <span class="material-symbols-outlined text-xl">precision_manufacturing</span>
-                        </div>
-                        <span class="font-bold text-lg tracking-tight text-text-main dark:text-white">OPCO : TWF 이벤트 심사
-                            시스템</span>
-                    </div>
-                    <div class="hidden md:flex h-6 w-px bg-border-light mx-2"></div>
-                    <nav class="hidden md:flex space-x-4">
-                        <a class="text-text-main dark:text-white px-3 py-2 rounded-md text-sm font-medium bg-background-light dark:bg-gray-800"
-                            href="dashboard.html">이벤트 목록</a>
-                        <a class="text-text-muted hover:text-primary dark:hover:text-primary-light px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                            href="mypage.html">마이 페이지</a>
-                        <a class="admin-only-tab hidden text-text-muted hover:text-primary dark:hover:text-primary-light px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                            href="admin.html">관리자</a>
-                    </nav>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button
-                        class="p-2 rounded-full text-text-muted hover:bg-background-light dark:hover:bg-gray-800 transition-colors relative">
-                        <span class="material-symbols-outlined text-[20px]">notifications</span>
-                        <span
-                            class="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-                    </button>
-                    <div class="h-6 w-px bg-border-light"></div>
-                    <div class="flex items-center gap-3 cursor-pointer group"
-                        onclick="window.location.href='mypage.html'">
-                        <div class="text-right hidden sm:block">
-                            <p id="header-user-name"
-                                class="text-sm font-medium text-text-main dark:text-white leading-none">불러오는 중...</p>
-                            <p id="header-user-role" class="text-xs text-text-muted mt-1">로그인 필요</p>
-                        </div>
-                        <div id="header-avatar"
-                            class="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-bold border border-border-light">
-                            U
-                        </div>
-                    </div>
-                </div>
+  <header class="bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-gray-700 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center gap-4">
+          <div class="flex-shrink-0 flex items-center gap-2">
+            <div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
+              <span class="material-symbols-outlined text-xl">precision_manufacturing</span>
             </div>
+            <span class="font-bold text-lg tracking-tight text-text-main dark:text-white">OPCO : TWF</span>
+          </div>
+          <div class="hidden md:flex h-6 w-px bg-border-light mx-2"></div>
+          <nav class="hidden md:flex space-x-4">
+            <a class="text-text-main dark:text-white px-3 py-2 rounded-md text-sm font-medium bg-background-light dark:bg-gray-800" href="dashboard.html">이벤트 목록</a>
+            <a class="text-text-muted hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors" href="mypage.html">마이페이지</a>
+            <a class="admin-only-tab hidden text-text-muted hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors" href="admin.html">관리자</a>
+          </nav>
         </div>
-    </header>
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <nav aria-label="Breadcrumb" class="flex mb-6">
-            <ol class="flex items-center space-x-2">
-                <li>
-                    <a class="text-text-muted hover:text-text-main" href="#">
-                        <span class="material-symbols-outlined text-sm">home</span>
-                    </a>
-                </li>
-                <li><span class="text-text-muted text-sm">/</span></li>
-                <li><span class="text-sm font-medium text-primary">심사 대시보드</span></li>
-            </ol>
-        </nav>
-        <div class="md:flex md:items-center md:justify-between mb-8">
-            <div class="min-w-0 flex-1">
-                <h1
-                    class="text-2xl font-bold leading-7 text-text-main dark:text-white sm:truncate sm:text-3xl sm:tracking-tight">
-                    TWF 이벤트 대시보드</h1>
-                <p class="mt-2 text-sm text-text-muted">현재 진행 중인 챌린지 및 등록된 기술 제안서의 심사 현황을 관리합니다.</p>
+        <div class="flex items-center gap-4">
+          <button class="p-2 rounded-full text-text-muted hover:bg-background-light transition-colors relative">
+            <span class="material-symbols-outlined text-[20px]">notifications</span>
+            <span class="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+          </button>
+          <div class="h-6 w-px bg-border-light"></div>
+          <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='mypage.html'">
+            <div class="text-right hidden sm:block">
+              <p id="header-user-name" class="text-sm font-medium text-text-main dark:text-white leading-none">불러오는 중...</p>
+              <p id="header-user-role" class="text-xs text-text-muted mt-1">로그인 필요</p>
             </div>
-            <div class="mt-4 flex md:ml-4 md:mt-0">
-                <button
-                    class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors"
-                    type="button" onclick="window.location.href='event-creation-modal.html'">
-                    <span class="material-symbols-outlined text-sm">add</span>
-                    신규 이벤트 등록
-                </button>
-            </div>
+            <div id="header-avatar" class="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-bold">U</div>
+          </div>
         </div>
-        <div
-            class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 p-1 mb-8 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex w-full md:w-auto p-1 bg-background-light dark:bg-gray-800 rounded-md">
-                <button
-                    class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-main bg-white dark:bg-gray-700 shadow-sm transition-all">
-                    진행 중
-                </button>
-                <button
-                    class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all">
-                    전체
-                </button>
-                <button
-                    class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all">
-                    종료됨
-                </button>
-            </div>
-            <div class="flex w-full md:w-auto gap-3 px-2 pb-2 md:pb-0">
-                <div class="relative flex-grow md:flex-grow-0 md:w-64">
-                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <span class="material-symbols-outlined text-text-muted text-[18px]">search</span>
-                    </div>
-                    <input
-                        class="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-text-main shadow-sm ring-1 ring-inset ring-border-light placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 dark:bg-gray-800 dark:ring-gray-700 dark:text-white"
-                        placeholder="이벤트명 또는 키워드 검색..." type="text" />
-                </div>
-                <button
-                    class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-text-main shadow-sm ring-1 ring-inset ring-border-light hover:bg-background-light dark:hover:bg-gray-700">
-                    <span class="material-symbols-outlined text-[18px]">filter_list</span>
-                    상세 필터
-                </button>
-            </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="md:flex md:items-center md:justify-between mb-8">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-2xl font-bold sm:text-3xl">이벤트 대시보드</h1>
+        <p class="mt-2 text-sm text-text-muted">진행 중인 이벤트와 종료 이벤트를 확인하세요.</p>
+      </div>
+      <div class="mt-4 md:mt-0">
+        <button class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover transition-colors" type="button" onclick="window.location.href='event-creation-modal.html'">
+          <span class="material-symbols-outlined text-sm">add</span>
+          새 이벤트 등록
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-surface-light rounded-lg border border-border-light p-1 mb-8 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex w-full md:w-auto p-1 bg-background-light rounded-md">
+        <button id="btn-filter-all" data-filter="all" class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-main bg-white shadow-sm transition-all">전체</button>
+        <button id="btn-filter-active" data-filter="active" class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all">진행중</button>
+        <button id="btn-filter-closed" data-filter="closed" class="flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all">종료됨</button>
+      </div>
+      <div class="flex w-full md:w-auto gap-3 px-2 pb-2 md:pb-0">
+        <div class="relative flex-grow md:w-72">
+          <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <span class="material-symbols-outlined text-text-muted text-[18px]">search</span>
+          </div>
+          <input id="event-search-input" class="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-text-main shadow-sm ring-1 ring-inset ring-border-light placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm" placeholder="이벤트명 또는 키워드 검색" type="text" />
         </div>
-        <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- 이벤트 목록이 여기에 로드됩니다 -->
-            <article
-                class="bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light dark:border-gray-600 shadow-sm hover:border-primary hover:bg-primary-light/10 transition-all duration-200 group flex flex-col h-full items-center justify-center p-6 min-h-[250px] cursor-pointer"
-                onclick="window.location.href='event-creation-modal.html'">
-                <div
-                    class="w-12 h-12 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center mb-4 group-hover:bg-white group-hover:text-primary transition-colors">
-                    <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-2xl">add</span>
-                </div>
-                <h3 class="text-base font-medium text-text-main dark:text-white">새 이벤트 생성</h3>
-                <p class="text-xs text-text-muted mt-2 text-center">조직을 위한 새로운 TWF 혁신 챌린지를 시작하세요.</p>
-            </article>
-        </div>
-    </main>
+      </div>
+    </div>
 
-    <script src="js/main.js"></script>
-    <script>
-        // 대시보드 이벤트 로드 메인 함수
-        async function initDashboard() {
-            const eventList = document.getElementById('event-list');
-            if (!eventList) return;
+    <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </main>
 
-            // window.fetchEvents가 준비될 때까지 안전하게 대기
-            if (typeof window.fetchEvents !== 'function') {
-                console.warn('[Dashboard] fetchEvents not found, retrying...');
-                setTimeout(initDashboard, 100);
-                return;
-            }
+  <script src="js/main.js"></script>
+  <script>
+    let dashboardEvents = [];
+    let currentFilter = 'all';
+    let currentKeyword = '';
 
-            try {
-                console.log('[Dashboard] Fetching events...');
-                const events = await window.fetchEvents();
-                console.log('[Dashboard] Fetched events:', events);
+    function toEffectiveStatus(event) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endDate = event.end_date ? new Date(event.end_date) : null;
+      if (endDate) endDate.setHours(0, 0, 0, 0);
+      if (event.status === 'closed') return 'closed';
+      if (endDate && endDate < today) return 'closed';
+      return 'active';
+    }
 
-                const newEventCardHtml = `
-                <article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light dark:border-gray-600 shadow-sm hover:border-primary hover:bg-primary-light/10 transition-all duration-200 group flex flex-col h-full items-center justify-center p-6 min-h-[250px] cursor-pointer" onclick="window.location.href='event-creation-modal.html'">
-                    <div class="w-12 h-12 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center mb-4 group-hover:bg-white group-hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-2xl">add</span>
-                    </div>
-                    <h3 class="text-base font-medium text-text-main dark:text-white">새 이벤트 생성</h3>
-                    <p class="text-xs text-text-muted mt-2 text-center">조직을 위한 새로운 TWF 혁신 챌린지를 시작하세요.</p>
-                </article>`;
+    function getBadge(status) {
+      if (status === 'active') return '<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700"><span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>진행중</span>';
+      return '<span class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700"><span class="h-1.5 w-1.5 rounded-full bg-gray-500"></span>종료됨</span>';
+    }
 
-                if (!events || events.length === 0) {
-                    console.warn('No events found or returned.');
-                    eventList.innerHTML = `<div class="col-span-full p-10 text-center text-text-muted bg-white rounded-lg border border-dashed border-border-light">등록된 이벤트가 없습니다.</div>` + newEventCardHtml;
-                    return;
-                }
-
-                const eventCards = events.map(event => {
-                    let statusBadge = '';
-                    if (event.status === 'active') {
-                        statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"><span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>진행 중</span>`;
-                    } else if (event.status === 'draft') {
-                        statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20"><span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span>작성 중</span>`;
-                    } else {
-                        statusBadge = `<span class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"><span class="h-1.5 w-1.5 rounded-full bg-gray-500"></span>종료됨</span>`;
-                    }
-
-                    return `
-            <article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full" onclick="navigateToEvent('${event.id}')">
-                <div class="p-6 flex-1">
-                    <div class="flex justify-between items-start mb-4">
-                        ${statusBadge}
-                        <div class="relative admin-menu-wrap" style="display:none;">
-                            <button class="p-1 rounded text-text-muted hover:text-primary hover:bg-gray-100 transition-colors" onclick="event.stopPropagation(); toggleAdminMenu(this)" title="관리">
-                                <span class="material-symbols-outlined text-[20px]">more_horiz</span>
-                            </button>
-                            <div class="admin-dropdown hidden absolute right-0 top-8 w-36 bg-white border border-border-light rounded-lg shadow-lg z-50 overflow-hidden">
-                                <button class="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center gap-2 text-text-main" onclick="event.stopPropagation(); openEditEvent('${event.id}')">
-                                    <span class="material-symbols-outlined text-[16px]">edit</span> 수정
-                                </button>
-                                <button class="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 flex items-center gap-2 text-red-600" onclick="event.stopPropagation(); confirmDeleteEvent('${event.id}', '${event.title.replace(/'/g, "\\'")}')">
-                                    <span class="material-symbols-outlined text-[16px]">delete</span> 삭제
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <h3 class="text-lg font-semibold text-text-main dark:text-white mb-2 leading-tight">${event.title}</h3>
-                    <p class="text-sm text-text-muted mb-4 line-clamp-2">${event.description || ''}</p>
-                    <div class="flex items-center gap-2 text-xs text-text-muted font-mono-data bg-background-light dark:bg-gray-800 px-3 py-2 rounded border border-border-light dark:border-gray-700 mb-4">
-                        <span class="material-symbols-outlined text-[14px]">calendar_today</span>
-                        <span>${formatDate(event.start_date)}</span>
-                        <span class="text-gray-300">|</span>
-                        <span>${formatDate(event.end_date)}</span>
-                    </div>
-                </div>
-                <div class="border-t border-border-light dark:border-gray-700 px-6 py-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-lg">
-                    <div class="flex justify-between items-center">
-                         <div class="flex gap-4 text-xs font-medium text-text-muted">
-                            <div class="flex items-center gap-1" title="제안 수">
-                                <span class="material-symbols-outlined text-[16px]">description</span>
-                                - 건
-                            </div>
-                         </div>
-                        <a class="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition-colors cursor-pointer" onclick="event.stopPropagation(); navigateToEvent('${event.id}')">
-                            상세 보기
-                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                        </a>
-                    </div>
-                </div>
-            </article>`;
-                }).join('');
-
-                eventList.innerHTML = eventCards + newEventCardHtml;
-
-                // 관리자인 경우 관리 메뉴 노출
-                if (window.setupUI) await window.setupUI();
-                if (window.__isAdmin) {
-                    document.querySelectorAll('.admin-menu-wrap').forEach(el => el.style.display = 'block');
-                }
-
-            } catch (err) {
-                console.error('[Dashboard] Error during initialization:', err);
-                eventList.innerHTML = `<div class="col-span-full p-10 text-center text-red-500">데이터 로드 중 오류가 발생했습니다: ${err.message}</div>`;
-            }
+    function setFilterButtonState() {
+      const mapping = {
+        all: document.getElementById('btn-filter-all'),
+        active: document.getElementById('btn-filter-active'),
+        closed: document.getElementById('btn-filter-closed'),
+      };
+      Object.entries(mapping).forEach(([key, btn]) => {
+        if (!btn) return;
+        if (key === currentFilter) {
+          btn.className = 'flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-main bg-white shadow-sm transition-all';
+        } else {
+          btn.className = 'flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all';
         }
+      });
+    }
 
-        // 관리 메뉴 토글
-        window.toggleAdminMenu = (btn) => {
-            const dropdown = btn.nextElementSibling;
-            // 다른 열린 드롭다운 닫기
-            document.querySelectorAll('.admin-dropdown').forEach(d => {
-                if (d !== dropdown) d.classList.add('hidden');
-            });
-            dropdown.classList.toggle('hidden');
-        };
+    function renderEvents() {
+      const list = document.getElementById('event-list');
+      if (!list) return;
 
-        // 드롭다운 외부 클릭 시 닫기
-        document.addEventListener('click', () => {
-            document.querySelectorAll('.admin-dropdown').forEach(d => d.classList.add('hidden'));
+      const filtered = dashboardEvents.filter((event) => {
+        const status = event.effective_status || toEffectiveStatus(event);
+        if (currentFilter !== 'all' && status !== currentFilter) return false;
+        if (!currentKeyword) return true;
+        const haystack = `${event.title || ''} ${event.description || ''}`.toLowerCase();
+        return haystack.includes(currentKeyword);
+      });
+
+      const createCard = `
+        <article class="bg-surface-light rounded-lg border border-dashed border-border-light shadow-sm hover:border-primary hover:bg-primary-light/10 transition-all duration-200 group flex flex-col h-full items-center justify-center p-6 min-h-[250px] cursor-pointer" onclick="window.location.href='event-creation-modal.html'">
+          <div class="w-12 h-12 rounded-full bg-background-light flex items-center justify-center mb-4 group-hover:bg-white group-hover:text-primary transition-colors">
+            <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-2xl">add</span>
+          </div>
+          <h3 class="text-base font-medium text-text-main">새 이벤트 생성</h3>
+          <p class="text-xs text-text-muted mt-2 text-center">새 TWF 이벤트를 시작합니다.</p>
+        </article>`;
+
+      if (!filtered.length) {
+        list.innerHTML = `<div class="col-span-full p-10 text-center text-text-muted bg-white rounded-lg border border-dashed border-border-light">조건에 맞는 이벤트가 없습니다.</div>${createCard}`;
+        return;
+      }
+
+      const cards = filtered.map((event) => {
+        const status = event.effective_status || toEffectiveStatus(event);
+        return `
+        <article class="bg-surface-light rounded-lg border border-border-light shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full" onclick="navigateToEvent('${event.id}')">
+          <div class="p-6 flex-1">
+            <div class="mb-4">${getBadge(status)}</div>
+            <h3 class="text-lg font-semibold text-text-main mb-2 leading-tight">${event.title || '-'}</h3>
+            <p class="text-sm text-text-muted mb-4 line-clamp-2">${event.description || ''}</p>
+            <div class="flex items-center gap-2 text-xs text-text-muted font-mono bg-background-light px-3 py-2 rounded border border-border-light mb-4">
+              <span class="material-symbols-outlined text-[14px]">calendar_today</span>
+              <span>${formatDate(event.start_date)}</span>
+              <span class="text-gray-300">|</span>
+              <span>${formatDate(event.end_date)}</span>
+            </div>
+          </div>
+          <div class="border-t border-border-light px-6 py-4 bg-gray-50/50 rounded-b-lg">
+            <div class="flex justify-end items-center text-sm font-semibold text-primary">상세 보기</div>
+          </div>
+        </article>`;
+      }).join('');
+
+      list.innerHTML = cards + createCard;
+    }
+
+    async function initDashboard() {
+      if (typeof window.fetchEvents !== 'function') {
+        setTimeout(initDashboard, 100);
+        return;
+      }
+
+      const events = await window.fetchEvents('all');
+      dashboardEvents = (events || []).map((event) => ({ ...event, effective_status: event.effective_status || toEffectiveStatus(event) }));
+
+      document.querySelectorAll('[data-filter]')?.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          currentFilter = btn.dataset.filter || 'all';
+          setFilterButtonState();
+          renderEvents();
         });
+      });
+      document.getElementById('event-search-input')?.addEventListener('input', (e) => {
+        currentKeyword = (e.target.value || '').trim().toLowerCase();
+        renderEvents();
+      });
 
-        // 이벤트 삭제 확인
-        window.confirmDeleteEvent = async (id, title) => {
-            if (confirm(`'${title}' 이벤트를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
-                const { error } = await window.deleteEvent(id);
-                if (error) {
-                    alert('삭제 실패: ' + error.message);
-                } else {
-                    alert('성공적으로 삭제되었습니다.');
-                    location.reload();
-                }
-            }
-        };
+      setFilterButtonState();
+      renderEvents();
+      if (window.setupUI) await window.setupUI();
+    }
 
-        // 이벤트 수정 열기 (상세 페이지에서 처리하거나 모달로 연결)
-        window.openEditEvent = (id) => {
-            // 현재는 간단하게 상세 페이지로 이동하도록 하되, 
-            // 나중에 모달을 띄우거나 edit 모드로 진입하는 로직 가능
-            window.location.href = `event-detail.html?id=${id}&edit=true`;
-        };
-
-        // 페이지 로드 시 초기화 실행
-        document.addEventListener('DOMContentLoaded', initDashboard);
-    </script>
-    <script>
-        (function () {
-            let eventsCache = [];
-            let statusFilter = 'all';
-            let keyword = '';
-
-            function getEffectiveStatus(event) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const endDate = event.end_date ? new Date(event.end_date) : null;
-                if (endDate) endDate.setHours(0, 0, 0, 0);
-                if (event.status === 'closed') return 'closed';
-                if (endDate && endDate < today) return 'closed';
-                if (event.status === 'active') return 'active';
-                return 'draft';
-            }
-
-            function statusBadge(status) {
-                if (status === 'active') {
-                    return `<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"><span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>진행중</span>`;
-                }
-                return `<span class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"><span class="h-1.5 w-1.5 rounded-full bg-gray-500"></span>종료됨</span>`;
-            }
-
-            function render() {
-                const eventList = document.getElementById('event-list');
-                if (!eventList) return;
-
-                const filtered = eventsCache.filter((event) => {
-                    if (statusFilter !== 'all' && event.effective_status !== statusFilter) return false;
-                    if (!keyword) return true;
-                    const haystack = `${event.title || ''} ${event.description || ''}`.toLowerCase();
-                    return haystack.includes(keyword);
-                });
-
-                const createCard = `
-                <article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-dashed border-border-light dark:border-gray-600 shadow-sm hover:border-primary hover:bg-primary-light/10 transition-all duration-200 group flex flex-col h-full items-center justify-center p-6 min-h-[250px] cursor-pointer" onclick="window.location.href='event-creation-modal.html'">
-                    <div class="w-12 h-12 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center mb-4 group-hover:bg-white group-hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-2xl">add</span>
-                    </div>
-                    <h3 class="text-base font-medium text-text-main dark:text-white">새 이벤트 생성</h3>
-                    <p class="text-xs text-text-muted mt-2 text-center">새 TWF 이벤트를 시작합니다.</p>
-                </article>`;
-
-                if (!filtered.length) {
-                    eventList.innerHTML = `<div class="col-span-full p-10 text-center text-text-muted bg-white rounded-lg border border-dashed border-border-light">조건에 맞는 이벤트가 없습니다.</div>` + createCard;
-                    return;
-                }
-
-                const cards = filtered.map((event) => `
-                    <article class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full" onclick="navigateToEvent('${event.id}')">
-                        <div class="p-6 flex-1">
-                            <div class="flex justify-between items-start mb-4">
-                                ${statusBadge(event.effective_status)}
-                            </div>
-                            <h3 class="text-lg font-semibold text-text-main dark:text-white mb-2 leading-tight">${event.title || '-'}</h3>
-                            <p class="text-sm text-text-muted mb-4 line-clamp-2">${event.description || ''}</p>
-                            <div class="flex items-center gap-2 text-xs text-text-muted font-mono-data bg-background-light dark:bg-gray-800 px-3 py-2 rounded border border-border-light dark:border-gray-700 mb-4">
-                                <span class="material-symbols-outlined text-[14px]">calendar_today</span>
-                                <span>${formatDate(event.start_date)}</span>
-                                <span class="text-gray-300">|</span>
-                                <span>${formatDate(event.end_date)}</span>
-                            </div>
-                        </div>
-                        <div class="border-t border-border-light dark:border-gray-700 px-6 py-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-lg">
-                            <div class="flex justify-end items-center">
-                                <span class="text-sm font-semibold text-primary">상세 보기</span>
-                            </div>
-                        </div>
-                    </article>
-                `).join('');
-
-                eventList.innerHTML = cards + createCard;
-            }
-
-            async function setupEnhancedDashboard() {
-                if (typeof window.fetchEvents !== 'function') return;
-                eventsCache = (await window.fetchEvents('all')).map((event) => ({
-                    ...event,
-                    effective_status: event.effective_status || getEffectiveStatus(event),
-                }));
-
-                const toolbar = document.querySelector('main .bg-surface-light.dark\\:bg-surface-dark.rounded-lg.border.border-border-light.dark\\:border-gray-700.p-1.mb-8.shadow-sm');
-                if (toolbar) {
-                    const tabButtons = toolbar.querySelectorAll('div.flex.w-full.md\\:w-auto.p-1 button');
-                    const searchInput = toolbar.querySelector('input[type="text"]');
-
-                    if (tabButtons.length >= 3) {
-                        const values = ['all', 'active', 'closed'];
-                        tabButtons.forEach((btn, i) => {
-                            btn.addEventListener('click', () => {
-                                statusFilter = values[i];
-                                tabButtons.forEach((b, idx) => {
-                                    b.className = idx === i
-                                        ? 'flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-main bg-white dark:bg-gray-700 shadow-sm transition-all'
-                                        : 'flex-1 md:flex-none px-4 py-1.5 text-sm font-medium rounded text-text-muted hover:text-text-main transition-all';
-                                });
-                                render();
-                            });
-                        });
-                    }
-
-                    if (searchInput) {
-                        searchInput.placeholder = 'Search events';
-                        searchInput.addEventListener('input', (e) => {
-                            keyword = (e.target.value || '').trim().toLowerCase();
-                            render();
-                        });
-                    }
-                }
-
-                render();
-            }
-
-            document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(setupEnhancedDashboard, 0);
-            });
-        })();
-    </script>
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
 </body>
-
 </html>
