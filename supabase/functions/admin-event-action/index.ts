@@ -13,6 +13,10 @@ function jsonResponse(payload: Record<string, unknown>, status = 200) {
   });
 }
 
+function sumScore(scoreObj: Record<string, unknown> | null | undefined) {
+  return Object.values(scoreObj || {}).reduce((sum, value) => sum + (Number(value) || 0), 0);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -59,7 +63,7 @@ serve(async (req) => {
 
     const { data: eventRow, error: eventError } = await adminClient
       .from("events")
-      .select("id, title, status, result_finalized")
+      .select("id, title, status, result_finalized, is_blind_judging")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -101,11 +105,62 @@ serve(async (req) => {
         return jsonResponse({ error: "이미 결과 확정된 이벤트입니다." }, 400);
       }
 
+      const { data: submissions, error: submissionsError } = await adminClient
+        .from("submissions")
+        .select("id, created_at, content, submitter:users(name)")
+        .eq("event_id", eventId);
+      if (submissionsError) return jsonResponse({ error: submissionsError.message }, 500);
+
+      const submissionIds = (submissions || []).map((row) => row.id);
+      const { data: judgments, error: judgmentsError } = submissionIds.length
+        ? await adminClient
+          .from("judgments")
+          .select("submission_id, score")
+          .in("submission_id", submissionIds)
+        : { data: [], error: null };
+      if (judgmentsError) return jsonResponse({ error: judgmentsError.message }, 500);
+
+      const grouped = new Map<string, number[]>();
+      (judgments || []).forEach((row) => {
+        if (!grouped.has(row.submission_id)) grouped.set(row.submission_id, []);
+        grouped.get(row.submission_id)?.push(sumScore(row.score as Record<string, unknown>));
+      });
+
+      const ranked = (submissions || [])
+        .map((sub) => {
+          const scores = grouped.get(sub.id) || [];
+          if (!scores.length) return null;
+          const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+          const best = Math.max(...scores);
+          const title = (sub.content as Record<string, unknown>)?.title || "제출물";
+          const submitterName = (sub.submitter as { name?: string } | null)?.name || "익명";
+          return {
+            submission_id: sub.id,
+            created_at: sub.created_at,
+            title,
+            submitter_name: eventRow.is_blind_judging ? null : submitterName,
+            avg_score: Number(avg.toFixed(4)),
+            best_score: Number(best.toFixed(4)),
+            judge_count: scores.length,
+          };
+        })
+        .filter((row): row is NonNullable<typeof row> => !!row)
+        .sort((a, b) => {
+          if (b.avg_score !== a.avg_score) return b.avg_score - a.avg_score;
+          if (b.best_score !== a.best_score) return b.best_score - a.best_score;
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        })
+        .map((row, index) => ({
+          ...row,
+          rank: index + 1,
+        }));
+
       const { error: finalizeError } = await adminClient
         .from("events")
         .update({
           result_finalized: true,
           results_finalized_at: new Date().toISOString(),
+          finalized_ranking_snapshot: ranked,
           updated_at: new Date().toISOString(),
         })
         .eq("id", eventId);
@@ -119,6 +174,7 @@ serve(async (req) => {
         target_id: eventId,
         metadata: {
           title: eventRow.title,
+          rankedCount: ranked.length,
         },
       });
 
