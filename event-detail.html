@@ -164,7 +164,7 @@
                                 <label class="text-sm font-medium text-text-main mb-1 block">내용</label>
                                 <textarea id="sub-content" rows="6"
                                     class="w-full rounded border-border bg-white px-4 py-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                                    placeholder="상세 내용을 입력하세요..."></textarea>
+                                    placeholder="이벤트 제목, 이벤트의 배경, 목적, 기대효과 등을 자유롭게 기술하세요"></textarea>
                             </div>
 
                             <!-- 파일 업로드 섹션 -->
@@ -379,8 +379,12 @@
             const end = formatDate(event.end_date);
             document.getElementById('event-period').innerHTML = `<span class="material-symbols-outlined text-[16px]">calendar_today</span> ${start} ~ ${end}`;
 
-            const statusMap = { active: '진행중', draft: '초안', completed: '완료', closed: '마감' };
-            document.getElementById('event-status-badge').textContent = statusMap[event.status] || event.status;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const endDate = event.end_date ? new Date(event.end_date) : null;
+            if (endDate) endDate.setHours(0, 0, 0, 0);
+            const effectiveStatus = (event.status === 'closed' || (endDate && endDate < today)) ? 'closed' : 'active';
+            document.getElementById('event-status-badge').textContent = effectiveStatus === 'closed' ? '마감' : '진행중';
             const descEl = document.getElementById('event-desc');
             const rawDesc = event.description || '상세 설명이 없습니다.';
             const hasHtml = /<[^>]+>/.test(rawDesc);
@@ -769,17 +773,17 @@
                 submissionSection.innerHTML = `
                     <div class="bg-white dark:bg-surface-dark rounded-xl border border-border-light dark:border-gray-700 p-8 shadow-sm">
                         <div class="mb-6">
-                            <h3 class="text-xl font-bold text-text-main dark:text-white mb-1">${existingSub ? '제출물 수정' : '제안서 제출'}</h3>
-                            <p class="text-sm text-text-muted">아이디어를 구체화하여 제출해주세요.</p>
+                            <h3 class="text-xl font-bold text-text-main dark:text-white mb-1">${existingSub ? '이벤트 제출 수정' : '이벤트 제출'}</h3>
+                            <p class="text-sm text-text-muted">이벤트 제목, 배경, 목적, 기대효과를 자유롭게 작성해 주세요.</p>
                         </div>
                         <div class="space-y-5">
                             <div>
-                                <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">제안 제목</label>
+                                <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">이벤트 제목</label>
                                 <input type="text" id="sub-title" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="제목을 입력하세요" value="${existingSub ? (existingSub.content?.title || '') : ''}">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">상세 내용</label>
-                                <textarea id="sub-content" rows="6" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="제안의 배경, 목적, 기대효과 등을 자유롭게 기술하세요">${existingSub ? (existingSub.content?.body || '') : ''}</textarea>
+                                <textarea id="sub-content" rows="6" class="w-full rounded-lg border-border-light bg-gray-50/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary" placeholder="이벤트 제목, 이벤트의 배경, 목적, 기대효과 등을 자유롭게 기술하세요">${existingSub ? (existingSub.content?.body || '') : ''}</textarea>
                             </div>
                             <div id="sub-file-container" class="${event.allow_file_upload ? '' : 'hidden'}">
                                 <label class="block text-sm font-bold text-text-main dark:text-gray-300 mb-2">첨부 파일 (선택)</label>
@@ -935,62 +939,61 @@
             window.location.href = `event-creation-modal.html?id=${eventId}`;
         };
 
+        async function invokeAdminEventAction(action, eventId) {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const accessToken = session?.access_token;
+            if (!accessToken) {
+                throw new Error('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');
+            }
+            const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                body: { action, eventId }
+            });
+            if (error || data?.error) {
+                const msg = data?.error || error?.message || '처리 실패';
+                throw new Error(msg);
+            }
+            return data;
+        }
+
         window.deleteThisEvent = async () => {
             const eventId = getQueryParam('id');
             const eventTitle = document.getElementById('event-title').textContent;
             if (!confirm(`'${eventTitle}' 이벤트를 삭제하시겠습니까?`)) return;
-
-            const adminCode = prompt('관리자 인증 코드를 입력하세요.');
-            if (!adminCode) return;
-
-            const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
-                body: { action: 'delete_event', eventId, adminCode }
-            });
-            if (error || data?.error) {
-                const msg = data?.error || error?.message || '삭제 실패';
-                alert('삭제 실패: ' + msg);
+            try {
+                await invokeAdminEventAction('delete_event', eventId);
+                alert('성공적으로 삭제되었습니다.');
+                window.location.href = 'dashboard.html';
+            } catch (err) {
+                alert('삭제 실패: ' + (err.message || err));
                 return;
             }
-            alert('성공적으로 삭제되었습니다.');
-            window.location.href = 'dashboard.html';
         };
 
         window.closeThisEvent = async () => {
             const eventId = getQueryParam('id');
             if (!confirm('이벤트를 지금 즉시 마감하시겠습니까?')) return;
-
-            const adminCode = prompt('관리자 인증 코드를 입력하세요.');
-            if (!adminCode) return;
-
-            const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
-                body: { action: 'close_event', eventId, adminCode }
-            });
-            if (error || data?.error) {
-                const msg = data?.error || error?.message || '마감 처리 실패';
-                alert('마감 처리 실패: ' + msg);
+            try {
+                await invokeAdminEventAction('close_event', eventId);
+                alert('이벤트가 마감되었습니다. 심사 순위를 확인하세요.');
+                location.reload();
+            } catch (err) {
+                alert('마감 처리 실패: ' + (err.message || err));
                 return;
             }
-            alert('이벤트가 마감되었습니다. 심사 순위를 확인하세요.');
-            location.reload();
         };
 
         window.finalizeEventResults = async () => {
             const eventId = getQueryParam('id');
             if (!confirm('현재 순위를 최종 결과로 확정하시겠습니까?\n확정 후에는 심사 점수 수정이 불가능합니다.')) return;
-
-            const adminCode = prompt('관리자 인증 코드를 입력하세요.');
-            if (!adminCode) return;
-
-            const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
-                body: { action: 'finalize_results', eventId, adminCode }
-            });
-            if (error || data?.error) {
-                const msg = data?.error || error?.message || '결과 확정 실패';
-                alert('결과 확정 실패: ' + msg);
+            try {
+                await invokeAdminEventAction('finalize_results', eventId);
+                alert('결과가 확정되었습니다.');
+                location.reload();
+            } catch (err) {
+                alert('결과 확정 실패: ' + (err.message || err));
                 return;
             }
-            alert('결과가 확정되었습니다.');
-            location.reload();
         };
     </script>
 </body>

@@ -77,14 +77,8 @@ serve(async (req) => {
 
     const action = body?.action;
     const eventId = body?.eventId;
-    const adminCode = body?.adminCode;
-    const requiredAdminCode = Deno.env.get("ADMIN_CODE") ?? "OPCO_ADMIN_2024";
-
     if (!eventId || typeof eventId !== "string") {
       return jsonResponse({ error: "eventId가 필요합니다." }, 400);
-    }
-    if (!adminCode || adminCode !== requiredAdminCode) {
-      return jsonResponse({ error: "관리자 인증 코드가 올바르지 않습니다." }, 401);
     }
 
     const { data: eventRow, error: eventError } = await adminClient

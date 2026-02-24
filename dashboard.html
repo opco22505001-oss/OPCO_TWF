@@ -109,6 +109,24 @@
     let currentFilter = 'all';
     let currentKeyword = '';
 
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function stripHtml(value) {
+      return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function extractFirstImageSrc(value) {
+      const match = String(value || '').match(/<img[^>]+src=["']([^"']+)["']/i);
+      return match ? match[1] : '';
+    }
+
     function toEffectiveStatus(event) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -168,12 +186,19 @@
 
       const cards = filtered.map((event) => {
         const status = event.effective_status || toEffectiveStatus(event);
+        const descriptionText = stripHtml(event.description || '');
+        const firstImageSrc = extractFirstImageSrc(event.description || '');
         return `
         <article class="bg-surface-light rounded-lg border border-border-light shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col h-full" onclick="navigateToEvent('${event.id}')">
           <div class="p-6 flex-1">
             <div class="mb-4">${getBadge(status)}</div>
-            <h3 class="text-lg font-semibold text-text-main mb-2 leading-tight">${event.title || '-'}</h3>
-            <p class="text-sm text-text-muted mb-4 line-clamp-2">${event.description || ''}</p>
+            <h3 class="text-lg font-semibold text-text-main mb-2 leading-tight">${escapeHtml(event.title || '-')}</h3>
+            ${firstImageSrc ? `
+              <div class="mb-4 h-28 w-full overflow-hidden rounded border border-border-light bg-gray-50">
+                <img src="${escapeHtml(firstImageSrc)}" alt="이벤트 미리보기" class="h-full w-full object-cover" loading="lazy" />
+              </div>
+            ` : ''}
+            <p class="text-sm text-text-muted mb-4 line-clamp-2">${escapeHtml(descriptionText || '설명이 없습니다.')}</p>
             <div class="flex items-center gap-2 text-xs text-text-muted font-mono bg-background-light px-3 py-2 rounded border border-border-light mb-4">
               <span class="material-symbols-outlined text-[14px]">calendar_today</span>
               <span>${formatDate(event.start_date)}</span>

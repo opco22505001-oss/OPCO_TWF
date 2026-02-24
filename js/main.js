@@ -104,6 +104,13 @@ async function fetchEvents(statusFilter = 'all') {
         return { ...event, effective_status: effectiveStatus };
     });
 
+    normalized.sort((a, b) => {
+        const aStart = a.start_date ? new Date(a.start_date).getTime() : 0;
+        const bStart = b.start_date ? new Date(b.start_date).getTime() : 0;
+        if (bStart !== aStart) return bStart - aStart;
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+
     const filtered = statusFilter === 'all'
         ? normalized
         : normalized.filter((event) => event.effective_status === statusFilter);
