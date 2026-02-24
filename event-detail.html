@@ -1173,11 +1173,9 @@
         }
 
         async function invokeAdminEventAction(action, eventId) {
-            const callWithToken = async (token) => {
-                const payloadBody = { action, eventId, accessToken: token };
+            const call = async () => {
                 const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
-                    body: payloadBody,
-                    headers: { Authorization: `Bearer ${token}` },
+                    body: { action, eventId },
                 });
 
                 if (error) {
@@ -1199,14 +1197,14 @@
                 return data;
             };
 
+            await getFreshAccessToken(false);
             try {
-                const accessToken = await getFreshAccessToken(false);
-                return await callWithToken(accessToken);
+                return await call();
             } catch (err) {
                 const status = Number(err?.status || err?.context?.status || 0);
                 if (status !== 401) throw err;
-                const refreshedToken = await getFreshAccessToken(true);
-                return await callWithToken(refreshedToken);
+                await getFreshAccessToken(true);
+                return await call();
             }
         }
 

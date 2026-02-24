@@ -79,11 +79,9 @@ async function getFreshAccessToken(forceRefresh = false) {
 }
 
 async function invokeAdminFunction(functionName, body = {}) {
-    const callWithToken = async (token) => {
-        const payloadBody = { ...body, accessToken: token };
+    const call = async () => {
         const { data, error } = await supabaseClient.functions.invoke(functionName, {
-            body: payloadBody,
-            headers: { Authorization: `Bearer ${token}` },
+            body: { ...body },
         });
 
         if (error) {
@@ -105,15 +103,12 @@ async function invokeAdminFunction(functionName, body = {}) {
         return data;
     };
 
-    try {
-        const accessToken = await getFreshAccessToken(false);
-        return await callWithToken(accessToken);
-    } catch (err) {
+    await getFreshAccessToken(false);
+    try { return await call(); } catch (err) {
         const status = Number(err?.status || err?.context?.status || 0);
         if (status !== 401) throw err;
-
-        const refreshedToken = await getFreshAccessToken(true);
-        return await callWithToken(refreshedToken);
+        await getFreshAccessToken(true);
+        return await call();
     }
 }
 

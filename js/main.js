@@ -404,15 +404,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function initNotifications(userId) {
-    // 알림 버튼/배지 찾기
-    const notiBtn = document.querySelector('button .material-symbols-outlined[text*="notifications"]')?.parentElement ||
-        document.querySelector('button:has(.material-symbols-outlined:contains("notifications"))');
-
-    // 가장 확실한 선택 방식(텍스트 기준)
+    // 알림 버튼 찾기 (CSS4 비표준 선택자 사용 금지)
     const allBtns = document.querySelectorAll('button');
     let notificationButton = null;
     allBtns.forEach(btn => {
-        if (btn.innerText.includes('notifications')) {
+        if (btn.querySelector('.material-symbols-outlined')?.textContent?.trim() === 'notifications') {
             notificationButton = btn;
         }
     });
