@@ -483,6 +483,18 @@
                     const normalized = (originalName || '').normalize('NFC');
                     return `${publicUrl}#name=${encodeURIComponent(normalized)}`;
                 };
+                const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+                const ALLOWED_UPLOAD_EXTS = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'hwp', 'hwpx', 'dwg', 'dxf'];
+                const validateUploadFile = (file) => {
+                    const ext = (file.name.split('.').pop() || '').toLowerCase();
+                    if (!ALLOWED_UPLOAD_EXTS.includes(ext)) {
+                        return `허용되지 않는 파일 형식입니다: ${file.name}`;
+                    }
+                    if (file.size > MAX_UPLOAD_BYTES) {
+                        return `50MB를 초과한 파일입니다: ${file.name}`;
+                    }
+                    return null;
+                };
 
                 const data = {
                     title: document.getElementById('event-title').value,
@@ -503,6 +515,11 @@
                     const uploadedUrls = [];
 
                     for (const file of files) {
+                        const invalid = validateUploadFile(file);
+                        if (invalid) {
+                            alert(invalid);
+                            continue;
+                        }
                         const fileName = buildStoredName(file);
                         const filePath = `event-guides/${fileName}`;
 

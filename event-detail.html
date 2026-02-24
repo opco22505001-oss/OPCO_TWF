@@ -321,6 +321,19 @@
             };
 
             const sumScore = (scoreObj) => Object.values(scoreObj || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
+            const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+            const ALLOWED_UPLOAD_EXTS = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'hwp', 'hwpx', 'dwg', 'dxf'];
+
+            function validateUploadFile(file) {
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+                if (!ALLOWED_UPLOAD_EXTS.includes(ext)) {
+                    return `허용되지 않는 파일 형식입니다: ${file.name}`;
+                }
+                if (file.size > MAX_UPLOAD_BYTES) {
+                    return `50MB를 초과한 파일입니다: ${file.name}`;
+                }
+                return null;
+            }
 
             const event = await fetchEventDetails(eventId);
             if (!event) {
@@ -674,6 +687,8 @@
             }
 
             function initSubmissionForm(existingSub = null) {
+                let keptExistingFiles = existingSub?.files ? [...existingSub.files] : [];
+
                 submissionSection.innerHTML = `
                     <div class="bg-white dark:bg-surface-dark rounded-xl border border-border-light dark:border-gray-700 p-8 shadow-sm">
                         <div class="mb-6">
@@ -701,10 +716,10 @@
                                 <p id="selected-file-name" class="mt-2 text-xs text-primary font-medium hidden"></p>
                                 <div id="existing-file-list" class="mt-2 space-y-1 ${existingSub && existingSub.files && existingSub.files.length > 0 ? '' : 'hidden'}">
                                     ${(existingSub && existingSub.files && existingSub.files.length > 0)
-                        ? existingSub.files.map(f => `<a href="${f}" target="_blank" class="flex items-center gap-1 text-xs text-primary hover:underline"><span class="material-symbols-outlined text-[12px]">attach_file</span>${getDisplayNameFromUrl(f)}</a>`).join('')
+                        ? existingSub.files.map((f, idx) => `<div class="flex items-center justify-between gap-2"><a href="${f}" target="_blank" class="flex items-center gap-1 text-xs text-primary hover:underline"><span class="material-symbols-outlined text-[12px]">attach_file</span>${getDisplayNameFromUrl(f)}</a><button type="button" class="btn-remove-existing-file text-[11px] px-2 py-0.5 border border-red-200 text-red-600 rounded hover:bg-red-50" data-index="${idx}">삭제</button></div>`).join('')
                         : ''}
                                 </div>
-                                ${existingSub && existingSub.files && existingSub.files.length > 0 ? '<p class="mt-2 text-[10px] text-text-muted">기존 첨부 파일입니다. 새 파일 업로드 시 기존 목록에 추가됩니다.</p>' : ''}
+                                ${existingSub && existingSub.files && existingSub.files.length > 0 ? '<p class="mt-2 text-[10px] text-text-muted">기존 첨부 파일을 삭제하거나 새 파일을 추가할 수 있습니다.</p>' : ''}
                             </div>
                         </div>
                         <div class="mt-8 flex gap-3">
@@ -723,8 +738,53 @@
                 if (event.allow_file_upload) {
                     const fileInput = document.getElementById('sub-file');
                     const fileNameDisplay = document.getElementById('selected-file-name');
+                    const existingFileList = document.getElementById('existing-file-list');
+
+                    const renderExistingFiles = () => {
+                        if (!existingFileList) return;
+                        if (!keptExistingFiles.length) {
+                            existingFileList.classList.add('hidden');
+                            existingFileList.innerHTML = '';
+                            return;
+                        }
+                        existingFileList.classList.remove('hidden');
+                        existingFileList.innerHTML = keptExistingFiles.map((f, idx) => `
+                            <div class="flex items-center justify-between gap-2">
+                                <a href="${f}" target="_blank" class="flex items-center gap-1 text-xs text-primary hover:underline">
+                                    <span class="material-symbols-outlined text-[12px]">attach_file</span>${getDisplayNameFromUrl(f)}
+                                </a>
+                                <button type="button" class="btn-remove-existing-file text-[11px] px-2 py-0.5 border border-red-200 text-red-600 rounded hover:bg-red-50" data-index="${idx}">삭제</button>
+                            </div>
+                        `).join('');
+                    };
+
+                    renderExistingFiles();
+
+                    if (existingFileList) {
+                        existingFileList.addEventListener('click', (e) => {
+                            const target = e.target.closest('.btn-remove-existing-file');
+                            if (!target) return;
+                            const idx = Number(target.dataset.index);
+                            if (Number.isNaN(idx)) return;
+                            keptExistingFiles.splice(idx, 1);
+                            renderExistingFiles();
+                        });
+                    }
+
                     fileInput.addEventListener('change', () => {
                         if (fileInput.files.length > 0) {
+                            const invalid = [];
+                            Array.from(fileInput.files).forEach((f) => {
+                                const message = validateUploadFile(f);
+                                if (message) invalid.push(message);
+                            });
+                            if (invalid.length > 0) {
+                                alert(invalid.join('\n'));
+                                fileInput.value = '';
+                                fileNameDisplay.classList.add('hidden');
+                                fileNameDisplay.textContent = '';
+                                return;
+                            }
                             const names = Array.from(fileInput.files).map(f => f.name).join(', ');
                             fileNameDisplay.textContent = `선택된 파일 (${fileInput.files.length}개): ${names}`;
                             fileNameDisplay.classList.remove('hidden');
@@ -745,9 +805,11 @@
                     btn.disabled = true;
 
                     try {
-                        const uploadedFiles = existingSub?.files ? [...existingSub.files] : [];
+                        const uploadedFiles = [...keptExistingFiles];
                         if (event.allow_file_upload && fileInput && fileInput.files.length > 0) {
                             for (const file of Array.from(fileInput.files)) {
+                                const invalid = validateUploadFile(file);
+                                if (invalid) throw new Error(invalid);
                                 const fileName = buildStoredName(file);
                                 const filePath = `submissions/${eventId}/${fileName}`;
                                 const { error: uploadError } = await supabaseClient.storage.from('submission-files').upload(filePath, file);
