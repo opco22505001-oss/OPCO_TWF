@@ -1,11 +1,11 @@
-<!-- 로그인 / 인증 -->
+﻿<!-- 濡쒓렇??/ ?몄쬆 -->
 <!DOCTYPE html>
 <html lang="ko">
 
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>OPCO : TWF 이벤트 심사 시스템 - 로그인</title>
+    <title>OPCO : TWF ?대깽???ъ궗 ?쒖뒪??- 濡쒓렇??/title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap"
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
@@ -81,29 +81,12 @@
                             <span class="material-symbols-outlined text-[24px]">engineering</span>
                         </div>
                         <span class="text-xl font-bold tracking-tight text-text-main dark:text-white uppercase">OPCO :
-                            TWF 이벤트 심사 시스템</span>
+                            TWF ?대깽???ъ궗 ?쒖뒪??/span>
                     </div>
-                    <h1 class="text-3xl font-bold tracking-tight text-text-main dark:text-white mb-2">로그인</h1>
-                    <p class="text-text-muted dark:text-gray-400 text-sm">시스템 이용을 위해 계정 정보를 입력해주세요.</p>
+                    <h1 class="text-3xl font-bold tracking-tight text-text-main dark:text-white mb-2">濡쒓렇??/h1>
+                    <p class="text-text-muted dark:text-gray-400 text-sm">?쒖뒪???댁슜???꾪빐 怨꾩젙 ?뺣낫瑜??낅젰?댁＜?몄슂.</p>
                 </div>
 
-                <div
-                    class="bg-gray-100 dark:bg-slate-800 p-1 rounded-lg flex mb-8 border border-border-light dark:border-border-dark relative">
-                    <input checked="" class="role-radio hidden" id="role-employee" name="role" type="radio"
-                        value="employee" onchange="toggleLoginFields()" />
-                    <label
-                        class="flex-1 text-center py-2.5 text-sm font-medium rounded cursor-pointer transition-all duration-200 text-text-muted hover:text-text-main dark:text-gray-400 dark:hover:text-white select-none relative z-10"
-                        for="role-employee">
-                        임직원
-                    </label>
-                    <input class="role-radio hidden" id="role-admin" name="role" type="radio" value="admin"
-                        onchange="toggleLoginFields()" />
-                    <label
-                        class="flex-1 text-center py-2.5 text-sm font-medium rounded cursor-pointer transition-all duration-200 text-text-muted hover:text-text-main dark:text-gray-400 dark:hover:text-white select-none relative z-10"
-                        for="role-admin">
-                        관리자
-                    </label>
-                </div>
                 <form class="flex flex-col gap-5" id="login-form" onsubmit="handleLogin(event)">
                     <!-- Employee / Admin ID Field -->
                     <div class="relative">
@@ -113,7 +96,7 @@
                         <label id="label-loginId"
                             class="absolute text-sm text-text-muted dark:text-gray-400 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] left-4 peer-focus:text-primary peer-focus:dark:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
                             for="loginId">
-                            사번 (예: 08204001)
+                            ?щ쾲 (?? 08204001)
                         </label>
                     </div>
 
@@ -125,24 +108,11 @@
                         <label id="label-secondInput"
                             class="absolute text-sm text-text-muted dark:text-gray-400 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] left-4 peer-focus:text-primary peer-focus:dark:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
                             for="secondInput">
-                            이름 (예: 홍길동)
+                            ?대쫫 (?? ?띻만??
                         </label>
                     </div>
 
-                    <!-- Admin Code Field (Only for Admin) -->
-                    <div class="relative hidden-field" id="admin-field">
-                        <input
-                            class="floating-input block px-4 pb-2.5 pt-5 w-full text-sm text-text-main dark:text-white bg-transparent rounded-lg border border-border-light dark:border-border-dark appearance-none focus:outline-none focus:ring-0 focus:border-primary peer"
-                            id="admin_code" placeholder=" " type="password" />
-                        <label
-                            class="absolute text-sm text-text-muted dark:text-gray-400 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] left-4 peer-focus:text-primary peer-focus:dark:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
-                            for="admin_code">
-                            관리자 인증 코드
-                        </label>
-                        <div class="absolute right-3 top-4 text-text-muted dark:text-gray-500">
-                            <span class="material-symbols-outlined text-[20px]">verified_user</span>
-                        </div>
-                        <p class="text-[10px] text-text-muted mt-1.5 ml-1">* 인증 코드: OPCO_ADMIN_2024</p>
+                    <p class="text-[10px] text-text-muted mt-1.5 ml-1">* ?몄쬆 肄붾뱶: OPCO_ADMIN_2024</p>
                     </div>
 
                     <div class="flex items-center justify-between mt-2">
@@ -151,18 +121,18 @@
                                 class="h-4 w-4 rounded border-border-light text-primary focus:ring-primary bg-transparent cursor-pointer"
                                 id="remember-me" name="remember-me" type="checkbox" />
                             <label class="ml-2 block text-sm text-text-muted dark:text-gray-400 cursor-pointer"
-                                for="remember-me">아이디 기억하기</label>
+                                for="remember-me">?꾩씠??湲곗뼲?섍린</label>
                         </div>
                     </div>
                     <button
                         class="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 mt-4"
                         type="submit">
-                        로그인
+                        濡쒓렇??
                     </button>
                 </form>
 
                 <div class="mt-10 pt-8 border-t border-dashed border-border-light dark:border-border-dark">
-                    <p class="text-xs text-text-muted dark:text-gray-500 text-center font-medium">사번/이름 또는 관리자 코드로 로그인해주세요.</p>
+                    <p class="text-xs text-text-muted dark:text-gray-500 text-center font-medium">사번과 이름으로 로그인하세요.</p>
                 </div>
             </div>
         </div>
@@ -178,10 +148,10 @@
                 <div class="max-w-xl">
                     <div class="mb-6 w-12 h-1 bg-primary rounded-full"></div>
                     <h2 class="text-4xl font-bold leading-tight tracking-tight mb-4">
-                        정밀한 기술과 혁신으로<br />글로벌 리더십을 실현합니다
+                        ?뺣???湲곗닠怨??곸떊?쇰줈<br />湲濡쒕쾶 由щ뜑??쓣 ?ㅽ쁽?⑸땲??
                     </h2>
                     <p class="text-lg text-gray-200 font-light mb-8 max-w-md">
-                        오리엔탈정공은 최첨단 설비와 독보적인 기술력을 바탕으로 세계 최고의 조선해양 기자재 전문 기업으로 도약하고 있습니다.
+                        ?ㅻ━?뷀깉?뺢났? 理쒖꺼???ㅻ퉬? ?낅낫?곸씤 湲곗닠?μ쓣 諛뷀깢?쇰줈 ?멸퀎 理쒓퀬??議곗꽑?댁뼇 湲곗옄???꾨Ц 湲곗뾽?쇰줈 ?꾩빟?섍퀬 ?덉뒿?덈떎.
                     </p>
                     <div class="flex items-center gap-4">
                         <div
@@ -190,7 +160,7 @@
                         </div>
                         <div class="flex flex-col">
                             <span class="text-base font-semibold">Oriental Precision &amp; Engineering</span>
-                            <span class="text-xs text-gray-300 uppercase tracking-widest">이벤트 심사 관리 포털</span>
+                            <span class="text-xs text-gray-300 uppercase tracking-widest">?대깽???ъ궗 愿由??ы꽭</span>
                         </div>
                     </div>
                 </div>
@@ -202,7 +172,7 @@
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-        // Supabase 설정
+        // Supabase ?ㅼ젙
         const SUPABASE_URL = 'https://fuevhcdfgmdjhpdiwtzr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZXZoY2RmZ21kamhwZGl3dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ1MzcsImV4cCI6MjA4NjUzMDUzN30.rspRlciC1gwd1_t8gefP89yG0i19BoDsEXUbF3WG-dI';
 
@@ -210,27 +180,25 @@
         try {
             supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         } catch (e) {
-            console.error('Supabase Client 초기화 실패:', e);
+            console.error('Supabase Client 珥덇린???ㅽ뙣:', e);
         }
 
-        // 전역 함수로 노출 (HTML 버튼에서 호출하기 위해)
+        // ?꾩뿭 ?⑥닔濡??몄텧 (HTML 踰꾪듉?먯꽌 ?몄텧?섍린 ?꾪빐)
         window.handleLogin = async function (event) {
             event.preventDefault();
-
-            const roleEmployee = document.getElementById('role-employee').checked;
             const loginId = document.getElementById('loginId').value;
-            const secondInput = document.getElementById('secondInput').value; // 이름
+            const secondInput = document.getElementById('secondInput').value; // ?대쫫
 
             const button = event.target.querySelector('button');
             const originalText = button.textContent;
-            button.textContent = '로그인 중...';
+            button.textContent = '濡쒓렇??以?..';
             button.disabled = true;
 
             try {
-                if (!supabaseClient) throw new Error('Supabase SDK가 로드되지 않았습니다.');
+                if (!supabaseClient) throw new Error('Supabase SDK媛 濡쒕뱶?섏? ?딆븯?듬땲??');
 
-                // 임직원, 관리자 모두 통합된 로직 사용
-                // 관리자일 경우 adminCode를 포함하여 서버로 전송
+                // ?꾩쭅?? 愿由ъ옄 紐⑤몢 ?듯빀??濡쒖쭅 ?ъ슜
+                // 愿由ъ옄??寃쎌슦 adminCode瑜??ы븿?섏뿬 ?쒕쾭濡??꾩넚
                 const { data, error } = await supabaseClient.functions.invoke('auth-login', {
                     body: {
                         empno: loginId,
@@ -242,7 +210,7 @@
                     console.error('[Login] Edge Function Error:', error);
                     let errorMessage = error.message;
 
-                    // Supabase FunctionsHttpError의 경우 응답 본문을 읽어오기 시도
+                    // Supabase FunctionsHttpError??寃쎌슦 ?묐떟 蹂몃Ц???쎌뼱?ㅺ린 ?쒕룄
                     if (error.context && typeof error.context.json === 'function') {
                         try {
                             const errorBody = await error.context.json();
@@ -266,47 +234,23 @@
                     if (setSessionError) throw setSessionError;
                 }
 
-                // 기존 테스트용 캐시가 남아 있어도 실제 로그인 세션을 우선 사용하도록 정리
+                // 湲곗〈 ?뚯뒪?몄슜 罹먯떆媛 ?⑥븘 ?덉뼱???ㅼ젣 濡쒓렇???몄뀡???곗꽑 ?ъ슜?섎룄濡??뺣━
                 localStorage.removeItem('MOCK_USER');
 
-                // 로그인 성공
+                // 濡쒓렇???깃났
                 window.location.href = 'dashboard.html';
 
             } catch (err) {
-                console.error('로그인 실패:', err);
-                alert('로그인 실패: ' + (err.message || err));
+                console.error('濡쒓렇???ㅽ뙣:', err);
+                alert('濡쒓렇???ㅽ뙣: ' + (err.message || err));
                 button.textContent = originalText;
                 button.disabled = false;
             }
         };
 
-        function toggleLoginFields() {
-            const isEmployee = document.getElementById('role-employee').checked;
-            const labelLoginId = document.getElementById('label-loginId');
-            const labelSecondInput = document.getElementById('label-secondInput');
-            const secondInput = document.getElementById('secondInput');
-            const adminField = document.getElementById('admin-field');
-
-            // 공통 설정: 사번, 이름
-            labelLoginId.textContent = '사번 (예: 08204001)';
-            labelSecondInput.textContent = '이름 (예: 홍길동)';
-            secondInput.type = 'text';
-
-            if (isEmployee) {
-                // 임직원 모드
-                adminField.classList.remove('visible-field');
-                adminField.classList.add('hidden-field');
-            } else {
-                // 관리자 모드
-                adminField.classList.remove('hidden-field');
-                adminField.classList.add('visible-field');
-            }
-        }
-
-        // UI 초기화 함수도 전역으로 노출하거나 이벤트 리스너 등록
-        window.toggleLoginFields = toggleLoginFields;
-        document.addEventListener('DOMContentLoaded', toggleLoginFields);
+        // 단일 로그인 폼 사용 (관리자/일반 구분 없음)
     </script>
 </body>
 
 </html>
+
