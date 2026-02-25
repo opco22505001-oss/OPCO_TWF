@@ -75,14 +75,43 @@ serve(async (req) => {
     const email = `${empno}@opco.internal`;
     let userId: string;
 
-    const { data: listedUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    if (listError) throw listError;
-    const existingUser = (listedUsers.users || []).find(
-      (u) => (u.email || "").toLowerCase() === email.toLowerCase(),
-    );
+    let existingUser: any = null;
+
+    // 1) public.users 매핑 우선 확인 (가장 빠른 경로)
+    const { data: mappedUser } = await supabaseAdmin
+      .from("users")
+      .select("id, email")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (mappedUser?.id) {
+      const { data: authById, error: authByIdError } = await supabaseAdmin.auth.admin.getUserById(mappedUser.id);
+      if (!authByIdError && authById?.user) {
+        existingUser = authById.user;
+      }
+    }
+
+    // 2) 매핑이 없거나 불일치일 때만 페이지네이션 스캔
+    if (!existingUser) {
+      let page = 1;
+      const perPage = 200;
+      while (true) {
+        const { data: listedUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+          page,
+          perPage,
+        });
+        if (listError) throw listError;
+
+        const users = listedUsers?.users || [];
+        const found = users.find((u) => (u.email || "").toLowerCase() === email.toLowerCase());
+        if (found) {
+          existingUser = found;
+          break;
+        }
+        if (users.length < perPage) break;
+        page += 1;
+      }
+    }
 
     if (existingUser) {
       userId = existingUser.id;
