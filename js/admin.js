@@ -548,10 +548,35 @@ window.changeEmployeeRole = async (empno, nextRole) => {
     await Promise.all([loadEmployees(), loadAuditLogs()]);
 };
 
+function applyAdminLayoutAdjustments() {
+    // 관리자 감사 로그를 권한 관리 섹션 위로 이동
+    const auditSection = document.getElementById('audit-log-table')?.closest('.mt-8');
+    const roleHeaderSection = document.getElementById('stat-total')?.closest('.flex.flex-col');
+    if (auditSection && roleHeaderSection && roleHeaderSection.parentNode) {
+        roleHeaderSection.parentNode.insertBefore(auditSection, roleHeaderSection);
+        auditSection.classList.remove('mt-8');
+        auditSection.classList.add('mb-6');
+    }
+
+    // 심사 통계 섹션 제거
+    const judgeStatsSection = document.getElementById('judge-stats-table')?.closest('.mt-8');
+    if (judgeStatsSection) {
+        judgeStatsSection.remove();
+    }
+
+    // 권한 관리 테이블 자체 스크롤
+    const roleTableWrap = document.getElementById('admin-user-table')?.closest('.overflow-x-auto');
+    if (roleTableWrap) {
+        roleTableWrap.classList.add('overflow-y-auto');
+        roleTableWrap.style.maxHeight = '380px';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const user = await requireAdminSession();
     if (!user) return;
 
+    applyAdminLayoutAdjustments();
     ensureDepartmentStatsSection();
 
     if (window.setupUI) await window.setupUI();
@@ -575,26 +600,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadAuditLogs(),
     ]);
 });
-// 관리자 감사 로그를 권한 관리 섹션 위로 이동
-const auditSection = document.getElementById('audit-log-table')?.closest('.mt-8');
-const roleHeaderSection = document.getElementById('stat-total')?.closest('.flex.flex-col');
-if (auditSection && roleHeaderSection && roleHeaderSection.parentNode) {
-    roleHeaderSection.parentNode.insertBefore(auditSection, roleHeaderSection);
-    auditSection.classList.remove('mt-8');
-    auditSection.classList.add('mb-6');
-}
-
-// 심사 통계 섹션 제거
-const judgeStatsSection = document.getElementById('judge-stats-table')?.closest('.mt-8');
-if (judgeStatsSection) {
-    judgeStatsSection.remove();
-}
-
-// 권한 관리 테이블 자체 스크롤
-const roleTableWrap = document.getElementById('admin-user-table')?.closest('.overflow-x-auto');
-if (roleTableWrap) {
-    roleTableWrap.classList.add('overflow-y-auto');
-    roleTableWrap.style.maxHeight = '380px';
-}
 
 
