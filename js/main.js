@@ -13,7 +13,7 @@ console.log('[Init] Supabase initialization started');
 
 function initSupabase() {
     try {
-        // supabase-js CDN??window.supabase ?꾩뿭 媛앹껜瑜??앹꽦??
+        // supabase-js CDN 로드 후 window.supabase 전역 객체를 사용
         const _supabase = window.supabase;
         if (_supabase && _supabase.createClient) {
             supabaseClient = _supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -344,7 +344,7 @@ async function fetchEventJudges(eventId) {
         .eq('event_id', eventId);
 
     if (error) {
-        // ?곗씠?곌? ?녾굅???ㅻ쪟 ??議곗슜???ㅽ뙣 泥섎━
+        // 조회 중 오류 발생 시 빈 배열 반환
         return [];
     }
     return data;
@@ -592,7 +592,7 @@ async function setupUI() {
 
 // 공통 초기화 실행
 
-// 怨듯넻 珥덇린???ㅽ뻾
+// 공통 초기화 실행
 document.addEventListener('DOMContentLoaded', () => {
     setupUI();
 

@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { empno, empnm, adminCode } = await req.json();
+    const { empno, empnm } = await req.json();
 
     if (!empno || !empnm) {
       throw new Error("사번과 이름을 모두 입력해 주세요.");
@@ -50,12 +50,12 @@ serve(async (req) => {
       );
     }
 
-    // 이름 비교 시 한글 정규화(NFC)를 적용해 오탐을 줄인다.
+    // 이름 비교 시 NFC 정규화를 적용해 공백/조합형 차이를 최소화
     const inputName = empnm.normalize("NFC").trim();
     const storedName = String(corpUser.empnm ?? "").normalize("NFC").trim();
     if (storedName !== inputName) {
       return new Response(
-        JSON.stringify({ error: `사번(${empno})과 성함(${empnm}) 정보가 일치하지 않습니다.` }),
+        JSON.stringify({ error: `사번(${empno})과 성명(${empnm}) 정보가 일치하지 않습니다.` }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -63,18 +63,15 @@ serve(async (req) => {
       );
     }
 
-    // 관리자도 동일 로그인 플로우를 사용한다. (추가 인증코드 미요구)
-
     const user = {
       empnm: corpUser.empnm,
-      depnm: corpUser.depnm || "소속미정",
+      depnm: corpUser.depnm || "소속미지정",
       role: corpUser.role || "submitter",
     };
 
-    // auth.users 존재 여부 확인 후 없으면 생성
+    // auth.users 존재 여부 확인 및 없으면 생성
     const email = `${empno}@opco.internal`;
     let userId: string;
-
     let existingUser: any = null;
 
     // 1) public.users 매핑 우선 확인 (가장 빠른 경로)
@@ -91,7 +88,7 @@ serve(async (req) => {
       }
     }
 
-    // 2) 매핑이 없거나 불일치일 때만 페이지네이션 스캔
+    // 2) 매핑이 없거나 불일치일 때만 페이지네이션으로 조회
     if (!existingUser) {
       let page = 1;
       const perPage = 200;
@@ -115,7 +112,7 @@ serve(async (req) => {
 
     if (existingUser) {
       userId = existingUser.id;
-      // 로그인할 때마다 메타데이터를 최신 인사정보로 동기화한다.
+      // 로그인 시 메타데이터를 최신 인사정보로 동기화
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         user_metadata: {
           ...(existingUser.user_metadata || {}),
@@ -141,7 +138,7 @@ serve(async (req) => {
       userId = newUser.user.id;
     }
 
-    // public.users에도 동기화
+    // public.users 동기화
     await supabaseAdmin.from("users").upsert({
       id: userId,
       email,
@@ -151,7 +148,7 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     });
 
-    // 임시 비밀번호로 세션을 발급한 뒤 클라이언트에서 setSession 처리
+    // 임시 비밀번호로 세션 발급 후 반환 (클라이언트에서 setSession 처리)
     const tempPassword = `temp_${crypto.randomUUID()}!`;
     await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword });
 
