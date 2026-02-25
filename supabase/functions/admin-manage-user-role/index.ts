@@ -1,31 +1,12 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders, createAdminClient, extractAccessToken, jsonResponse, requireAdminAuth } from "../_shared/admin-auth.ts";
 
 function badRequest(message: string) {
-  return new Response(JSON.stringify({ error: message }), {
-    status: 400,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return jsonResponse({ error: message }, 400);
 }
 
 function errorResponse(status: number, message: string, code: string, detail?: string, requestId?: string) {
-  return new Response(
-    JSON.stringify({
-      error: message,
-      code,
-      detail,
-      request_id: requestId,
-    }),
-    {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    },
-  );
+  return jsonResponse({ error: message, code, detail, request_id: requestId }, status);
 }
 
 serve(async (req) => {
@@ -35,86 +16,11 @@ serve(async (req) => {
 
   const requestId = crypto.randomUUID();
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const body = await req.json().catch(() => ({}));
-
-    const authHeader = req.headers.get("Authorization");
-
-    // 토큰 추출 로직 강화: Body의 accessToken을 최우선으로 함 (클라이언트 요청과 일치)
-    let token = "";
-    if (typeof body?.accessToken === "string" && body.accessToken) {
-      token = body.accessToken;
-    } else if (authHeader?.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    }
-
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
-    if (!token) {
-      console.error(`[admin-manage-user-role] [${requestId}] No token provided`);
-      return errorResponse(401, "인증 토큰이 제공되지 않았습니다.", "TOKEN_MISSING", undefined, requestId);
-    }
-
-    // 서비스 롤 클라이언트로 직접 사용자 토큰 검증 (수동 JWT 검증)
-    const { data: authData, error: authError } = await adminClient.auth.getUser(token);
-
-    if (authError || !authData?.user) {
-      console.error(`[admin-manage-user-role] [${requestId}] JWT Verification failed:`, authError);
-      return errorResponse(401, "유효하지 않은 토큰이거나 세션이 만료되었습니다.", "AUTH_FAILED", authError?.message, requestId);
-    }
-
-    const requesterId = authData.user.id;
-    const requesterEmail = authData.user.email ?? "";
-    const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
-    const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
-
-    console.log(`[admin-manage-user-role] [${requestId}] Authenticated:`, { uid: requesterId, email: requesterEmail, role: requesterMetaRole });
-
-    // DB에서 관리자 권한 최종 확인
-    const { data: meById, error: meError } = await adminClient
-      .from("users")
-      .select("role")
-      .eq("id", requesterId)
-      .maybeSingle();
-
-    let roleByEmail = "";
-    if (requesterEmail) {
-      const { data: meByEmail } = await adminClient
-        .from("users")
-        .select("role")
-        .eq("email", requesterEmail)
-        .maybeSingle();
-      roleByEmail = String(meByEmail?.role ?? "");
-    }
-
-    let corpRole = "";
-    if (requesterEmpno) {
-      const { data: corpMe } = await adminClient
-        .from("corporate_employees")
-        .select("role")
-        .eq("empno", requesterEmpno)
-        .maybeSingle();
-      corpRole = String(corpMe?.role ?? "");
-    }
-
-    const isAdmin = meById?.role === "admin" || roleByEmail === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
-    if (meError || !isAdmin) {
-      console.error(`[admin-manage-user-role] [${requestId}] Forbidden: Admin rights required`, { meError, roles: { db: meById?.role, meta: requesterMetaRole, corp: corpRole } });
-      return errorResponse(403, "관리자 전용 기능입니다.", "ADMIN_REQUIRED", meError?.message, requestId);
-    }
-
-    // users 테이블 동기화 (관리자인데 없는 경우)
-    if (!meById && isAdmin && requesterId && requesterEmail) {
-      await adminClient.from("users").upsert({
-        id: requesterId,
-        email: requesterEmail,
-        name: authData.user.user_metadata?.name ?? null,
-        department: authData.user.user_metadata?.department ?? null,
-        role: "admin",
-        updated_at: new Date().toISOString(),
-      });
-    }
+    const token = extractAccessToken(req, body);
+    const adminClient = createAdminClient();
+    const auth = await requireAdminAuth(adminClient, token, requestId);
+    if (!auth.ok) return auth.response;
 
     const action = body?.action;
 
@@ -123,12 +29,8 @@ serve(async (req) => {
         .from("corporate_employees")
         .select("empno, empnm, depnm, role")
         .order("empnm");
-
       if (error) throw error;
-
-      return new Response(JSON.stringify({ employees: employees ?? [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ employees: employees ?? [] });
     }
 
     if (action === "update_role") {
@@ -157,11 +59,9 @@ serve(async (req) => {
       const corp = corpRows[0];
       const email = `${corp.empno}@opco.internal`;
 
-      // auth.users 메타데이터 동기화 및 사용자 ID 확보
       const { data: list } = await adminClient.auth.admin.listUsers();
       const authUser = (list?.users || []).find((u) => u.email?.toLowerCase() === email.toLowerCase());
 
-      // public.users 동기화 (ID를 명시적으로 포함하여 불일치 방지)
       if (authUser) {
         await adminClient.from("users").upsert({
           id: authUser.id,
@@ -172,12 +72,10 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         });
 
-        // auth.users 메타데이터 동기화
         await adminClient.auth.admin.updateUserById(authUser.id, {
-          user_metadata: { ...authUser.user_metadata, role: nextRole }
+          user_metadata: { ...authUser.user_metadata, role: nextRole },
         });
       } else {
-        // auth 사용자가 없는 경우(일어날 수 없으나 안전책) 이메일로만 업데이트
         await adminClient.from("users").update({
           name: corp.empnm,
           department: corp.depnm,
@@ -186,9 +84,7 @@ serve(async (req) => {
         }).eq("email", email);
       }
 
-      return new Response(JSON.stringify({ ok: true, employee: corp, request_id: requestId }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: true, employee: corp, request_id: requestId });
     }
 
     return badRequest("지원하지 않는 action 입니다.");
