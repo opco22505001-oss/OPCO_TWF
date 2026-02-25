@@ -23,16 +23,13 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
 
     const authHeader = req.headers.get("Authorization");
-    console.log(`[admin-audit-logs] [${requestId}] Headers:`, Object.fromEntries(req.headers.entries()));
 
     // 토큰 추출 로직: Body의 accessToken을 최우선으로 함 (클라이언트 요청과 일치)
     let token = "";
     if (typeof body?.accessToken === "string" && body.accessToken) {
       token = body.accessToken;
-      console.log(`[admin-audit-logs] [${requestId}] Token source: Body`);
     } else if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.substring(7);
-      console.log(`[admin-audit-logs] [${requestId}] Token source: Authorization Header`);
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);

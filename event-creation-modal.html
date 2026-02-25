@@ -344,6 +344,19 @@
             const existingGuideFilesEl = document.getElementById('existing-guide-files');
             let existingGuideFiles = [];
 
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function escapeAttr(value) {
+                return escapeHtml(value).replace(/`/g, '&#96;');
+            }
+
             function normalizeDateValue(value) {
                 if (!value) return '';
                 return String(value).slice(0, 10);
@@ -545,10 +558,10 @@
 
                 judgesList.innerHTML = filtered.map(e => `
                     <label class="flex items-center gap-3 p-1.5 rounded hover:bg-white cursor-pointer transition-colors">
-                        <input type="checkbox" class="judge-checkbox rounded border-gray-300 text-primary focus:ring-primary" value="${e.empno}" data-name="${e.empnm || ''}" ${checkedSet.has(e.empno) ? 'checked' : ''}>
+                        <input type="checkbox" class="judge-checkbox rounded border-gray-300 text-primary focus:ring-primary" value="${escapeAttr(e.empno)}" data-name="${escapeAttr(e.empnm || '')}" ${checkedSet.has(e.empno) ? 'checked' : ''}>
                         <div class="flex-1 min-w-0">
-                            <span class="text-sm font-medium text-text-main">${e.empnm || '이름없음'}</span>
-                            <span class="text-xs text-text-muted ml-2">${e.depnm || ''}</span>
+                            <span class="text-sm font-medium text-text-main">${escapeHtml(e.empnm || '이름없음')}</span>
+                            <span class="text-xs text-text-muted ml-2">${escapeHtml(e.depnm || '')}</span>
                         </div>
                         <span class="text-xs px-2 py-0.5 rounded-full ${e.role === 'admin' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'}">${e.role === 'admin' ? '관리자' : '직원'}</span>
                     </label>

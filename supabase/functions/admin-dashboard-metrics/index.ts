@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
@@ -22,18 +22,15 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const body = await req.json().catch(() => ({}));
 
-    // 디버깅: 헤더 확인
+    // ?붾쾭源? ?ㅻ뜑 ?뺤씤
     const authHeader = req.headers.get("Authorization");
-    console.log(`[admin-dashboard-metrics] [${requestId}] Headers:`, Object.fromEntries(req.headers.entries()));
 
-    // 토큰 추출 로직: Body의 accessToken을 최우선으로 함 (클라이언트 요청과 일치)
+    // ?좏겙 異붿텧 濡쒖쭅: Body??accessToken??理쒖슦?좎쑝濡???(?대씪?댁뼵???붿껌怨??쇱튂)
     let token = "";
     if (typeof body?.accessToken === "string" && body.accessToken) {
       token = body.accessToken;
-      console.log(`[admin-dashboard-metrics] [${requestId}] Token source: Body`);
     } else if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.substring(7);
-      console.log(`[admin-dashboard-metrics] [${requestId}] Token source: Authorization Header`);
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -41,19 +38,19 @@ serve(async (req) => {
     if (!token) {
       console.error(`[admin-dashboard-metrics] [${requestId}] No token found in request`);
       return jsonResponse({
-        error: "인증 토큰이 누락되었습니다.",
+        error: "?몄쬆 ?좏겙???꾨씫?섏뿀?듬땲??",
         code: "TOKEN_MISSING",
         request_id: requestId
       }, 401);
     }
 
-    // 서비스 롤 클라이언트로 직접 사용자 토큰 검증 (수동 JWT 검증)
+    // ?쒕퉬??濡??대씪?댁뼵?몃줈 吏곸젒 ?ъ슜???좏겙 寃利?(?섎룞 JWT 寃利?
     const { data: authData, error: authError } = await adminClient.auth.getUser(token);
 
     if (authError || !authData?.user) {
       console.error(`[admin-dashboard-metrics] [${requestId}] JWT Verification failed:`, authError);
       return jsonResponse({
-        error: "유효하지 않은 세션이거나 토큰이 만료되었습니다.",
+        error: "?좏슚?섏? ?딆? ?몄뀡?닿굅???좏겙??留뚮즺?섏뿀?듬땲??",
         code: "AUTH_FAILED",
         detail: authError?.message,
         request_id: requestId
@@ -65,7 +62,7 @@ serve(async (req) => {
     const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
     const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
 
-    // DB 권한 확인
+    // DB 沅뚰븳 ?뺤씤
     const { data: meById } = await adminClient.from("users").select("role").eq("id", requesterId).maybeSingle();
     let corpRole = "";
     if (requesterEmpno) {
@@ -76,10 +73,10 @@ serve(async (req) => {
     const isAdmin = meById?.role === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
     if (!isAdmin) {
       console.error(`[admin-dashboard-metrics] [${requestId}] Forbidden:`, { uid: requesterId, roles: { db: meById?.role, meta: requesterMetaRole, corp: corpRole } });
-      return jsonResponse({ error: "관리자 권한이 없습니다.", code: "ADMIN_REQUIRED", request_id: requestId }, 403);
+      return jsonResponse({ error: "愿由ъ옄 沅뚰븳???놁뒿?덈떎.", code: "ADMIN_REQUIRED", request_id: requestId }, 403);
     }
 
-    // 메트릭 데이터 조회 (본 로직)
+    // 硫뷀듃由??곗씠??議고쉶 (蹂?濡쒖쭅)
     const nearDays = Number.isFinite(Number(body?.nearDays)) ? Math.max(0, Number(body.nearDays)) : 2;
     const reviewThreshold = Number.isFinite(Number(body?.reviewThreshold)) ? Math.min(100, Math.max(1, Number(body.reviewThreshold))) : 70;
     const statusFilter = typeof body?.statusFilter === "string" ? body.statusFilter : "all";
@@ -135,14 +132,14 @@ serve(async (req) => {
 
     const userDeptMap = new Map<string, string>();
     (users || []).forEach((u) => {
-      userDeptMap.set(u.id, u.department || "부서 미지정");
+      userDeptMap.set(u.id, u.department || "遺??誘몄???);
     });
 
     const deptCountByEvent = new Map<string, Map<string, number>>();
     (submissions || []).forEach((s) => {
       const eventId = s.event_id;
       if (!eventId) return;
-      const dept = userDeptMap.get(s.submitter_id) || "부서 미지정";
+      const dept = userDeptMap.get(s.submitter_id) || "遺??誘몄???;
       if (!deptCountByEvent.has(eventId)) deptCountByEvent.set(eventId, new Map<string, number>());
       const deptMap = deptCountByEvent.get(eventId)!;
       deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
@@ -174,3 +171,4 @@ serve(async (req) => {
     return jsonResponse({ error: (error as Error).message, request_id: requestId }, 500);
   }
 });
+

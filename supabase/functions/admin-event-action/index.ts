@@ -30,16 +30,12 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const body = await req.json().catch(() => ({}));
 
-    console.log(`[admin-event-action] [${requestId}] Body:`, JSON.stringify(body));
-
     const authHeader = req.headers.get("Authorization");
     let token = "";
     if (typeof body?.accessToken === "string" && body.accessToken) {
       token = body.accessToken;
-      console.log(`[admin-event-action] [${requestId}] Token source: Body`);
     } else if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.substring(7);
-      console.log(`[admin-event-action] [${requestId}] Token source: Header`);
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -67,7 +63,7 @@ serve(async (req) => {
     const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
     const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
 
-    console.log(`[admin-event-action] [${requestId}] User: ${requesterEmail} (${requesterId})`);
+    console.log(`[admin-event-action] [${requestId}] User authenticated: ${requesterId}`);
 
     const { data: meById, error: meError } = await adminClient
       .from("users")
@@ -170,7 +166,6 @@ serve(async (req) => {
     return jsonResponse({
       error: "내부 서버 오류",
       message: err.message,
-      stack: err.stack,
       request_id: requestId,
       status: 500
     }, 500);

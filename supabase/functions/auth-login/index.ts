@@ -53,7 +53,7 @@ serve(async (req) => {
     // 이름 비교 시 한글 정규화(NFC)를 적용해 오탐을 줄인다.
     const inputName = empnm.normalize("NFC").trim();
     const storedName = String(corpUser.empnm ?? "").normalize("NFC").trim();
-    if (storedName !== inputName && empnm !== "BYPASS") {
+    if (storedName !== inputName) {
       return new Response(
         JSON.stringify({ error: `사번(${empno})과 성함(${empnm}) 정보가 일치하지 않습니다.` }),
         {

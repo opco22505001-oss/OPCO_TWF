@@ -29,6 +29,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 async function checkSession() {
     if (!supabaseClient) return null;
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -158,8 +167,8 @@ async function loadMySubmissions(userOrId) {
                         <span class="text-xs px-2 py-0.5 rounded-full ${getStatusStyle(sub.status)}">${getStatusName(sub.status)}</span>
                         <span class="text-xs text-text-muted">${new Date(sub.created_at).toLocaleDateString()}</span>
                     </div>
-                    <h3 class="font-bold text-lg text-text-main dark:text-white group-hover:text-primary transition-colors">${title}</h3>
-                    <p class="text-[11px] text-text-muted mt-1">이벤트: ${sub.events?.title || '-'} (${getEventStatusName(sub.events?.status)})</p>
+                    <h3 class="font-bold text-lg text-text-main dark:text-white group-hover:text-primary transition-colors">${escapeHtml(title)}</h3>
+                    <p class="text-[11px] text-text-muted mt-1">이벤트: ${escapeHtml(sub.events?.title || '-')} (${escapeHtml(getEventStatusName(sub.events?.status))})</p>
                 </div>
                 <span class="material-symbols-outlined text-text-muted group-hover:text-primary">arrow_forward_ios</span>
             </div>
@@ -236,7 +245,7 @@ async function loadAssignedJudgments(userOrId) {
                         <span class="text-xs px-2 py-0.5 rounded-full ${badgeClass}">${badgeText}</span>
                         <span class="text-xs text-text-muted">${event.start_date || '-'} ~ ${event.end_date || '-'}</span>
                     </div>
-                    <h3 class="font-bold text-lg text-text-main dark:text-white group-hover:text-primary transition-colors">${event.title || '제목 없음'}</h3>
+                    <h3 class="font-bold text-lg text-text-main dark:text-white group-hover:text-primary transition-colors">${escapeHtml(event.title || '제목 없음')}</h3>
                     <p class="text-xs text-text-muted mt-1">심사 배정 이벤트</p>
                 </div>
                 <button class="px-4 py-2 bg-primary text-white text-sm font-bold rounded hover:bg-primary-hover transition-colors">이벤트 보기</button>

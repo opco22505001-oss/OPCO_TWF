@@ -39,18 +39,14 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const body = await req.json().catch(() => ({}));
 
-    // 디버깅: 전체 헤더 확인
     const authHeader = req.headers.get("Authorization");
-    console.log(`[admin-manage-user-role] [${requestId}] Headers:`, Object.fromEntries(req.headers.entries()));
 
     // 토큰 추출 로직 강화: Body의 accessToken을 최우선으로 함 (클라이언트 요청과 일치)
     let token = "";
     if (typeof body?.accessToken === "string" && body.accessToken) {
       token = body.accessToken;
-      console.log(`[admin-manage-user-role] [${requestId}] Token source: Body (accessToken)`);
     } else if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.substring(7);
-      console.log(`[admin-manage-user-role] [${requestId}] Token source: Authorization Header`);
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
