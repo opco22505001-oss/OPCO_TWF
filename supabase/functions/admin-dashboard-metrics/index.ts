@@ -132,14 +132,14 @@ serve(async (req) => {
 
     const userDeptMap = new Map<string, string>();
     (users || []).forEach((u) => {
-      userDeptMap.set(u.id, u.department || "遺??誘몄???);
+      userDeptMap.set(u.id, u.department || "부서 미지정");
     });
 
     const deptCountByEvent = new Map<string, Map<string, number>>();
     (submissions || []).forEach((s) => {
       const eventId = s.event_id;
       if (!eventId) return;
-      const dept = userDeptMap.get(s.submitter_id) || "遺??誘몄???;
+      const dept = userDeptMap.get(s.submitter_id) || "부서 미지정";
       if (!deptCountByEvent.has(eventId)) deptCountByEvent.set(eventId, new Map<string, number>());
       const deptMap = deptCountByEvent.get(eventId)!;
       deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
