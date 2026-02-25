@@ -104,6 +104,7 @@ async function invokeAdminFunction(functionName, body = {}) {
         // Supabase 클라이언트의 functions.invoke는 header를 자동으로 처리하지만, 
         // Edge Function에서 verify_jwt: false로 수동 검증하므로 Body에 accessToken을 명시적으로 전달합니다.
         const { data, error } = await supabaseClient.functions.invoke(functionName, {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
             body: { ...body, accessToken: token }
         });
 

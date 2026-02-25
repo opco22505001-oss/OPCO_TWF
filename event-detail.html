@@ -1255,6 +1255,7 @@
                 console.log(`[Admin Event API] Invoking ${action} for ${eventId} with token (${token ? 'exists' : 'missing'})...`);
 
                 const { data, error } = await supabaseClient.functions.invoke('admin-event-action', {
+                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
                     body: { action, eventId, accessToken: token }
                 });
 
