@@ -483,26 +483,53 @@ async function toggleNotificationDropdown(userId, btn) {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5);
-
-    let contentHtml = '<div class="px-4 py-2 border-b border-border-light dark:border-gray-700 font-bold text-sm">알림</div>';
+    const title = document.createElement('div');
+    title.className = 'px-4 py-2 border-b border-border-light dark:border-gray-700 font-bold text-sm';
+    title.textContent = '알림';
+    dropdown.appendChild(title);
 
     if (!notifications || notifications.length === 0) {
-        contentHtml += '<div class="p-4 text-center text-sm text-text-muted">새로운 알림이 없습니다.</div>';
+        const empty = document.createElement('div');
+        empty.className = 'p-4 text-center text-sm text-text-muted';
+        empty.textContent = '새로운 알림이 없습니다.';
+        dropdown.appendChild(empty);
     } else {
-        contentHtml += '<div class="max-h-64 overflow-y-auto">';
-        contentHtml += notifications.map(n => `
-            <div class="p-3 border-b border-border-light dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors ${n.is_read ? 'opacity-60' : ''}" 
-                 onclick="handleNotificationClick('${n.id}', '${n.link}')">
-                <p class="text-sm text-text-main dark:text-gray-200">${n.message}</p>
-                <p class="text-xs text-text-muted mt-1">${new Date(n.created_at).toLocaleString()}</p>
-            </div>
-        `).join('');
-        contentHtml += '</div>';
+        const list = document.createElement('div');
+        list.className = 'max-h-64 overflow-y-auto';
+
+        notifications.forEach((n) => {
+            const item = document.createElement('div');
+            item.className = `p-3 border-b border-border-light dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors ${n.is_read ? 'opacity-60' : ''}`;
+            item.addEventListener('click', () => window.handleNotificationClick(n.id, n.link));
+
+            const message = document.createElement('p');
+            message.className = 'text-sm text-text-main dark:text-gray-200';
+            message.textContent = n.message || '';
+
+            const createdAt = document.createElement('p');
+            createdAt.className = 'text-xs text-text-muted mt-1';
+            createdAt.textContent = new Date(n.created_at).toLocaleString();
+
+            item.appendChild(message);
+            item.appendChild(createdAt);
+            list.appendChild(item);
+        });
+
+        dropdown.appendChild(list);
     }
 
-    contentHtml += '<div class="p-2 text-center border-t border-border-light dark:border-gray-700"><button class="text-xs text-primary hover:underline" onclick="markAllAsRead(\'' + userId + '\')">모두 읽음 처리</button></div>';
+    const actionRow = document.createElement('div');
+    actionRow.className = 'p-2 text-center border-t border-border-light dark:border-gray-700';
+    const markAllButton = document.createElement('button');
+    markAllButton.className = 'text-xs text-primary hover:underline';
+    markAllButton.textContent = '모두 읽음 처리';
+    markAllButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.markAllAsRead(userId);
+    });
+    actionRow.appendChild(markAllButton);
+    dropdown.appendChild(actionRow);
 
-    dropdown.innerHTML = contentHtml;
     btn.parentElement.classList.add('relative');
     btn.parentElement.appendChild(dropdown);
 
@@ -518,10 +545,20 @@ async function toggleNotificationDropdown(userId, btn) {
 
 window.handleNotificationClick = async (id, link) => {
     await supabaseClient.from('notifications').update({ is_read: true }).eq('id', id);
-    if (link && link !== 'null') {
-        window.location.href = link;
-    } else {
+    if (!link || link === 'null') {
         location.reload();
+        return;
+    }
+
+    try {
+        const nextUrl = new URL(link, window.location.origin);
+        if (nextUrl.origin !== window.location.origin) {
+            console.warn('[Notification] 차단된 외부 링크:', nextUrl.href);
+            return;
+        }
+        window.location.href = nextUrl.pathname + nextUrl.search + nextUrl.hash;
+    } catch (error) {
+        console.warn('[Notification] 잘못된 링크 형식:', link, error);
     }
 };
 
