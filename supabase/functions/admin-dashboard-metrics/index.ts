@@ -26,29 +26,38 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     console.log(`[admin-dashboard-metrics] [${requestId}] Headers:`, Object.fromEntries(req.headers.entries()));
 
-    // 토큰 추출 로직 강화
+    // 토큰 추출 로직: Body의 accessToken을 최우선으로 함 (클라이언트 요청과 일치)
     let token = "";
     if (typeof body?.accessToken === "string" && body.accessToken) {
       token = body.accessToken;
       console.log(`[admin-dashboard-metrics] [${requestId}] Token source: Body`);
     } else if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.substring(7);
-      console.log(`[admin-dashboard-metrics] [${requestId}] Token source: Header`);
+      console.log(`[admin-dashboard-metrics] [${requestId}] Token source: Authorization Header`);
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     if (!token) {
-      console.error(`[admin-dashboard-metrics] [${requestId}] No token`);
-      return jsonResponse({ error: "인증 토큰이 누락되었습니다.", code: "AUTH_REQUIRED", request_id: requestId }, 401);
+      console.error(`[admin-dashboard-metrics] [${requestId}] No token found in request`);
+      return jsonResponse({
+        error: "인증 토큰이 누락되었습니다.",
+        code: "TOKEN_MISSING",
+        request_id: requestId
+      }, 401);
     }
 
-    // 서비스 롤 클라이언트로 직접 사용자 토큰 검증
+    // 서비스 롤 클라이언트로 직접 사용자 토큰 검증 (수동 JWT 검증)
     const { data: authData, error: authError } = await adminClient.auth.getUser(token);
 
     if (authError || !authData?.user) {
-      console.error(`[admin-dashboard-metrics] [${requestId}] Auth failed:`, authError);
-      return jsonResponse({ error: "유효하지 않은 세션입니다.", code: "AUTH_FAILED", detail: authError?.message, request_id: requestId }, 401);
+      console.error(`[admin-dashboard-metrics] [${requestId}] JWT Verification failed:`, authError);
+      return jsonResponse({
+        error: "유효하지 않은 세션이거나 토큰이 만료되었습니다.",
+        code: "AUTH_FAILED",
+        detail: authError?.message,
+        request_id: requestId
+      }, 401);
     }
 
     const requesterId = authData.user.id;

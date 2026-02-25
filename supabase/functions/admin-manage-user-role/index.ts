@@ -43,14 +43,14 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     console.log(`[admin-manage-user-role] [${requestId}] Headers:`, Object.fromEntries(req.headers.entries()));
 
-    // 토큰 추출 로직 강화: Body의 accessToken을 우선시 (라이브러리 간섭 방지)
+    // 토큰 추출 로직 강화: Body의 accessToken을 최우선으로 함 (클라이언트 요청과 일치)
     let token = "";
     if (typeof body?.accessToken === "string" && body.accessToken) {
       token = body.accessToken;
       console.log(`[admin-manage-user-role] [${requestId}] Token source: Body (accessToken)`);
     } else if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.substring(7);
-      console.log(`[admin-manage-user-role] [${requestId}] Token source: Header (Authorization)`);
+      console.log(`[admin-manage-user-role] [${requestId}] Token source: Authorization Header`);
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -60,11 +60,11 @@ serve(async (req) => {
       return errorResponse(401, "인증 토큰이 제공되지 않았습니다.", "TOKEN_MISSING", undefined, requestId);
     }
 
-    // 서비스 롤 클라이언트로 직접 사용자 토큰 검증
+    // 서비스 롤 클라이언트로 직접 사용자 토큰 검증 (수동 JWT 검증)
     const { data: authData, error: authError } = await adminClient.auth.getUser(token);
 
     if (authError || !authData?.user) {
-      console.error(`[admin-manage-user-role] [${requestId}] Auth failed:`, authError);
+      console.error(`[admin-manage-user-role] [${requestId}] JWT Verification failed:`, authError);
       return errorResponse(401, "유효하지 않은 토큰이거나 세션이 만료되었습니다.", "AUTH_FAILED", authError?.message, requestId);
     }
 
@@ -161,21 +161,33 @@ serve(async (req) => {
       const corp = corpRows[0];
       const email = `${corp.empno}@opco.internal`;
 
-      // public.users 동기화
-      await adminClient.from("users").update({
-        name: corp.empnm,
-        department: corp.depnm,
-        role: nextRole,
-        updated_at: new Date().toISOString(),
-      }).eq("email", email);
-
-      // auth.users 메타데이터 동기화
+      // auth.users 메타데이터 동기화 및 사용자 ID 확보
       const { data: list } = await adminClient.auth.admin.listUsers();
       const authUser = (list?.users || []).find((u) => u.email?.toLowerCase() === email.toLowerCase());
+
+      // public.users 동기화 (ID를 명시적으로 포함하여 불일치 방지)
       if (authUser) {
+        await adminClient.from("users").upsert({
+          id: authUser.id,
+          email: email,
+          name: corp.empnm,
+          department: corp.depnm,
+          role: nextRole,
+          updated_at: new Date().toISOString(),
+        });
+
+        // auth.users 메타데이터 동기화
         await adminClient.auth.admin.updateUserById(authUser.id, {
           user_metadata: { ...authUser.user_metadata, role: nextRole }
         });
+      } else {
+        // auth 사용자가 없는 경우(일어날 수 없으나 안전책) 이메일로만 업데이트
+        await adminClient.from("users").update({
+          name: corp.empnm,
+          department: corp.depnm,
+          role: nextRole,
+          updated_at: new Date().toISOString(),
+        }).eq("email", email);
       }
 
       return new Response(JSON.stringify({ ok: true, employee: corp, request_id: requestId }), {

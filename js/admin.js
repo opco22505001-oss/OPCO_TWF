@@ -98,12 +98,12 @@ async function getFreshAccessToken(forceRefresh = false) {
 
 async function invokeAdminFunction(functionName, body = {}) {
     const call = async (token) => {
-        console.log(`[Admin API] Invoking ${functionName}...`);
+        console.log(`[Admin API] Invoking ${functionName} with token (${token ? 'exists' : 'missing'})...`);
+
+        // Supabase 클라이언트의 functions.invoke는 header를 자동으로 처리하지만, 
+        // Edge Function에서 verify_jwt: false로 수동 검증하므로 Body에 accessToken을 명시적으로 전달합니다.
         const { data, error } = await supabaseClient.functions.invoke(functionName, {
-            body: { ...body, accessToken: token },
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
+            body: { ...body, accessToken: token }
         });
 
         if (error) {
@@ -120,7 +120,7 @@ async function invokeAdminFunction(functionName, body = {}) {
             wrapped.code = data.code;
             wrapped.detail = data.detail;
             wrapped.request_id = data.request_id;
-            wrapped.status = data.status || 0;
+            wrapped.status = data.status || 400;
             throw wrapped;
         }
 
@@ -132,9 +132,9 @@ async function invokeAdminFunction(functionName, body = {}) {
         return await call(accessToken);
     } catch (err) {
         const status = Number(err?.status || err?.context?.status || 0);
-        // 401 (Unauthorized) 발생 시 1회에 한해 세션 강제 갱신 후 재시도
-        if (status === 401) {
-            console.warn(`[Admin API] 401 detected for ${functionName}. Retrying after session refresh...`);
+        // 401 (Unauthorized) 또는 특정 명시적 인증 실패 코드 시 1회 재시도
+        if (status === 401 || err?.code === 'AUTH_FAILED' || err?.code === 'TOKEN_MISSING') {
+            console.warn(`[Admin API] ${status || err?.code} detected for ${functionName}. Retrying after session refresh...`);
             try {
                 const refreshedToken = await getFreshAccessToken(true);
                 return await call(refreshedToken);

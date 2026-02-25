@@ -22,34 +22,64 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID();
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const body = await req.json().catch(() => ({}));
-    const accessToken = typeof body?.accessToken === "string" ? body.accessToken : "";
 
-    const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? (accessToken ? `Bearer ${accessToken}` : "") } },
-    });
+    // 디버깅: 헤더 확인
+    const authHeader = req.headers.get("Authorization");
+    console.log(`[admin-event-action] [${requestId}] Headers:`, Object.fromEntries(req.headers.entries()));
+
+    // 토큰 추출 로직: Body의 accessToken을 최우선으로 함
+    let token = "";
+    if (typeof body?.accessToken === "string" && body.accessToken) {
+      token = body.accessToken;
+      console.log(`[admin-event-action] [${requestId}] Token source: Body`);
+    } else if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+      console.log(`[admin-event-action] [${requestId}] Token source: Authorization Header`);
+    }
+
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: authData, error: authError } = accessToken
-      ? await adminClient.auth.getUser(accessToken)
-      : await authClient.auth.getUser();
+    if (!token) {
+      console.error(`[admin-event-action] [${requestId}] No token found`);
+      return jsonResponse({
+        error: "인증 토큰이 누락되었습니다.",
+        code: "TOKEN_MISSING",
+        request_id: requestId,
+        status: 401
+      }, 401);
+    }
+
+    // 서비스 롤 클라이언트로 직접 사용자 토큰 검증 (수동 JWT 검증)
+    const { data: authData, error: authError } = await adminClient.auth.getUser(token);
+
     if (authError || !authData?.user) {
-      return jsonResponse({ error: "로그인이 필요합니다." }, 401);
+      console.error(`[admin-event-action] [${requestId}] JWT Verification failed:`, authError);
+      return jsonResponse({
+        error: "유효하지 않은 세션이거나 토큰이 만료되었습니다.",
+        code: "AUTH_FAILED",
+        detail: authError?.message,
+        request_id: requestId,
+        status: 401
+      }, 401);
     }
 
     const requesterId = authData.user.id;
     const requesterEmail = authData.user.email ?? "";
     const requesterMetaRole = String(authData.user.user_metadata?.role ?? "");
     const requesterEmpno = requesterEmail.includes("@") ? requesterEmail.split("@")[0] : "";
+
+    // DB에서 관리자 권한 최종 확인
     const { data: meById, error: meError } = await adminClient
       .from("users")
       .select("role")
       .eq("id", requesterId)
       .maybeSingle();
+
     let roleByEmail = "";
     if (requesterEmail) {
       const { data: meByEmail } = await adminClient
@@ -59,6 +89,7 @@ serve(async (req) => {
         .maybeSingle();
       roleByEmail = String(meByEmail?.role ?? "");
     }
+
     let corpRole = "";
     if (requesterEmpno) {
       const { data: corpMe } = await adminClient
@@ -68,9 +99,11 @@ serve(async (req) => {
         .maybeSingle();
       corpRole = String(corpMe?.role ?? "");
     }
+
     const isAdmin = meById?.role === "admin" || roleByEmail === "admin" || requesterMetaRole === "admin" || corpRole === "admin";
     if (meError || !isAdmin) {
-      return jsonResponse({ error: "관리자 권한이 없습니다." }, 403);
+      console.error(`[admin-event-action] [${requestId}] Forbidden:`, { uid: requesterId, roles: { db: meById?.role, meta: requesterMetaRole, corp: corpRole } });
+      return jsonResponse({ error: "관리자 권한이 없습니다.", code: "ADMIN_REQUIRED", request_id: requestId, status: 403 }, 403);
     }
 
     if (!meById && isAdmin && requesterId && requesterEmail) {
@@ -87,7 +120,7 @@ serve(async (req) => {
     const action = body?.action;
     const eventId = body?.eventId;
     if (!eventId || typeof eventId !== "string") {
-      return jsonResponse({ error: "eventId가 필요합니다." }, 400);
+      return jsonResponse({ error: "eventId가 필요합니다.", status: 400 }, 400);
     }
 
     const { data: eventRow, error: eventError } = await adminClient
@@ -96,8 +129,8 @@ serve(async (req) => {
       .eq("id", eventId)
       .maybeSingle();
 
-    if (eventError) return jsonResponse({ error: eventError.message }, 500);
-    if (!eventRow) return jsonResponse({ error: "대상 이벤트를 찾을 수 없습니다." }, 404);
+    if (eventError) return jsonResponse({ error: eventError.message, status: 500 }, 500);
+    if (!eventRow) return jsonResponse({ error: "대상 이벤트를 찾을 수 없습니다.", status: 404 }, 404);
 
     if (action === "close_event") {
       const { error: updateError } = await adminClient
@@ -109,7 +142,7 @@ serve(async (req) => {
         })
         .eq("id", eventId);
 
-      if (updateError) return jsonResponse({ error: updateError.message }, 500);
+      if (updateError) return jsonResponse({ error: updateError.message, status: 500 }, 500);
 
       await adminClient.from("admin_audit_logs").insert({
         actor_user_id: requesterId,
@@ -128,17 +161,17 @@ serve(async (req) => {
 
     if (action === "finalize_results") {
       if (eventRow.status !== "closed") {
-        return jsonResponse({ error: "결과 확정은 마감된 이벤트에서만 가능합니다." }, 400);
+        return jsonResponse({ error: "결과 확정은 마감된 이벤트에서만 가능합니다.", status: 400 }, 400);
       }
       if (eventRow.result_finalized) {
-        return jsonResponse({ error: "이미 결과 확정된 이벤트입니다." }, 400);
+        return jsonResponse({ error: "이미 결과 확정된 이벤트입니다.", status: 400 }, 400);
       }
 
       const { data: submissions, error: submissionsError } = await adminClient
         .from("submissions")
         .select("id, created_at, content, submitter:users(name)")
         .eq("event_id", eventId);
-      if (submissionsError) return jsonResponse({ error: submissionsError.message }, 500);
+      if (submissionsError) return jsonResponse({ error: submissionsError.message, status: 500 }, 500);
 
       const submissionIds = (submissions || []).map((row) => row.id);
       const { data: judgments, error: judgmentsError } = submissionIds.length
@@ -147,7 +180,7 @@ serve(async (req) => {
           .select("submission_id, score")
           .in("submission_id", submissionIds)
         : { data: [], error: null };
-      if (judgmentsError) return jsonResponse({ error: judgmentsError.message }, 500);
+      if (judgmentsError) return jsonResponse({ error: judgmentsError.message, status: 500 }, 500);
 
       const grouped = new Map<string, number[]>();
       (judgments || []).forEach((row) => {
@@ -194,7 +227,7 @@ serve(async (req) => {
         })
         .eq("id", eventId);
 
-      if (finalizeError) return jsonResponse({ error: finalizeError.message }, 500);
+      if (finalizeError) return jsonResponse({ error: finalizeError.message, status: 500 }, 500);
 
       await adminClient.from("admin_audit_logs").insert({
         actor_user_id: requesterId,
@@ -218,7 +251,7 @@ serve(async (req) => {
           p_reason: "admin_event_action.delete_event",
         });
 
-      if (deleteError) return jsonResponse({ error: deleteError.message }, 500);
+      if (deleteError) return jsonResponse({ error: deleteError.message, status: 500 }, 500);
 
       await adminClient.from("admin_audit_logs").insert({
         actor_user_id: requesterId,
@@ -235,8 +268,9 @@ serve(async (req) => {
       return jsonResponse({ ok: true, action, eventId, backup: deletePayload ?? null });
     }
 
-    return jsonResponse({ error: "지원하지 않는 action 입니다." }, 400);
+    return jsonResponse({ error: "지원하지 않는 action 입니다.", status: 400 }, 400);
   } catch (error) {
-    return jsonResponse({ error: (error as Error).message }, 500);
+    console.error(`[admin-event-action] [${requestId}] Internal Error:`, error);
+    return jsonResponse({ error: (error as Error).message, request_id: requestId, status: 500 }, 500);
   }
 });
