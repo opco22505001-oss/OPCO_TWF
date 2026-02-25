@@ -1,5 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, createAdminClient, extractAccessToken, jsonResponse, requireAdminAuth } from "../_shared/admin-auth.ts";
+import {
+  corsHeaders,
+  createAdminClient,
+  enforceRateLimit,
+  errorResponse,
+  extractAccessToken,
+  jsonResponse,
+  requireAdminAuth,
+  safeErrorDetail,
+} from "../_shared/admin-auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -12,15 +21,18 @@ serve(async (req) => {
     const auth = await requireAdminAuth(adminClient, token, requestId);
     if (!auth.ok) return auth.response;
 
+    const rate = await enforceRateLimit(adminClient, `admin-judgment-analytics:${auth.requesterId}`, 120, 60, requestId);
+    if (!rate.ok) return rate.response;
+
     const { data: judgments, error: judgmentsError } = await adminClient
       .from("judgments")
       .select("judge_id, score");
-    if (judgmentsError) return jsonResponse({ error: judgmentsError.message }, 500);
+    if (judgmentsError) return errorResponse(500, "심사 데이터 조회 실패", "JUDGMENT_QUERY_FAILED", requestId, safeErrorDetail(judgmentsError));
 
     const { data: users, error: usersError } = await adminClient
       .from("users")
       .select("id, name, department");
-    if (usersError) return jsonResponse({ error: usersError.message }, 500);
+    if (usersError) return errorResponse(500, "사용자 조회 실패", "USER_QUERY_FAILED", requestId, safeErrorDetail(usersError));
 
     const scoreOf = (scoreObj: Record<string, unknown> | null) =>
       Object.values(scoreObj || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
@@ -52,6 +64,6 @@ serve(async (req) => {
 
     return jsonResponse({ stats, request_id: requestId });
   } catch (error) {
-    return jsonResponse({ error: (error as Error).message, request_id: requestId }, 500);
+    return errorResponse(500, "서버 처리 중 오류가 발생했습니다.", "INTERNAL_ERROR", requestId, safeErrorDetail(error));
   }
 });

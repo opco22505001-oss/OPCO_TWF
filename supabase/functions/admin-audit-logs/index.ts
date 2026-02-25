@@ -1,5 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, createAdminClient, extractAccessToken, jsonResponse, requireAdminAuth } from "../_shared/admin-auth.ts";
+import {
+  corsHeaders,
+  createAdminClient,
+  enforceRateLimit,
+  errorResponse,
+  extractAccessToken,
+  jsonResponse,
+  requireAdminAuth,
+  safeErrorDetail,
+} from "../_shared/admin-auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -12,6 +21,9 @@ serve(async (req) => {
     const auth = await requireAdminAuth(adminClient, token, requestId);
     if (!auth.ok) return auth.response;
 
+    const rate = await enforceRateLimit(adminClient, `admin-audit-logs:${auth.requesterId}`, 120, 60, requestId);
+    if (!rate.ok) return rate.response;
+
     const limit = Number.isFinite(Number(body?.limit)) ? Math.min(200, Math.max(1, Number(body.limit))) : 50;
     const { data: logs, error: logsError } = await adminClient
       .from("admin_audit_logs")
@@ -23,7 +35,8 @@ serve(async (req) => {
     const actorIds = Array.from(new Set((logs || []).map((log) => log.actor_user_id).filter(Boolean)));
     let usersById = new Map<string, { name: string; email: string }>();
     if (actorIds.length > 0) {
-      const { data: users } = await adminClient.from("users").select("id, name, email").in("id", actorIds);
+      const { data: users, error: usersError } = await adminClient.from("users").select("id, name, email").in("id", actorIds);
+      if (usersError) throw usersError;
       if (users) usersById = new Map(users.map((u) => [u.id, { name: u.name || "-", email: u.email || "-" }]));
     }
 
@@ -35,6 +48,6 @@ serve(async (req) => {
     return jsonResponse({ logs: normalized, request_id: requestId });
   } catch (error) {
     console.error(`[admin-audit-logs] [${requestId}] Internal Error:`, error);
-    return jsonResponse({ error: (error as Error).message, request_id: requestId }, 500);
+    return errorResponse(500, "서버 처리 중 오류가 발생했습니다.", "INTERNAL_ERROR", requestId, safeErrorDetail(error));
   }
 });

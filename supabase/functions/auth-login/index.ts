@@ -6,75 +6,80 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+function json(payload: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const requestId = crypto.randomUUID();
   try {
     const { empno, empnm } = await req.json();
+    const normalizedEmpno = String(empno || "").trim();
+    const normalizedEmpnm = String(empnm || "").normalize("NFC").trim();
 
-    if (!empno || !empnm) {
-      throw new Error("사번과 이름을 모두 입력해 주세요.");
+    if (!normalizedEmpno || !normalizedEmpnm) {
+      return json({ error: "사번과 이름을 모두 입력해 주세요.", code: "INVALID_INPUT", request_id: requestId }, 400);
     }
 
-    // 사내 인사 테이블(corporate_employees) 기준으로 사용자 검증
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
+    const { data: rate, error: rateError } = await supabaseAdmin.rpc("check_rate_limit", {
+      p_key: `auth-login:${normalizedEmpno}:${req.headers.get("x-forwarded-for") ?? "unknown"}`,
+      p_limit: 20,
+      p_window_sec: 60,
+    });
+    if (rateError) {
+      return json({ error: "요청 제한 검사 실패", code: "RATE_LIMIT_CHECK_FAILED", request_id: requestId }, 500);
+    }
+    if (!rate?.allowed) {
+      return json(
+        {
+          error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+          code: "RATE_LIMITED",
+          retry_after: Number(rate?.retry_after ?? 60),
+          request_id: requestId,
+        },
+        429,
+      );
+    }
+
     const { data: corpUser, error: corpError } = await supabaseAdmin
       .from("corporate_employees")
       .select("*")
-      .eq("empno", empno)
-      .single();
+      .eq("empno", normalizedEmpno)
+      .maybeSingle();
 
     if (corpError) {
-      return new Response(
-        JSON.stringify({ error: `사용자 조회 중 오류가 발생했습니다: ${corpError.message}` }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return json({ error: "사원 조회 중 오류가 발생했습니다.", code: "CORP_QUERY_FAILED", request_id: requestId }, 401);
     }
 
     if (!corpUser) {
-      return new Response(
-        JSON.stringify({ error: `사번이 존재하지 않습니다. (ID: ${empno})` }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return json({ error: `사번이 존재하지 않습니다. (${normalizedEmpno})`, code: "EMPLOYEE_NOT_FOUND", request_id: requestId }, 401);
     }
 
-    // 이름 비교 시 NFC 정규화를 적용해 공백/조합형 차이를 최소화
-    const inputName = empnm.normalize("NFC").trim();
     const storedName = String(corpUser.empnm ?? "").normalize("NFC").trim();
-    if (storedName !== inputName) {
-      return new Response(
-        JSON.stringify({ error: `사번(${empno})과 성명(${empnm}) 정보가 일치하지 않습니다.` }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    if (storedName !== normalizedEmpnm) {
+      return json({ error: `사번(${normalizedEmpno})과 이름 정보가 일치하지 않습니다.`, code: "NAME_MISMATCH", request_id: requestId }, 401);
     }
 
     const user = {
       empnm: corpUser.empnm,
-      depnm: corpUser.depnm || "소속미지정",
+      depnm: corpUser.depnm || "부서 미지정",
       role: corpUser.role || "submitter",
     };
 
-    // auth.users 존재 여부 확인 및 없으면 생성
-    const email = `${empno}@opco.internal`;
+    const email = `${normalizedEmpno}@opco.internal`;
     let userId: string;
     let existingUser: any = null;
 
-    // 1) public.users 매핑 우선 확인 (가장 빠른 경로)
     const { data: mappedUser } = await supabaseAdmin
       .from("users")
       .select("id, email")
@@ -88,15 +93,11 @@ serve(async (req) => {
       }
     }
 
-    // 2) 매핑이 없거나 불일치일 때만 페이지네이션으로 조회
     if (!existingUser) {
       let page = 1;
       const perPage = 200;
       while (true) {
-        const { data: listedUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-          page,
-          perPage,
-        });
+        const { data: listedUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
         if (listError) throw listError;
 
         const users = listedUsers?.users || [];
@@ -112,11 +113,10 @@ serve(async (req) => {
 
     if (existingUser) {
       userId = existingUser.id;
-      // 로그인 시 메타데이터를 최신 인사정보로 동기화
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         user_metadata: {
           ...(existingUser.user_metadata || {}),
-          empno,
+          empno: normalizedEmpno,
           name: user.empnm,
           department: user.depnm,
           role: user.role,
@@ -128,7 +128,7 @@ serve(async (req) => {
         password: `prevent_login_${crypto.randomUUID()}`,
         email_confirm: true,
         user_metadata: {
-          empno,
+          empno: normalizedEmpno,
           name: user.empnm,
           department: user.depnm,
           role: user.role,
@@ -138,8 +138,7 @@ serve(async (req) => {
       userId = newUser.user.id;
     }
 
-    // public.users 동기화
-    await supabaseAdmin.from("users").upsert({
+    const { error: upsertError } = await supabaseAdmin.from("users").upsert({
       id: userId,
       email,
       name: user.empnm,
@@ -147,24 +146,18 @@ serve(async (req) => {
       role: user.role,
       updated_at: new Date().toISOString(),
     });
+    if (upsertError) throw upsertError;
 
-    // 임시 비밀번호로 세션 발급 후 반환 (클라이언트에서 setSession 처리)
     const tempPassword = `temp_${crypto.randomUUID()}!`;
-    await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword });
+    const { error: tempPwError } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword });
+    if (tempPwError) throw tempPwError;
 
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.signInWithPassword({
-      email,
-      password: tempPassword,
-    });
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.signInWithPassword({ email, password: tempPassword });
     if (sessionError) throw sessionError;
 
-    return new Response(JSON.stringify(sessionData), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ ...sessionData, request_id: requestId });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message.slice(0, 300) : undefined;
+    return json({ error: "로그인 처리 중 오류가 발생했습니다.", code: "INTERNAL_ERROR", detail, request_id: requestId }, 400);
   }
 });

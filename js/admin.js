@@ -1,6 +1,15 @@
 ﻿let allEmployees = [];
 let allEventDepartmentStats = [];
 
+function getUserErrorMessage(context, error, fallback = '요청 처리 중 오류가 발생했습니다.') {
+    if (window.AppError?.toConsole) {
+        const parsed = window.AppError.toConsole(context, error);
+        return parsed.userMessage || fallback;
+    }
+    console.error(`[${context}]`, error);
+    return fallback;
+}
+
 async function requireAdminSession() {
     if (!window.supabaseClient) return null;
 
@@ -109,7 +118,7 @@ async function invokeAdminFunction(functionName, body = {}) {
         });
 
         if (error) {
-            console.error(`[Admin API] ${functionName} Network Error:`, error);
+            getUserErrorMessage(`Admin API ${functionName} Network Error`, error);
             const wrapped = new Error(error.message || '요청 실패');
             wrapped.status = error.context?.status || 0;
             wrapped.context = error.context || null;
@@ -117,7 +126,7 @@ async function invokeAdminFunction(functionName, body = {}) {
         }
 
         if (data?.error) {
-            console.error(`[Admin API] ${functionName} Business Error:`, data.error);
+            getUserErrorMessage(`Admin API ${functionName} Business Error`, data);
             const wrapped = new Error(data.error || '요청 실패');
             wrapped.code = data.code;
             wrapped.detail = data.detail;
@@ -141,7 +150,7 @@ async function invokeAdminFunction(functionName, body = {}) {
                 const refreshedToken = await getFreshAccessToken(true);
                 return await call(refreshedToken);
             } catch (retryErr) {
-                console.error(`[Admin API] Retry failed for ${functionName}:`, retryErr);
+                getUserErrorMessage(`Admin API ${functionName} Retry Failed`, retryErr);
                 throw retryErr;
             }
         }
@@ -370,8 +379,9 @@ async function loadDashboardMetrics() {
         }
         renderDepartmentStatsByEvent(select?.value || '');
     } catch (err) {
-        console.error('[Admin] 대시보드 지표 조회 실패:', err);
+        const message = getUserErrorMessage('Admin Dashboard Metrics', err, '대시보드 지표 조회에 실패했습니다.');
         renderDashboardMetrics({});
+        console.warn('[Admin] 대시보드 지표 조회 실패:', message);
         try {
             allEventDepartmentStats = await loadDepartmentStatsFallback();
             renderDepartmentEventOptions(allEventDepartmentStats);
@@ -396,10 +406,8 @@ async function loadEmployees() {
         allEmployees = Array.isArray(data?.employees) ? data.employees : [];
         renderEmployees();
     } catch (err) {
-        const msg = err?.message || '목록 조회 실패';
-        const code = err?.code ? ` [${err.code}]` : '';
-        console.error('[Admin] 직원 목록 조회 실패:', err);
-        alert(`직원 목록 조회 실패${code}: ${msg}`);
+        const message = getUserErrorMessage('Admin Employee List', err, '직원 목록 조회에 실패했습니다.');
+        alert(`직원 목록 조회 실패: ${message}`);
     }
 }
 
@@ -500,9 +508,8 @@ async function loadAuditLogs() {
     try {
         data = await invokeAdminFunction('admin-audit-logs', { limit: 50 });
     } catch (err) {
-        const msg = err?.message || '감사 로그 조회 실패';
-        console.error('[Admin] 감사 로그 조회 실패:', err);
-        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-red-500">${msg}</td></tr>`;
+        const message = getUserErrorMessage('Admin Audit Logs', err, '감사 로그 조회에 실패했습니다.');
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-red-500">${message}</td></tr>`;
         return;
     }
 
@@ -600,5 +607,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadAuditLogs(),
     ]);
 });
+
 
 

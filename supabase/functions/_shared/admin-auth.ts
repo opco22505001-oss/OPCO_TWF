@@ -12,20 +12,45 @@ export function jsonResponse(payload: Record<string, unknown>, status = 200) {
   });
 }
 
+export function errorResponse(
+  status: number,
+  message: string,
+  code: string,
+  requestId: string,
+  detail?: string,
+) {
+  return jsonResponse(
+    {
+      error: message,
+      code,
+      request_id: requestId,
+      ...(detail ? { detail } : {}),
+    },
+    status,
+  );
+}
+
+export function safeErrorDetail(error: unknown) {
+  if (!error || typeof error !== "object") return undefined;
+  const maybeMessage = (error as { message?: unknown }).message;
+  if (typeof maybeMessage !== "string") return undefined;
+  // 토큰/헤더 유출을 막기 위해 길이 제한
+  return maybeMessage.slice(0, 300);
+}
+
 export function createAdminClient() {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
-export function extractAccessToken(req: Request, body: any): string {
-  if (typeof body?.accessToken === "string" && body.accessToken) {
-    return body.accessToken;
+export function extractAccessToken(req: Request, body: unknown): string {
+  if (typeof body === "object" && body !== null) {
+    const maybeToken = (body as { accessToken?: unknown }).accessToken;
+    if (typeof maybeToken === "string" && maybeToken) return maybeToken;
   }
   const authHeader = req.headers.get("Authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.substring(7);
-  }
+  if (authHeader?.startsWith("Bearer ")) return authHeader.substring(7);
   return "";
 }
 
@@ -52,10 +77,7 @@ export async function requireAdminAuth(
   if (!token) {
     return {
       ok: false,
-      response: jsonResponse(
-        { error: "인증 토큰이 제공되지 않았습니다.", code: "TOKEN_MISSING", request_id: requestId },
-        401,
-      ),
+      response: errorResponse(401, "인증 토큰이 없습니다.", "TOKEN_MISSING", requestId),
     };
   }
 
@@ -63,14 +85,12 @@ export async function requireAdminAuth(
   if (authError || !authData?.user) {
     return {
       ok: false,
-      response: jsonResponse(
-        {
-          error: "유효하지 않은 토큰이거나 세션이 만료되었습니다.",
-          code: "AUTH_FAILED",
-          detail: authError?.message,
-          request_id: requestId,
-        },
+      response: errorResponse(
         401,
+        "유효하지 않은 토큰이거나 세션이 만료되었습니다.",
+        "AUTH_FAILED",
+        requestId,
+        safeErrorDetail(authError),
       ),
     };
   }
@@ -110,14 +130,12 @@ export async function requireAdminAuth(
   if (meError || !isAdmin) {
     return {
       ok: false,
-      response: jsonResponse(
-        {
-          error: "관리자 권한이 없습니다.",
-          code: "ADMIN_REQUIRED",
-          detail: meError?.message,
-          request_id: requestId,
-        },
+      response: errorResponse(
         403,
+        "관리자 권한이 없습니다.",
+        "ADMIN_REQUIRED",
+        requestId,
+        safeErrorDetail(meError),
       ),
     };
   }
@@ -140,4 +158,44 @@ export async function requireAdminAuth(
     requesterEmpno,
     requesterMetaRole,
   };
+}
+
+export async function enforceRateLimit(
+  adminClient: ReturnType<typeof createAdminClient>,
+  key: string,
+  maxRequests: number,
+  windowSeconds: number,
+  requestId: string,
+) {
+  const { data, error } = await adminClient.rpc("check_rate_limit", {
+    p_key: key,
+    p_limit: maxRequests,
+    p_window_sec: windowSeconds,
+  });
+
+  if (error) {
+    return {
+      ok: false as const,
+      response: errorResponse(500, "요청 제한 검사에 실패했습니다.", "RATE_LIMIT_CHECK_FAILED", requestId),
+    };
+  }
+
+  const allowed = Boolean((data as { allowed?: boolean })?.allowed);
+  if (!allowed) {
+    const retryAfter = Number((data as { retry_after?: number })?.retry_after ?? windowSeconds);
+    return {
+      ok: false as const,
+      response: jsonResponse(
+        {
+          error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+          code: "RATE_LIMITED",
+          retry_after: retryAfter,
+          request_id: requestId,
+        },
+        429,
+      ),
+    };
+  }
+
+  return { ok: true as const };
 }

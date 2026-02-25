@@ -1,5 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, createAdminClient, extractAccessToken, jsonResponse, requireAdminAuth } from "../_shared/admin-auth.ts";
+import {
+  corsHeaders,
+  createAdminClient,
+  enforceRateLimit,
+  errorResponse,
+  extractAccessToken,
+  jsonResponse,
+  requireAdminAuth,
+  safeErrorDetail,
+} from "../_shared/admin-auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -12,6 +21,9 @@ serve(async (req) => {
     const auth = await requireAdminAuth(adminClient, token, requestId);
     if (!auth.ok) return auth.response;
 
+    const rate = await enforceRateLimit(adminClient, `admin-dashboard-metrics:${auth.requesterId}`, 120, 60, requestId);
+    if (!rate.ok) return rate.response;
+
     const nearDays = Number.isFinite(Number(body?.nearDays)) ? Math.max(0, Number(body.nearDays)) : 2;
     const reviewThreshold = Number.isFinite(Number(body?.reviewThreshold))
       ? Math.min(100, Math.max(1, Number(body.reviewThreshold)))
@@ -22,25 +34,21 @@ serve(async (req) => {
       .from("events")
       .select("id, title, status, end_date, created_at")
       .order("created_at", { ascending: false });
-    if (eventsError) return jsonResponse({ error: eventsError.message }, 500);
+    if (eventsError) return errorResponse(500, "이벤트 조회 실패", "EVENT_QUERY_FAILED", requestId, safeErrorDetail(eventsError));
 
     const { data: snapshot, error: snapshotError } = await adminClient.rpc("admin_dashboard_metrics_snapshot");
-    if (snapshotError) return jsonResponse({ error: snapshotError.message }, 500);
+    if (snapshotError) {
+      return errorResponse(500, "지표 집계 조회 실패", "METRICS_RPC_FAILED", requestId, safeErrorDetail(snapshotError));
+    }
 
     const submissionCounts = (snapshot?.submissionCounts || {}) as Record<string, number>;
     const judgeCounts = (snapshot?.judgeCounts || {}) as Record<string, number>;
     const judgmentCounts = (snapshot?.judgmentCounts || {}) as Record<string, number>;
     const eventDepartmentStatsFromDb = Array.isArray(snapshot?.eventDepartmentStats) ? snapshot.eventDepartmentStats : [];
 
-    const submissionByEvent = new Map<string, number>(
-      Object.entries(submissionCounts).map(([eventId, cnt]) => [eventId, Number(cnt || 0)]),
-    );
-    const judgeByEvent = new Map<string, number>(
-      Object.entries(judgeCounts).map(([eventId, cnt]) => [eventId, Number(cnt || 0)]),
-    );
-    const judgmentByEvent = new Map<string, number>(
-      Object.entries(judgmentCounts).map(([eventId, cnt]) => [eventId, Number(cnt || 0)]),
-    );
+    const submissionByEvent = new Map<string, number>(Object.entries(submissionCounts).map(([eventId, cnt]) => [eventId, Number(cnt || 0)]));
+    const judgeByEvent = new Map<string, number>(Object.entries(judgeCounts).map(([eventId, cnt]) => [eventId, Number(cnt || 0)]));
+    const judgmentByEvent = new Map<string, number>(Object.entries(judgmentCounts).map(([eventId, cnt]) => [eventId, Number(cnt || 0)]));
 
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -124,6 +132,6 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error(`[admin-dashboard-metrics] [${requestId}] Internal Error:`, error);
-    return jsonResponse({ error: (error as Error).message, request_id: requestId }, 500);
+    return errorResponse(500, "서버 처리 중 오류가 발생했습니다.", "INTERNAL_ERROR", requestId, safeErrorDetail(error));
   }
 });

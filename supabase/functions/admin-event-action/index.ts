@@ -1,14 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, createAdminClient, extractAccessToken, jsonResponse, requireAdminAuth } from "../_shared/admin-auth.ts";
+import {
+  corsHeaders,
+  createAdminClient,
+  enforceRateLimit,
+  errorResponse,
+  extractAccessToken,
+  jsonResponse,
+  requireAdminAuth,
+  safeErrorDetail,
+} from "../_shared/admin-auth.ts";
 
 function sumScore(scoreObj: Record<string, unknown> | null | undefined) {
   return Object.values(scoreObj || {}).reduce((sum, value) => sum + (Number(value) || 0), 0);
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const requestId = crypto.randomUUID();
   try {
@@ -18,9 +25,12 @@ serve(async (req) => {
     const auth = await requireAdminAuth(adminClient, token, requestId);
     if (!auth.ok) return auth.response;
 
+    const rate = await enforceRateLimit(adminClient, `admin-event-action:${auth.requesterId}`, 120, 60, requestId);
+    if (!rate.ok) return rate.response;
+
     const action = body?.action;
     const eventId = body?.eventId;
-    if (!eventId) return jsonResponse({ error: "eventId 누락", status: 400 }, 400);
+    if (!eventId) return errorResponse(400, "eventId가 필요합니다.", "BAD_REQUEST", requestId);
 
     const { data: eventRow, error: eventError } = await adminClient
       .from("events")
@@ -28,8 +38,8 @@ serve(async (req) => {
       .eq("id", eventId)
       .maybeSingle();
 
-    if (eventError) return jsonResponse({ error: eventError.message, status: 500 }, 500);
-    if (!eventRow) return jsonResponse({ error: "이벤트 찾을 수 없음", status: 404 }, 404);
+    if (eventError) return errorResponse(500, "이벤트 조회 실패", "EVENT_QUERY_FAILED", requestId, safeErrorDetail(eventError));
+    if (!eventRow) return errorResponse(404, "이벤트를 찾을 수 없습니다.", "EVENT_NOT_FOUND", requestId);
 
     if (action === "delete_event") {
       const { data: deletePayload, error: deleteError } = await adminClient.rpc("admin_delete_event_with_backup", {
@@ -38,26 +48,42 @@ serve(async (req) => {
         p_reason: "admin_event_action_v2",
       });
       if (deleteError) {
-        return jsonResponse({ error: deleteError.message, detail: deleteError.details, hint: deleteError.hint, status: 500 }, 500);
+        return errorResponse(500, "이벤트 삭제 처리 실패", "EVENT_DELETE_FAILED", requestId, safeErrorDetail(deleteError));
       }
 
-      await adminClient.from("admin_audit_logs").insert({
+      const { error: auditError } = await adminClient.from("admin_audit_logs").insert({
         actor_user_id: auth.requesterId,
         action: "delete_event",
         target_type: "event",
         target_id: eventId,
         metadata: { title: eventRow.title, backup: deletePayload },
       });
-      return jsonResponse({ ok: true, action, eventId, backup: deletePayload });
+      if (auditError) {
+        return errorResponse(500, "감사 로그 기록 실패", "AUDIT_LOG_FAILED", requestId, safeErrorDetail(auditError));
+      }
+      return jsonResponse({ ok: true, action, eventId, backup: deletePayload, request_id: requestId });
     }
 
     if (action === "close_event") {
+      const nowIso = new Date().toISOString();
       const { error: updateError } = await adminClient
         .from("events")
-        .update({ status: "closed", end_date: new Date().toISOString().slice(0, 10), updated_at: new Date().toISOString() })
+        .update({ status: "closed", end_date: nowIso.slice(0, 10), updated_at: nowIso })
         .eq("id", eventId);
-      if (updateError) return jsonResponse({ error: updateError.message, status: 500 }, 500);
-      return jsonResponse({ ok: true, action, eventId });
+      if (updateError) return errorResponse(500, "이벤트 마감 실패", "EVENT_CLOSE_FAILED", requestId, safeErrorDetail(updateError));
+
+      const { error: auditError } = await adminClient.from("admin_audit_logs").insert({
+        actor_user_id: auth.requesterId,
+        action: "close_event",
+        target_type: "event",
+        target_id: eventId,
+        metadata: { title: eventRow.title, before_status: eventRow.status, after_status: "closed" },
+      });
+      if (auditError) {
+        return errorResponse(500, "감사 로그 기록 실패", "AUDIT_LOG_FAILED", requestId, safeErrorDetail(auditError));
+      }
+
+      return jsonResponse({ ok: true, action, eventId, request_id: requestId });
     }
 
     if (action === "finalize_results") {
@@ -65,16 +91,16 @@ serve(async (req) => {
         .from("submissions")
         .select("id, created_at, content, submitter:users!submitter_id(name)")
         .eq("event_id", eventId);
-      if (subsError) return jsonResponse({ error: subsError.message, status: 500 }, 500);
+      if (subsError) return errorResponse(500, "제출물 조회 실패", "SUBMISSION_QUERY_FAILED", requestId, safeErrorDetail(subsError));
 
       const submissionIds = (subs || []).map((s) => s.id);
-      if (!submissionIds.length) return jsonResponse({ error: "제출물이 없습니다.", code: "NO_SUBMISSIONS", status: 400 }, 400);
+      if (!submissionIds.length) return errorResponse(400, "제출물이 없습니다.", "NO_SUBMISSIONS", requestId);
 
       const { data: judgments, error: judgmentsError } = await adminClient
         .from("judgments")
         .select("submission_id, score")
         .in("submission_id", submissionIds);
-      if (judgmentsError) return jsonResponse({ error: judgmentsError.message, status: 500 }, 500);
+      if (judgmentsError) return errorResponse(500, "평가 데이터 조회 실패", "JUDGMENT_QUERY_FAILED", requestId, safeErrorDetail(judgmentsError));
 
       const grouped = new Map<string, number[]>();
       (judgments || []).forEach((j) => {
@@ -116,27 +142,27 @@ serve(async (req) => {
           updated_at: finalizedAt,
         })
         .eq("id", eventId);
-      if (updateEventError) return jsonResponse({ error: updateEventError.message, status: 500 }, 500);
+      if (updateEventError) {
+        return errorResponse(500, "결과 확정 저장 실패", "FINALIZE_UPDATE_FAILED", requestId, safeErrorDetail(updateEventError));
+      }
 
-      await adminClient.from("admin_audit_logs").insert({
+      const { error: auditError } = await adminClient.from("admin_audit_logs").insert({
         actor_user_id: auth.requesterId,
         action: "finalize_results",
         target_type: "event",
         target_id: eventId,
         metadata: { title: eventRow.title, finalized_count: ranked.length, finalized_at: finalizedAt },
       });
+      if (auditError) {
+        return errorResponse(500, "감사 로그 기록 실패", "AUDIT_LOG_FAILED", requestId, safeErrorDetail(auditError));
+      }
 
-      return jsonResponse({ ok: true, action, eventId, finalized_at: finalizedAt, ranked_count: ranked.length });
+      return jsonResponse({ ok: true, action, eventId, finalized_at: finalizedAt, ranked_count: ranked.length, request_id: requestId });
     }
 
-    return jsonResponse({ error: "지원하지 않는 action", status: 400 }, 400);
+    return errorResponse(400, "지원하지 않는 action 입니다.", "BAD_REQUEST", requestId);
   } catch (error) {
-    console.error(`[admin-event-action] [${requestId}] UNCAUGHT Error:`, error);
-    return jsonResponse({
-      error: "내부 서버 오류",
-      message: (error as Error).message,
-      request_id: requestId,
-      status: 500,
-    }, 500);
+    console.error(`[admin-event-action] [${requestId}] Internal Error:`, error);
+    return errorResponse(500, "서버 처리 중 오류가 발생했습니다.", "INTERNAL_ERROR", requestId, safeErrorDetail(error));
   }
 });
