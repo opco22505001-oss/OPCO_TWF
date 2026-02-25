@@ -246,6 +246,55 @@ function renderDepartmentStatsByEvent(eventId) {
         </tr>
     `).join('');
 }
+
+function bindDepartmentEventSelect() {
+    const select = document.getElementById('dept-event-select');
+    if (!select || select.dataset.bound) return;
+    select.addEventListener('change', (e) => renderDepartmentStatsByEvent(e.target.value));
+    select.dataset.bound = 'true';
+}
+
+async function loadDepartmentStatsFallback() {
+    const { data: events, error: eventsError } = await supabaseClient
+        .from('events')
+        .select('id, title, status')
+        .order('created_at', { ascending: false });
+    if (eventsError) throw eventsError;
+
+    const { data: submissions, error: submissionsError } = await supabaseClient
+        .from('submissions')
+        .select('event_id, submitter_id');
+    if (submissionsError) throw submissionsError;
+
+    const { data: users, error: usersError } = await supabaseClient
+        .from('users')
+        .select('id, department');
+    if (usersError) throw usersError;
+
+    const userDeptMap = new Map((users || []).map((u) => [u.id, u.department || '부서 미지정']));
+    const deptCountByEvent = new Map();
+
+    (submissions || []).forEach((s) => {
+        if (!deptCountByEvent.has(s.event_id)) deptCountByEvent.set(s.event_id, new Map());
+        const deptMap = deptCountByEvent.get(s.event_id);
+        const dept = userDeptMap.get(s.submitter_id) || '부서 미지정';
+        deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
+    });
+
+    return (events || []).map((event) => {
+        const deptMap = deptCountByEvent.get(event.id) || new Map();
+        const departments = Array.from(deptMap.entries())
+            .map(([department, count]) => ({ department, count }))
+            .sort((a, b) => b.count - a.count || a.department.localeCompare(b.department, 'ko'));
+        return {
+            eventId: event.id,
+            title: event.title,
+            status: event.status,
+            totalSubmissions: departments.reduce((sum, row) => sum + Number(row.count || 0), 0),
+            departments,
+        };
+    });
+}
 function formatDaysLeft(daysLeft) {
     if (daysLeft === null || daysLeft === undefined) return '-';
     if (daysLeft < 0) return `${Math.abs(daysLeft)}일 지남`;
@@ -308,13 +357,13 @@ async function loadDashboardMetrics() {
         renderDashboardMetrics(data?.metrics || {});
 
         allEventDepartmentStats = Array.isArray(data?.eventDepartmentStats) ? data.eventDepartmentStats : [];
+        if (!allEventDepartmentStats.length) {
+            allEventDepartmentStats = await loadDepartmentStatsFallback();
+        }
         renderDepartmentEventOptions(allEventDepartmentStats);
+        bindDepartmentEventSelect();
 
         const select = document.getElementById('dept-event-select');
-        if (select && !select.dataset.bound) {
-            select.addEventListener('change', (e) => renderDepartmentStatsByEvent(e.target.value));
-            select.dataset.bound = 'true';
-        }
         if (select && !select.value && allEventDepartmentStats.length > 0) {
             select.value = allEventDepartmentStats[0].eventId;
         }
@@ -322,9 +371,21 @@ async function loadDashboardMetrics() {
     } catch (err) {
         console.error('[Admin] 대시보드 지표 조회 실패:', err);
         renderDashboardMetrics({});
-        allEventDepartmentStats = [];
-        renderDepartmentEventOptions([]);
-        renderDepartmentStatsByEvent('');
+        try {
+            allEventDepartmentStats = await loadDepartmentStatsFallback();
+            renderDepartmentEventOptions(allEventDepartmentStats);
+            bindDepartmentEventSelect();
+            const select = document.getElementById('dept-event-select');
+            if (select && !select.value && allEventDepartmentStats.length > 0) {
+                select.value = allEventDepartmentStats[0].eventId;
+            }
+            renderDepartmentStatsByEvent(select?.value || '');
+        } catch (fallbackErr) {
+            console.error('[Admin] 부서 제출 현황 조회 실패:', fallbackErr);
+            allEventDepartmentStats = [];
+            renderDepartmentEventOptions([]);
+            renderDepartmentStatsByEvent('');
+        }
     }
 }
 
