@@ -84,25 +84,23 @@ serve(async (req) => {
     const { data: events, error: eventsError } = await adminClient.from("events").select("id, title, status, end_date, created_at").order("created_at", { ascending: false });
     if (eventsError) return jsonResponse({ error: eventsError.message }, 500);
 
-    const { data: submissions } = await adminClient.from("submissions").select("id, event_id, submitter_id");
-    const { data: eventJudges } = await adminClient.from("event_judges").select("event_id, judge_id");
-    const { data: judgments } = await adminClient.from("judgments").select("id, submission_id");
-    const { data: users } = await adminClient.from("users").select("id, department");
+    const { data: snapshot, error: snapshotError } = await adminClient.rpc("admin_dashboard_metrics_snapshot");
+    if (snapshotError) return jsonResponse({ error: snapshotError.message }, 500);
 
-    const submissionByEvent = new Map<string, number>();
-    (submissions || []).forEach((s) => submissionByEvent.set(s.event_id, (submissionByEvent.get(s.event_id) || 0) + 1));
+    const submissionCounts = (snapshot?.submissionCounts || {}) as Record<string, number>;
+    const judgeCounts = (snapshot?.judgeCounts || {}) as Record<string, number>;
+    const judgmentCounts = (snapshot?.judgmentCounts || {}) as Record<string, number>;
+    const eventDepartmentStatsFromDb = Array.isArray(snapshot?.eventDepartmentStats) ? snapshot.eventDepartmentStats : [];
 
-    const judgeByEvent = new Map<string, number>();
-    (eventJudges || []).forEach((j) => judgeByEvent.set(j.event_id, (judgeByEvent.get(j.event_id) || 0) + 1));
-
-    const submissionEventMap = new Map<string, string>();
-    (submissions || []).forEach((s) => submissionEventMap.set(s.id, s.event_id));
-
-    const judgmentByEvent = new Map<string, number>();
-    (judgments || []).forEach((j) => {
-      const eventId = submissionEventMap.get(j.submission_id);
-      if (eventId) judgmentByEvent.set(eventId, (judgmentByEvent.get(eventId) || 0) + 1);
-    });
+    const submissionByEvent = new Map<string, number>(
+      Object.entries(submissionCounts).map(([eventId, cnt]) => [eventId, Number(cnt || 0)]),
+    );
+    const judgeByEvent = new Map<string, number>(
+      Object.entries(judgeCounts).map(([eventId, cnt]) => [eventId, Number(cnt || 0)]),
+    );
+    const judgmentByEvent = new Map<string, number>(
+      Object.entries(judgmentCounts).map(([eventId, cnt]) => [eventId, Number(cnt || 0)]),
+    );
 
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -130,32 +128,30 @@ serve(async (req) => {
 
     const delayedEvents = perEvent.filter((e) => e.delayed && (statusFilter === "all" ? true : e.status === statusFilter)).sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
 
-    const userDeptMap = new Map<string, string>();
-    (users || []).forEach((u) => {
-      userDeptMap.set(u.id, u.department || "부서 미지정");
-    });
-
-    const deptCountByEvent = new Map<string, Map<string, number>>();
-    (submissions || []).forEach((s) => {
-      const eventId = s.event_id;
+    const deptMapByEvent = new Map<string, { departments: Array<{ department: string; count: number }>; totalSubmissions: number }>();
+    eventDepartmentStatsFromDb.forEach((row: any) => {
+      const eventId = String(row?.eventId || "");
       if (!eventId) return;
-      const dept = userDeptMap.get(s.submitter_id) || "부서 미지정";
-      if (!deptCountByEvent.has(eventId)) deptCountByEvent.set(eventId, new Map<string, number>());
-      const deptMap = deptCountByEvent.get(eventId)!;
-      deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
+      const departments = Array.isArray(row?.departments)
+        ? row.departments.map((d: any) => ({
+            department: String(d?.department || "부서 미지정"),
+            count: Number(d?.count || 0),
+          }))
+        : [];
+      deptMapByEvent.set(eventId, {
+        departments,
+        totalSubmissions: Number(row?.totalSubmissions || 0),
+      });
     });
 
     const eventDepartmentStats = (events || []).map((event) => {
-      const deptMap = deptCountByEvent.get(event.id) || new Map<string, number>();
-      const departments = Array.from(deptMap.entries())
-        .map(([department, count]) => ({ department, count }))
-        .sort((a, b) => b.count - a.count || a.department.localeCompare(b.department, "ko"));
+      const deptRow = deptMapByEvent.get(event.id);
       return {
         eventId: event.id,
         title: event.title,
         status: event.status,
-        totalSubmissions: departments.reduce((sum, row) => sum + row.count, 0),
-        departments,
+        totalSubmissions: Number(deptRow?.totalSubmissions || 0),
+        departments: deptRow?.departments || [],
       };
     });
 
