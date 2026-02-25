@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OPCO : TWF 이벤트 심사 시스템 - 로그인</title>
+    <title>오리엔탈정공 : Two Weeks Focus - 로그인</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -37,10 +37,15 @@
             <div class="w-full max-w-[420px] flex flex-col">
                 <div class="mb-10 text-center lg:text-left">
                     <div class="flex items-center justify-center lg:justify-start gap-2 mb-8">
-                        <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
+                        <img
+                            src="assets/header-logo-icon.png"
+                            alt="서비스 로고"
+                            class="h-10 w-10 rounded-lg object-cover border border-border-light"
+                            onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');" />
+                        <div class="hidden w-10 h-10 bg-primary rounded-lg items-center justify-center text-white">
                             <span class="material-symbols-outlined text-[24px]">engineering</span>
                         </div>
-                        <span class="text-xl font-bold tracking-tight text-text-main dark:text-white uppercase">OPCO : TWF 이벤트 심사 시스템</span>
+                        <span class="text-xl font-bold tracking-tight text-text-main dark:text-white">오리엔탈정공 : Two Weeks Focus</span>
                     </div>
                     <h1 class="text-3xl font-bold tracking-tight text-text-main dark:text-white mb-2">로그인</h1>
                     <p class="text-text-muted dark:text-gray-400 text-sm">사번과 이름으로 로그인하세요.</p>

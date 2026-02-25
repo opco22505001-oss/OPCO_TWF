@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>마이 페이지 - OPCO : TWF</title>
+    <title>마이 페이지 - 오리엔탈정공 : Two Weeks Focus</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link
@@ -46,11 +46,16 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-4">
-                    <a href="dashboard.html" class="flex-shrink-0 flex items-center gap-2">
-                        <div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
+                    <a href="dashboard.html" class="flex-shrink-0 flex items-center gap-2"
+                        title="오리엔탈정공 : Two Weeks Focus">
+                        <img src="assets/header-logo-icon.png" alt="서비스 로고"
+                            class="h-8 w-8 rounded object-cover border border-border-light"
+                            onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');" />
+                        <div class="hidden h-8 w-8 bg-primary rounded items-center justify-center text-white">
                             <span class="material-symbols-outlined text-xl">precision_manufacturing</span>
                         </div>
-                        <span class="font-bold text-lg tracking-tight text-text-main dark:text-white">OPCO : TWF</span>
+                        <span class="font-bold text-base tracking-tight text-text-main dark:text-white">오리엔탈정공 : Two Weeks
+                            Focus</span>
                     </a>
                     <div class="hidden md:flex h-6 w-px bg-border-light mx-2"></div>
                     <nav class="hidden md:flex space-x-4">
