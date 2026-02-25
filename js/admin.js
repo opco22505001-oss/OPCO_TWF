@@ -1,4 +1,5 @@
 ﻿let allEmployees = [];
+let allEventDepartmentStats = [];
 
 async function requireAdminSession() {
     if (!window.supabaseClient) return null;
@@ -157,6 +158,94 @@ function renderDashboardMetrics(metrics = {}) {
     if (reviewEl) reviewEl.textContent = `${Number(metrics.avgReviewRate ?? 0).toFixed(1)}%`;
 }
 
+
+function ensureDepartmentStatsSection() {
+    const delayedTable = document.getElementById('delayed-events-table');
+    const delayedSection = delayedTable?.closest('.bg-surface-light');
+    if (!delayedSection) return;
+
+    delayedSection.innerHTML = `
+        <div class="px-4 py-3 border-b border-border-light dark:border-gray-700 flex items-end justify-between gap-3">
+            <div>
+                <h2 class="text-base font-bold">이벤트별 부서 제출 현황</h2>
+                <p class="text-xs text-text-muted mt-1">선택한 이벤트의 부서별 제출 건수를 확인합니다.</p>
+            </div>
+            <select id="dept-event-select" class="rounded-lg border-border-light text-sm min-w-[320px]">
+                <option value="">이벤트를 선택하세요</option>
+            </select>
+        </div>
+        <div class="p-4">
+            <div id="dept-stats-chart" class="space-y-2 mb-4"></div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 dark:bg-slate-800/60 text-text-muted">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-semibold">부서</th>
+                            <th class="px-4 py-3 text-right font-semibold">제출 건수</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dept-stats-table" class="divide-y divide-border-light dark:divide-gray-700">
+                        <tr>
+                            <td colspan="2" class="px-4 py-10 text-center text-text-muted">이벤트를 선택하면 표시됩니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    const filterWrap = document.getElementById('filter-near-days')?.closest('.bg-surface-light');
+    if (filterWrap) filterWrap.remove();
+}
+
+function renderDepartmentEventOptions(rows = []) {
+    const select = document.getElementById('dept-event-select');
+    if (!select) return;
+
+    const sorted = [...rows].sort((a, b) => (b.totalSubmissions || 0) - (a.totalSubmissions || 0));
+    select.innerHTML = '<option value="">이벤트를 선택하세요</option>' + sorted.map((row) => {
+        return `<option value="${row.eventId}">${row.title || '-'} (${row.totalSubmissions || 0}건)</option>`;
+    }).join('');
+}
+
+function renderDepartmentStatsByEvent(eventId) {
+    const chart = document.getElementById('dept-stats-chart');
+    const tbody = document.getElementById('dept-stats-table');
+    if (!chart || !tbody) return;
+
+    const target = allEventDepartmentStats.find((row) => row.eventId === eventId);
+    const departments = Array.isArray(target?.departments) ? target.departments : [];
+
+    if (!target || departments.length === 0) {
+        chart.innerHTML = '<p class="text-sm text-text-muted">선택한 이벤트의 제출 데이터가 없습니다.</p>';
+        tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-10 text-center text-text-muted">데이터가 없습니다.</td></tr>';
+        return;
+    }
+
+    const maxCount = Math.max(...departments.map((d) => Number(d.count || 0)), 1);
+    chart.innerHTML = departments.map((d) => {
+        const count = Number(d.count || 0);
+        const ratio = Math.max(4, Math.round((count / maxCount) * 100));
+        return `
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-semibold text-text-main">${d.department || '부서 미지정'}</span>
+                    <span class="text-xs text-text-muted">${count}건</span>
+                </div>
+                <div class="h-2 rounded bg-slate-100">
+                    <div class="h-2 rounded bg-primary" style="width:${ratio}%"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    tbody.innerHTML = departments.map((d) => `
+        <tr>
+            <td class="px-4 py-3">${d.department || '부서 미지정'}</td>
+            <td class="px-4 py-3 text-right font-mono">${Number(d.count || 0)}</td>
+        </tr>
+    `).join('');
+}
 function formatDaysLeft(daysLeft) {
     if (daysLeft === null || daysLeft === undefined) return '-';
     if (daysLeft < 0) return `${Math.abs(daysLeft)}일 지남`;
@@ -214,15 +303,28 @@ function getMetricFilters() {
 }
 
 async function loadDashboardMetrics() {
-    const filters = getMetricFilters();
     try {
-        const data = await invokeAdminFunction('admin-dashboard-metrics', filters);
+        const data = await invokeAdminFunction('admin-dashboard-metrics', {});
         renderDashboardMetrics(data?.metrics || {});
-        renderDelayedEvents(Array.isArray(data?.delayedEvents) ? data.delayedEvents : []);
+
+        allEventDepartmentStats = Array.isArray(data?.eventDepartmentStats) ? data.eventDepartmentStats : [];
+        renderDepartmentEventOptions(allEventDepartmentStats);
+
+        const select = document.getElementById('dept-event-select');
+        if (select && !select.dataset.bound) {
+            select.addEventListener('change', (e) => renderDepartmentStatsByEvent(e.target.value));
+            select.dataset.bound = 'true';
+        }
+        if (select && !select.value && allEventDepartmentStats.length > 0) {
+            select.value = allEventDepartmentStats[0].eventId;
+        }
+        renderDepartmentStatsByEvent(select?.value || '');
     } catch (err) {
         console.error('[Admin] 대시보드 지표 조회 실패:', err);
         renderDashboardMetrics({});
-        renderDelayedEvents([]);
+        allEventDepartmentStats = [];
+        renderDepartmentEventOptions([]);
+        renderDepartmentStatsByEvent('');
     }
 }
 
@@ -388,6 +490,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = await requireAdminSession();
     if (!user) return;
 
+    ensureDepartmentStatsSection();
+
     if (window.setupUI) await window.setupUI();
 
     const logoutBtn = document.getElementById('logout-btn');
@@ -402,9 +506,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('employee-search')?.addEventListener('input', renderEmployees);
     document.getElementById('btn-refresh-metrics')?.addEventListener('click', loadDashboardMetrics);
     document.getElementById('btn-refresh-audit')?.addEventListener('click', loadAuditLogs);
-    document.getElementById('filter-near-days')?.addEventListener('change', loadDashboardMetrics);
-    document.getElementById('filter-review-threshold')?.addEventListener('change', loadDashboardMetrics);
-    document.getElementById('filter-status')?.addEventListener('change', loadDashboardMetrics);
 
     await Promise.all([
         loadEmployees(),
@@ -433,3 +534,5 @@ if (roleTableWrap) {
     roleTableWrap.classList.add('overflow-y-auto');
     roleTableWrap.style.maxHeight = '380px';
 }
+
+

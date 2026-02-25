@@ -87,9 +87,10 @@ serve(async (req) => {
     const { data: events, error: eventsError } = await adminClient.from("events").select("id, title, status, end_date, created_at").order("created_at", { ascending: false });
     if (eventsError) return jsonResponse({ error: eventsError.message }, 500);
 
-    const { data: submissions } = await adminClient.from("submissions").select("id, event_id");
+    const { data: submissions } = await adminClient.from("submissions").select("id, event_id, submitter_id");
     const { data: eventJudges } = await adminClient.from("event_judges").select("event_id, judge_id");
     const { data: judgments } = await adminClient.from("judgments").select("id, submission_id");
+    const { data: users } = await adminClient.from("users").select("id, department");
 
     const submissionByEvent = new Map<string, number>();
     (submissions || []).forEach((s) => submissionByEvent.set(s.event_id, (submissionByEvent.get(s.event_id) || 0) + 1));
@@ -132,7 +133,42 @@ serve(async (req) => {
 
     const delayedEvents = perEvent.filter((e) => e.delayed && (statusFilter === "all" ? true : e.status === statusFilter)).sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
 
-    return jsonResponse({ metrics: { activeCount, avgSubmissionRate, avgReviewRate }, delayedEvents, filters: { nearDays, reviewThreshold, statusFilter }, request_id: requestId });
+    const userDeptMap = new Map<string, string>();
+    (users || []).forEach((u) => {
+      userDeptMap.set(u.id, u.department || "부서 미지정");
+    });
+
+    const deptCountByEvent = new Map<string, Map<string, number>>();
+    (submissions || []).forEach((s) => {
+      const eventId = s.event_id;
+      if (!eventId) return;
+      const dept = userDeptMap.get(s.submitter_id) || "부서 미지정";
+      if (!deptCountByEvent.has(eventId)) deptCountByEvent.set(eventId, new Map<string, number>());
+      const deptMap = deptCountByEvent.get(eventId)!;
+      deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
+    });
+
+    const eventDepartmentStats = (events || []).map((event) => {
+      const deptMap = deptCountByEvent.get(event.id) || new Map<string, number>();
+      const departments = Array.from(deptMap.entries())
+        .map(([department, count]) => ({ department, count }))
+        .sort((a, b) => b.count - a.count || a.department.localeCompare(b.department, "ko"));
+      return {
+        eventId: event.id,
+        title: event.title,
+        status: event.status,
+        totalSubmissions: departments.reduce((sum, row) => sum + row.count, 0),
+        departments,
+      };
+    });
+
+    return jsonResponse({
+      metrics: { activeCount, avgSubmissionRate, avgReviewRate },
+      delayedEvents,
+      eventDepartmentStats,
+      filters: { nearDays, reviewThreshold, statusFilter },
+      request_id: requestId
+    });
   } catch (error) {
     console.error(`[admin-dashboard-metrics] [${requestId}] Internal Error:`, error);
     return jsonResponse({ error: (error as Error).message, request_id: requestId }, 500);
