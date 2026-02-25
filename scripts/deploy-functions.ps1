@@ -20,6 +20,9 @@ if (-not (Test-Path $supabaseCmd)) {
 foreach ($fn in $Functions) {
   Write-Host "[deploy] $fn"
   cmd /c "$supabaseCmd functions deploy $fn --no-verify-jwt --project-ref $ProjectRef"
+  if ($LASTEXITCODE -ne 0) {
+    throw "배포 실패: $fn (exit code: $LASTEXITCODE)"
+  }
 }
 
 Write-Host "[deploy] done"
