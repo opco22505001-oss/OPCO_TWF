@@ -39,12 +39,17 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
         <div class="flex items-center gap-4">
-          <div class="flex-shrink-0 flex items-center gap-2">
-            <div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
+          <a class="flex-shrink-0 flex items-center gap-2" href="dashboard.html" title="오리엔탈정공 : Two Weeks Focus">
+            <img
+              src="assets/header-logo-icon.png"
+              alt="서비스 로고"
+              class="h-8 w-8 rounded object-cover border border-border-light"
+              onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');" />
+            <div class="hidden h-8 w-8 bg-primary rounded items-center justify-center text-white">
               <span class="material-symbols-outlined text-xl">precision_manufacturing</span>
             </div>
-            <span class="font-bold text-lg tracking-tight text-text-main dark:text-white">OPCO : TWF</span>
-          </div>
+            <span class="font-bold text-base tracking-tight text-text-main dark:text-white">오리엔탈정공 : Two Weeks Focus</span>
+          </a>
           <div class="hidden md:flex h-6 w-px bg-border-light mx-2"></div>
           <nav class="hidden md:flex space-x-4">
             <a class="text-text-main dark:text-white px-3 py-2 rounded-md text-sm font-medium bg-background-light dark:bg-gray-800" href="dashboard.html">이벤트 목록</a>
